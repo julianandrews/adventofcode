@@ -1,9 +1,7 @@
+from utils import read_data, lines, AStar
+
 from copy import deepcopy
 from itertools import chain, combinations
-try:
-    from queue import Queue
-except ImportError:
-    from Queue import Queue
 
 
 class FactoryState(object):
@@ -29,35 +27,51 @@ class FactoryState(object):
         generator_floors = {j for i, j in self.item_pairs}
         return not any(i in generator_floors for i in unmatched_microchip_floors)
 
+    def neighbors(self):
+        floor_items = self.items[self.floor]
+        for direction in (1, -1):
+            if 0 <= self.floor + direction <= 3:
+                for subset in chain(combinations(floor_items, 2), combinations(floor_items, 1)):
+                    new_state = self.make_move(subset, direction)
+                    if new_state.is_valid():
+                        yield new_state
+
+    def make_move(self, items, direction):
+        new_floor = self.floor + direction
+        new_moves = self.moves + [(items, direction)]
+        new_items = deepcopy(self.items)
+        for item in items:
+            new_items[self.floor].remove(item)
+            new_items[new_floor].add(item)
+
+        return FactoryState(new_floor, new_items, new_moves)
+
     def __eq__(self, other):
         return self.floor == other.floor and self.item_pairs == other.item_pairs
 
     def __hash__(self):
         return hash((self.floor, tuple(self.item_pairs)))
 
-    def __repr__(self):
-        return 'FactoryState({})'.format(self)
-
     def __str__(self):
         return "{} - {}".format(self.floor, self.item_pairs)
 
 
-class FactorySolver:
+class FactorySolver(AStar):
     IRRELEVANT_WORDS = ['a', 'generator', 'microchip', 'and', 'nothing', 'relevant']
 
-    def __init__(self, data):
-        self.seen = set()
-        self.queue = Queue()
-
+    def __init__(self, data, make_it_hard=False):
         items = []
-        for line in data.strip().split('\n'):
+        for line in lines(data):
             words = [s.strip(',.') for s in line.strip().split()]
             items.append(
                 {self.tokenize(word) for word in words[4:] if word not in self.IRRELEVANT_WORDS}
             )
+        if make_it_hard:
+            items[0].update([
+                'M-ELERIUM', 'G-ELERIUM', 'M-DILITHIUM', 'G-DILITHIUM'
+            ])
         initial_state = FactoryState(0, items, [])
-        self.queue.put(initial_state)
-        self.seen.add(initial_state)
+        super(FactorySolver, self).__init__(initial_state)
 
     @staticmethod
     def tokenize(word):
@@ -66,48 +80,29 @@ class FactorySolver:
         else:
             return "G-{}".format(word.upper())
 
-    def solve(self):
-        solution = None
+    def get_neighbors(self, state):
+        return state.neighbors()
 
-        while not self.queue.empty():
-            state = self.queue.get()
-            if state.is_solved():
-                solution = state
-            if solution is None or len(solution.moves) > len(state.moves) + 1:
-                self.queue_children(state)
+    def remaining_distance_heuristic(self, state):
+        total = sum(3 - j for i, j in state.item_pairs)
+        return total
 
-        return solution
+    def get_edge_weight(self, node, neighbor):
+        return 1
 
-    def queue_children(self, old_state):
-        floor_items = old_state.items[old_state.floor]
-        for direction in (1, -1):
-            if 0 <= old_state.floor + direction <= 3:
-                for subset in chain(combinations(floor_items, 2), combinations(floor_items, 1)):
-                    new_state = self.make_move(old_state, subset, direction)
-                    if new_state not in self.seen:
-                        self.seen.add(new_state)
-                        if new_state.is_valid():
-                            self.queue.put(new_state)
-
-    def make_move(self, old_state, items, direction):
-        new_floor = old_state.floor + direction
-        new_moves = old_state.moves + [(items, direction)]
-        new_items = deepcopy(old_state.items)
-        for item in items:
-            new_items[old_state.floor].remove(item)
-            new_items[new_floor].add(item)
-
-        return FactoryState(new_floor, new_items, new_moves)
+    def is_end(self, node):
+        return node.is_solved()
 
 
-def doit(data):
-    solver = FactorySolver(data)
-    solution = solver.solve()
-    return len(solution.moves)
+def solution_length(data, make_it_hard=False):
+    solution = FactorySolver(data, make_it_hard)()
+    return len(solution)
 
 
 if __name__ == '__main__':
-    assert doit(
+    data = read_data(11)
+
+    assert solution_length(
         """
         The first floor contains a hydrogen-compatible microchip and a lithium-compatible microchip.
         The second floor contains a hydrogen generator.
@@ -117,6 +112,5 @@ if __name__ == '__main__':
     ) == 11
     print("All tests passed")
 
-    with open('data/d11.txt') as f:
-        data = f.read()
-    print(doit(data))
+    print(solution_length(data))
+    print(solution_length(data, make_it_hard=True))
