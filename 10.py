@@ -1,5 +1,6 @@
+from utils import read_data
+
 from collections import defaultdict
-from functools import reduce
 
 
 class Bot:
@@ -37,7 +38,7 @@ class Factory:
             if len(bot.values) == 2
         }
 
-    def run(self, interupt_values=None):
+    def __call__(self, interupt_values=None):
         while self.full_bots:
             to_process = []
             for bot_id in self.full_bots:
@@ -68,14 +69,9 @@ class Factory:
                 self.full_bots.remove(bot_id)
 
 
-def doit(data):
-    f = Factory(data)
-    f.run()
-    chips = f.outputs[0] + f.outputs[1] + f.outputs[2]
-    return reduce(int.__mul__, chips)
-
-
 if __name__ == '__main__':
+    data = read_data(10)
+
     factory = Factory(
         """
         value 5 goes to bot 2
@@ -86,12 +82,13 @@ if __name__ == '__main__':
         value 2 goes to bot 2
         """
     )
-    factory.run()
+    factory()
     assert set(factory.outputs[0]) == {5}
     assert set(factory.outputs[1]) == {2}
     assert set(factory.outputs[2]) == {3}
     print("All tests passed")
 
-    with open('data/d10.txt') as f:
-        s = f.read()
-    print(doit(s))
+    print(Factory(data)(interupt_values={61, 17}))
+    factory = Factory(data)
+    factory()
+    print(reduce(int.__mul__, factory.outputs[0] + factory.outputs[1] + factory.outputs[2]))
