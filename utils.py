@@ -1,4 +1,5 @@
 from collections import namedtuple
+from fractions import gcd
 try:
     from queue import Queue
 except ImportError:
@@ -13,6 +14,10 @@ def read_data(n):
 
 def lines(data):
     return [line.strip() for line in data.strip().split('\n')]
+
+
+def lcm(a, b):
+    return (a * b) // gcd(a, b)
 
 
 class AStar(object):
