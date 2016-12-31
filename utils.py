@@ -1,3 +1,10 @@
+from collections import namedtuple
+try:
+    from queue import Queue
+except ImportError:
+    from Queue import Queue
+
+
 def read_data(n):
     with open('data/d{}.txt'.format(n)) as f:
         data = f.read()
@@ -62,3 +69,19 @@ class AStar(object):
                     self.estimated_distances[neighbor] = self.lower_bound_estimate(neighbor)
                     self.parents[neighbor] = node
         return None
+
+
+DFSNode = namedtuple('DFSNode', ('value', 'depth', 'parent'))
+
+
+def dfs(start, get_neighbors):
+    seen = set([start])
+    queue = Queue()
+    queue.put(DFSNode(start, 0, None))
+    while not queue.empty():
+        node = queue.get()
+        yield node
+        for neighbor in get_neighbors(node.value):
+            if neighbor not in seen:
+                queue.put(DFSNode(neighbor, node.depth + 1, node))
+                seen.add(neighbor)
