@@ -1,6 +1,7 @@
 from utils import read_data
 
 from collections import defaultdict
+from functools import reduce
 
 
 class Bot:
