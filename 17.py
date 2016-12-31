@@ -1,4 +1,4 @@
-from utils import dfs
+from utils import bfs
 
 import hashlib
 
@@ -27,7 +27,7 @@ def path(passphrase, longest=False):
                 yield (new_x, new_y, path + door)
 
     best = None
-    for node in dfs((0, 3, ''), open_doors):
+    for node in bfs((0, 3, ''), open_doors):
         x, y, path = node.value
         if x == 3 and y == 0:
             if longest:

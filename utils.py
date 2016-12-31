@@ -76,17 +76,17 @@ class AStar(object):
         return None
 
 
-DFSNode = namedtuple('DFSNode', ('value', 'depth', 'parent'))
+BFSNode = namedtuple('BFSNode', ('value', 'depth', 'parent'))
 
 
-def dfs(start, get_neighbors):
+def bfs(start, get_neighbors):
     seen = set([start])
     queue = Queue()
-    queue.put(DFSNode(start, 0, None))
+    queue.put(BFSNode(start, 0, None))
     while not queue.empty():
         node = queue.get()
         yield node
         for neighbor in get_neighbors(node.value):
             if neighbor not in seen:
-                queue.put(DFSNode(neighbor, node.depth + 1, node))
+                queue.put(BFSNode(neighbor, node.depth + 1, node))
                 seen.add(neighbor)

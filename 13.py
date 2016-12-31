@@ -1,4 +1,4 @@
-from utils import dfs, lines
+from utils import bfs, lines
 
 
 def is_open(location, seed):
@@ -15,18 +15,18 @@ def draw_map(max_x, max_y, seed):
     )
 
 
-def cubicle_dfs(seed):
+def cubicle_bfs(seed):
     def get_neighbors(location):
         x, y = location
         for neighbor in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
             if neighbor[0] >= 0 and neighbor[1] >= 0 and is_open(neighbor, seed):
                 yield neighbor
 
-    return dfs((1, 1), get_neighbors)
+    return bfs((1, 1), get_neighbors)
 
 
 def shortest_path(destination, seed):
-    for node in cubicle_dfs(seed):
+    for node in cubicle_bfs(seed):
         if node.value == destination:
             return node.depth
     return None
@@ -34,7 +34,7 @@ def shortest_path(destination, seed):
 
 def seen_in_steps(steps, seed):
     seen = set()
-    for node in cubicle_dfs(seed):
+    for node in cubicle_bfs(seed):
         if node.depth > steps:
             break
         else:
