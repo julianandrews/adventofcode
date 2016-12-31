@@ -13,15 +13,15 @@ def checksum(data):
     return result
 
 
-def doit(size, seed):
+def get_data_checksum(size, seed):
     data = fill_data(size, seed)
     return checksum(data)
 
 
 if __name__ == '__main__':
     assert checksum('110010110100') == '100'
-    assert doit(20, '10000') == '01100'
+    assert get_data_checksum(20, '10000') == '01100'
     print("All tests passed")
 
-    print(doit(272, '10001110011110000'))
-    print(doit(35651584, '10001110011110000'))
+    print(get_data_checksum(272, '10001110011110000'))
+    print(get_data_checksum(35651584, '10001110011110000'))
