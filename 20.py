@@ -2,17 +2,13 @@ from utils import lines, read_data
 
 
 def unblocked(data, max_value):
-    lowest = max_value + 1
-    highest = 0
     ranges = sorted(tuple(map(int, line.split('-'))) for line in lines(data))
     ranges.append((max_value + 1, max_value + 1))
 
-    for a, b in ranges:
-        if a > highest + 1:
-            for x in range(highest + 1, a):
-                yield x
-        lowest = min(lowest, a)
-        highest = max(highest, b)
+    i = 0
+    for bottom, top in ranges:
+        yield from range(i, bottom)
+        i = max(i, top + 1)
 
 
 if __name__ == '__main__':
@@ -28,5 +24,5 @@ if __name__ == '__main__':
     )) == [3, 9]
     print("All tests passed")
 
-    print(unblocked(data, 4294967295).next())
+    print(next(unblocked(data, 4294967295)))
     print(len(list(unblocked(data, 4294967295))))
