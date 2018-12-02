@@ -1,8 +1,7 @@
-def readlines(filename):
+def readstrings(filename):
     with open(filename) as f:
-        return f.readlines()
+        return [line.strip() for line in f.readlines()]
 
 
 def readints(filename):
-    data = readlines(filename)
-    return (int(line.strip()) for line in data)
+    return [int(x) for x in readstrings(filename)]
