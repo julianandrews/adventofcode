@@ -1,4 +1,5 @@
 import collections
+import itertools
 
 import utils
 
@@ -16,11 +17,14 @@ def p1(data):
 
 
 def p2(data):
-    for i, first in enumerate(data[:-1]):
-        for second in data[i + 1:]:
-            shared = [a for a, b in zip(first, second) if a == b]
-            if len(shared) == len(first) - 1:
-                return "".join(shared)
+    answers = []
+    for (first, second) in itertools.combinations(data, 2):
+        shared = [a for a, b in zip(first, second) if a == b]
+        if len(shared) == len(first) - 1:
+            answers.append("".join(shared))
+
+    assert(len(answers) == 1)
+    return answers[0]
 
 
 if __name__ == "__main__":
