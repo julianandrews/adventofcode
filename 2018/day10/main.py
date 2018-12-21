@@ -1,46 +1,46 @@
-import collections
 import fileinput
-
-EXPECTED_PACKING_FRACTION = 31 / 80.0
 
 
 class PointSet:
+  EXPECTED_PACKING_FRACTION = 31 / 80.0
 
   def __init__(self, points):
     self.points = points
     self.step_count = 0
-    self._set_ranges()
 
   def step(self, n):
     self.step_count += n
     for point in self.points:
       point.step(n)
-    self._set_ranges()
 
-  def area_gradient(self):
+  def expected_gradient(self):
+    return int(len(self.points) / self.EXPECTED_PACKING_FRACTION)
+
+  def gradient(self):
     self.step(1)
-    new_area = self.area()
+    new_value = self.minimized_value()
     self.step(-1)
 
-    return new_area - self.area()
+    return new_value - self.minimized_value()
 
-  def area(self):
-    return (self.x_range[1] - self.x_range[0]) * (
-        self.y_range[1] - self.y_range[0])
+  def minimized_value(self):
+    x_range, y_range = self.get_ranges()
+    return (x_range[1] - x_range[0]) * (y_range[1] - y_range[0])
 
-  def _set_ranges(self):
-    self.x_range = (min(p.position[0] for p in self.points),
-                    max(p.position[0] for p in self.points))
-    self.y_range = (min(p.position[1] for p in self.points),
-                    max(p.position[1] for p in self.points))
+  def get_ranges(self):
+    return ((min(p.position[0] for p in self.points),
+             max(p.position[0] for p in self.points)),
+            (min(p.position[1] for p in self.points),
+             max(p.position[1] for p in self.points)))
 
   def __str__(self):
+    x_range, y_range = self.get_ranges()
+
     grid = [['.'
-             for i in range(self.x_range[1] - self.x_range[0] + 1)]
-            for j in range(self.y_range[1] - self.y_range[0] + 1)]
+             for i in range(x_range[1] - x_range[0] + 1)]
+            for j in range(y_range[1] - y_range[0] + 1)]
     for point in self.points:
-      grid[point.position[1] - self.y_range[0]][point.position[0] -
-                                                self.x_range[0]] = '#'
+      grid[point.position[1] - y_range[0]][point.position[0] - x_range[0]] = '#'
     grid_string = '\n'.join(''.join(line) for line in grid)
 
     return 'Time: %s\n%s\n' % (self.step_count, grid_string)
@@ -66,22 +66,27 @@ class Point:
         p + n * v for (p, v) in zip(self.position, self.velocity))
 
 
-def p1(point_set):
-  expected_area = int(len(point_set.points) / EXPECTED_PACKING_FRACTION)
-  step = -point_set.area_gradient() // expected_area
+def p_both(point_set):
+  step = -point_set.gradient() // point_set.expected_gradient()
   while step:
     point_set.step(step)
-    step = -point_set.area_gradient() // expected_area
+    step = -point_set.gradient() // point_set.expected_gradient()
 
-  CHECK_WINDOW = 10
-  point_set.step(-CHECK_WINDOW // 2)
-  for i in range(CHECK_WINDOW):
-    print(str(point_set))
-    point_set.step(1)
+  # Switch to linear scan
+  direction = -point_set.gradient() // abs(point_set.gradient())
+  best = point_set.minimized_value()
+  while True:
+    point_set.step(direction)
+    value = point_set.minimized_value()
+    if value < best:
+      best = value
+    else:
+      point_set.step(-direction)
+      break
 
   return str(point_set)
 
 
 if __name__ == '__main__':
   point_set = PointSet([Point.from_line(line) for line in fileinput.input()])
-  p1(point_set)
+  print(p_both(point_set))
