@@ -1,31 +1,61 @@
 import fileinput
 
 
-PATTERN_RANGE = 2
+PATTERN_LOOKAROUND = 2
 
 
-def p1(state, patterns, iterations):
-    # Buffer for negative pots
-    state = state << (iterations * PATTERN_RANGE)
-    for i in range(iterations):
+class PotLine:
+    def __init__(self, diagram, patterns):
+        if 0 in patterns:
+            raise ValueError("Crazy patterns!")
+
+        self.offset = 0
+        self.state = pattern_to_int(diagram)
+        self.patterns = patterns
+
+    def find_cycle(self, max_iterations):
+        seen = {}
+        for t in range(max_iterations):
+            seen[self.state] = t, self.offset
+            self.evolve()
+            if self.state in seen:
+                cycle_start, initial_offset = seen[self.state]
+                return t + 1, cycle_start, initial_offset, self.offset
+
+    def evolve(self):
         new_state = 0
-        for j in range(state.bit_length() + PATTERN_RANGE):
-            pattern = state >> j & 31
+        state = self.state << (2 * PATTERN_LOOKAROUND)
+        for shift in range(state.bit_length() + 2 * PATTERN_LOOKAROUND):
+            pattern = state >> shift & 31
             if pattern in patterns:
-                new_state += 1 << (j + PATTERN_RANGE)
-        state = new_state
+                new_state += 1 << shift
+        self.offset += PATTERN_LOOKAROUND
+        self.state = new_state
+        while self.state and not self.state & 1:
+            self.state = self.state >> 1
+            self.offset -= 1
 
-    return state_score(state, iterations * PATTERN_RANGE)
+    def score(self):
+        score = 0
+        for i in range(self.state.bit_length()):
+            if self.state & (1 << i):
+                score += i - self.offset
+
+        return score
 
 
-def state_score(state, offset):
-    score = 0
-    for i in range(state.bit_length()):
-        if state & (1 << i):
-            score += i - offset
+def get_score(diagram, patterns, iterations):
+    pot_line = PotLine(diagram, patterns)
+    result = pot_line.find_cycle(iterations)
 
-    return score
+    if result is not None:
+        time, cycle_start, initial_offset, offset = result
+        cycles, remainder = divmod(iterations - time, time - cycle_start)
+        for i in range(remainder):
+            pot_line.evolve()
+        pot_line.offset += (offset - initial_offset) * cycles
 
+    return pot_line.score()
 
 
 def pattern_to_int(pattern):
@@ -34,11 +64,11 @@ def pattern_to_int(pattern):
 
 if __name__ == "__main__":
     lines = iter(fileinput.input())
-    initial_state = pattern_to_int(next(lines).split(": ")[1])
+    diagram = next(lines).split(": ")[1]
     patterns = {
         pattern_to_int(line.split()[0])
         for line in lines
         if line.strip().endswith("#")
     }
-
-    print(p1(initial_state, patterns, 20))
+    print(get_score(diagram, patterns, 20))
+    print(get_score(diagram, patterns, 50000000000))
