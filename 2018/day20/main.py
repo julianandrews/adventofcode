@@ -57,7 +57,15 @@ def p1(facility_map):
     return node.depth
 
 
+def p2(facility_map):
+    return len([
+        node for node in bfs((0, 0), facility_map.get_neighbors)
+        if node.depth >= 1000
+    ])
+
+
 if __name__ == "__main__":
     regex = next(iter(fileinput.input())).strip()
     facility_map = FacilityMap(regex)
     print(p1(facility_map))
+    print(p2(facility_map))
