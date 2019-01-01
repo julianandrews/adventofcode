@@ -27,6 +27,7 @@ class VirtualMachine:
     def __init__(self, ip_register, registers=None):
         self.ip_register = ip_register
         self.registers = registers[:] if registers is not None else [0, 0, 0, 0, 0, 0]
+        self.paused = False
 
     def operate(self, op_name, a, b, c):
         op_info = self.OPERATIONS[op_name]
@@ -40,7 +41,11 @@ class VirtualMachine:
         ip = self.registers[self.ip_register]
         while ip < len(program):
             if ip in breakpoints:
-                return ip
+                if self.paused:
+                    self.paused = False
+                else:
+                    self.paused = True
+                    return ip
             instruction = program[ip]
             self.registers[self.ip_register] = ip
             original_registers = self.registers[:]
