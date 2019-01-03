@@ -1,66 +1,46 @@
 import fileinput
 import functools
 
+from summed_area_table import SummedAreaTable
+
+
 GRID_SIZE = 300
 
 
-@functools.lru_cache(maxsize=None)
-def power_level(x, y, serial_number, block_size):
-  if block_size == 1:
-    value = (((x + 10) * y + serial_number) * (x + 10)) // 100 % 10 - 5
-  else:
-    if block_size % 2:
-      # Add the outer rim for odd grid sizes
-      value = sum(
-          power_level(x + block_size - 1, y + i, serial_number, 1)
-          for i in range(block_size))
-      value += sum(
-          power_level(x + i, y + block_size - 1, serial_number, 1)
-          for i in range(block_size - 1))
-      value += power_level(x, y, serial_number, block_size - 1)
-    else:
-      half = block_size // 2
-      value = (
-          power_level(x, y, serial_number, half) + power_level(
-              x + half, y, serial_number, half) + power_level(
-                  x, y + half, serial_number, half) + power_level(
-                      x + half, y + half, serial_number, half))
-
-  return value
+def power_level(x, y, serial_number):
+    return (((x + 10) * y + serial_number) * (x + 10)) // 100 % 10 - 5
 
 
-def best_block_of_size(serial_number, block_size):
-  best_value = -5 * GRID_SIZE**2
-  best_location = None
-  for y in range(GRID_SIZE - block_size):
-    for x in range(GRID_SIZE - block_size):
-      value = power_level(x + 1, y + 1, serial_number, block_size)
-      if value > best_value:
-        best_value = value
-        best_location = (x + 1, y + 1)
+def p1(table):
+    x, y = max(
+        ((x, y) for x in range(GRID_SIZE - 3) for y in range(GRID_SIZE - 3)),
+        key=lambda p: table.intensity(p[0], p[1], 3, 3)
+    )
 
-  return best_value, best_location
+    return x + 1, y + 1
 
 
-def p1(serial_number):
-  return best_block_of_size(serial_number, 3)[1]
+def p2(table):
+    x, y, s = max(
+        (
+            (x, y, s)
+            for s in range(1, GRID_SIZE + 1)
+            for x in range(GRID_SIZE - s)
+            for y in range(GRID_SIZE - s)
+        ),
+        key=lambda p: table.intensity(p[0], p[1], p[2], p[2])
+    )
 
-
-def p2(serial_number):
-  best_value = -5 * GRID_SIZE**2
-  best_location = None
-  best_block_size = None
-  for block_size in range(1, GRID_SIZE + 1):
-    value, location = best_block_of_size(serial_number, block_size)
-    if value > best_value:
-      best_value = value
-      best_location = location
-      best_block_size = block_size
-
-  return (*best_location, best_block_size)
+    return x + 1, y + 1, s
 
 
 if __name__ == "__main__":
-  serial_number = int(fileinput.input()[0])
-  print("%s,%s" % p1(serial_number))
-  print("%s,%s,%s" % p2(serial_number))
+    serial_number = int(fileinput.input()[0])
+    table = SummedAreaTable(
+        lambda x, y: power_level(x + 1, y + 1, serial_number),
+        GRID_SIZE,
+        GRID_SIZE
+    )
+
+    print("%s,%s" % p1(table))
+    print("%s,%s,%s" % p2(table))
