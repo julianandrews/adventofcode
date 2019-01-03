@@ -27,16 +27,15 @@ class ForestMap:
             return "#"
         elif current_value == "#" and (counts["|"] == 0 or counts["#"] == 0):
             return "."
-
-        return current_value
+        else:
+            return current_value
 
     def neighbors(self, x, y):
         return [
             (x + i, y + j) for i in (-1, 0, 1) for j in (-1, 0, 1)
-            if (i or j) and x + i >= 0
-            and x + i < len(self.grid[0])
-            and y + j >= 0
-            and y + j < len(self.grid)
+            if (i or j)
+            and x + i >= 0 and x + i < len(self.grid[0])
+            and y + j >= 0 and y + j < len(self.grid)
         ]
 
     def total_resource_count(self):
@@ -54,7 +53,7 @@ def p1(lines):
 
 def p2(lines):
     forest_map = ForestMap(lines)
-    seen = collections.OrderedDict()
+    seen = {}
     while forest_map.grid not in seen:
         seen[forest_map.grid] = forest_map.time
         forest_map.tick()
