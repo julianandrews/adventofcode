@@ -90,7 +90,8 @@ class BattleMap:
 
         if good_nodes:
             best_node = min(good_nodes, key=lambda node: sort_key(node.value))
-            return best_node.get_path()[1]
+            path = list(best_node.get_path())
+            return path[-2]
 
         return None
 
