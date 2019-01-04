@@ -1,7 +1,7 @@
 import fileinput
 import functools
 
-from summed_area_table import SummedAreaTable
+from utils.summed_area_table import SummedAreaTable
 
 
 GRID_SIZE = 300

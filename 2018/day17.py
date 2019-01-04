@@ -1,6 +1,6 @@
 import fileinput
 
-from graphs import bfs
+from utils.graphs import bfs
 
 
 class GroundChart:

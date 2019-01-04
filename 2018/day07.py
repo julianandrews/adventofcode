@@ -2,7 +2,7 @@ import collections
 import fileinput
 import heapq
 
-from graphs import toposort
+from utils.graphs import toposort
 
 
 MAX_WORKERS = 5

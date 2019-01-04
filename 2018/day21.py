@@ -1,6 +1,6 @@
 import fileinput
 
-from vm import VirtualMachine
+from utils.vm import VirtualMachine
 
 
 def p1(ip_register, program):

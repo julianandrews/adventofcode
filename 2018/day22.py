@@ -2,7 +2,7 @@ import collections
 import enum
 import fileinput
 
-from astar import astar
+from utils.astar import astar
 
 
 class Gear(enum.Enum):
