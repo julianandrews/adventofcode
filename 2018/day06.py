@@ -52,4 +52,4 @@ if __name__ == "__main__":
   points = [
       Point(*tuple(map(int, line.split(", ")))) for line in fileinput.input()
   ]
-  print(p2(points, 10000))
+  print("Part 2: %s" % p2(points, 10000))

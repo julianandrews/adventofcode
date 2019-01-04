@@ -113,5 +113,5 @@ def p2(sample_data, program):
 if __name__ == "__main__":
     all_data = "".join(fileinput.input())
     sample_data, program = all_data.split("\n\n\n")
-    print(p1(sample_data))
-    print(p2(sample_data, program))
+    print("Part 1: %s" % p1(sample_data))
+    print("Part 2: %s" % p2(sample_data, program))

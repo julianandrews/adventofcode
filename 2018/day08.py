@@ -32,5 +32,5 @@ def p2(data):
 
 if __name__ == "__main__":
   data = fileinput.input()[0]
-  print(p1(data))
-  print(p2(data))
+  print("Part 1: %s" % p1(data))
+  print("Part 2: %s" % p2(data))

@@ -137,5 +137,5 @@ if __name__ == "__main__":
     immune_part, infection_part = "".join(fileinput.input()).split("\n\n")
     immune_army = [Group(line.strip()) for line in immune_part.split("\n")[1:] if line]
     infection_army = [Group(line.strip()) for line in infection_part.split("\n")[1:] if line]
-    print(p1(immune_army, infection_army))
-    print(p2(immune_army, infection_army))
+    print("Part 1: %s" % p1(immune_army, infection_army))
+    print("Part 2: %s" % p2(immune_army, infection_army))

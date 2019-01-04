@@ -67,5 +67,5 @@ def p2(facility_map):
 if __name__ == "__main__":
     regex = next(iter(fileinput.input())).strip()
     facility_map = FacilityMap(regex)
-    print(p1(facility_map))
-    print(p2(facility_map))
+    print("Part 1: %s" % p1(facility_map))
+    print("Part 2: %s" % p2(facility_map))

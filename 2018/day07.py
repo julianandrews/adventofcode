@@ -55,5 +55,5 @@ def parse_line(line):
 
 if __name__ == "__main__":
     lines = [parse_line(line) for line in fileinput.input()]
-    print("".join(p1(lines)))
-    print(p2(lines))
+    print("Part 1: %s" % "".join(p1(lines)))
+    print("Part 2: %s" % p2(lines))
