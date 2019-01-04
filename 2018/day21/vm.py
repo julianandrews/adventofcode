@@ -45,7 +45,7 @@ class VirtualMachine:
                     self.paused = False
                 else:
                     self.paused = True
-                    return ip
+                    return
             instruction = program[ip]
             self.registers[self.ip_register] = ip
             original_registers = self.registers[:]
@@ -58,7 +58,8 @@ class VirtualMachine:
                     original_ip,
                     original_registers,
                     " ".join(map(str, instruction)),
-                    self.registers))
+                    self.registers
+                ))
 
     @staticmethod
     def parse_instruction(line):
