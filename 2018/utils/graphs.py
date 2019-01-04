@@ -126,3 +126,46 @@ def toposort(values, neighbors):
                 heapq.heappush(working_values, neighbor)
 
     return sorted_values if len(sorted_values) == len(values) else None
+
+
+def astar(start, is_end, neighbors, edge_weights, heuristic):
+    """Returns a path, distance pair for a minimum path from start.
+
+    start        -- the point at which to start the search
+    is_end       -- a function which returns true if a point is the destination.
+    neighbors    -- a function from points to an iterable of neighbor points.
+    edge_weights -- a function which takes two points and returns the cost
+                 -- of travel from the first to the second.
+    heuristic    -- the A* heuristic function which estimates the remaining
+                    distance from a point.
+    """
+    closed_nodes = set()
+    open_nodes = set([start])
+    distances = {start: 0}
+    estimated_distances = {start: heuristic(start)}
+    parents = {}
+
+    def reconstruct_path(node):
+        path = []
+        while node in parents:
+            path.append(node)
+            node = parents[node]
+        path.append(start)
+        return list(reversed(path))
+
+    while open_nodes:
+        node = min(open_nodes, key=lambda node: estimated_distances[node])
+        open_nodes.remove(node)
+        closed_nodes.add(node)
+        if is_end(node):
+            return reconstruct_path(node), distances[node]
+        for neighbor in neighbors(node):
+            if neighbor not in closed_nodes:
+                open_nodes.add(neighbor)
+                distance = distances[node] + edge_weights(node, neighbor)
+
+                if distances.get(neighbor) is None or distance < distances[neighbor]:
+                    distances[neighbor] = distance
+                    estimated_distances[neighbor] = distances[neighbor] + heuristic(neighbor)
+                    parents[neighbor] = node
+    return None

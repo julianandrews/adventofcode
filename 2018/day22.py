@@ -2,7 +2,7 @@ import collections
 import enum
 import fileinput
 
-from utils.astar import astar
+from utils.graphs import astar
 
 
 class Gear(enum.Enum):
@@ -11,7 +11,7 @@ class Gear(enum.Enum):
     CLIMBING_GEAR = 2
 
 
-CavernState = collections.namedtuple("CavernState", ["x", "y", "gear"])
+ExplorerState = collections.namedtuple("ExplorerState", ["x", "y", "gear"])
 
 
 class RegionType(enum.Enum):
@@ -79,7 +79,7 @@ class Caverns:
         current_region = self.region_type(state.x, state.y)
         for gear in current_region.allowed_gear():
             if gear != state.gear:
-                yield CavernState(state.x, state.y, gear)
+                yield ExplorerState(state.x, state.y, gear)
 
         adjacent = (
             (state.x - 1, state.y),
@@ -91,7 +91,7 @@ class Caverns:
             if x >= 0 and y >= 0:
                 destination = self.region_type(x, y)
                 if state.gear in destination.allowed_gear():
-                    yield(CavernState(x, y, state.gear))
+                    yield(ExplorerState(x, y, state.gear))
 
     def __str__(self):
         lines = []
@@ -110,8 +110,8 @@ def p1(depth, target, debug=False):
 
 def p2(depth, target, debug=False):
     caverns = Caverns(depth, target)
-    start = CavernState(0, 0, Gear.TORCH)
-    end = CavernState(target[0], target[1], Gear.TORCH)
+    start = ExplorerState(0, 0, Gear.TORCH)
+    end = ExplorerState(target[0], target[1], Gear.TORCH)
 
     path, distance = astar(
         start,
