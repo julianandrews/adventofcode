@@ -29,6 +29,9 @@ class VirtualMachine:
         self.registers = registers[:] if registers is not None else [0, 0, 0, 0, 0, 0]
         self.paused = False
 
+    def __eq__(self, other):
+        return self.registers == other.registers and self.ip_register == other.ip_register
+
     def operate(self, op_name, a, b, c):
         op_info = self.OPERATIONS[op_name]
         a_value = self.registers[a] if op_info.a_reg else a
