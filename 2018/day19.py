@@ -46,7 +46,7 @@ class VirtualMachine:
             self.operate(*instruction)
             ip = self.registers[self.ip_register]
             ip += 1
-            print("ip=%s %s %s %s" % (original_ip, original_registers, " ".join(map(str, instruction)), self.registers))
+            # print("ip=%s %s %s %s" % (original_ip, original_registers, " ".join(map(str, instruction)), self.registers))
 
 
 def parse_instruction(line):
@@ -107,4 +107,4 @@ if __name__ == "__main__":
     lines = [line.strip() for line in fileinput.input()]
     ip_register = int(lines[0].split()[1])
     program = [parse_instruction(line) for line in lines[1:]]
-    print(p1(ip_register, program))
+    print("Part 1: %s" % p1(ip_register, program))

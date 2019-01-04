@@ -133,5 +133,5 @@ if __name__ == "__main__":
     lines = [line.strip() for line in fileinput.input()]
     depth = int(lines[0].split(": ")[1])
     target = tuple(int(x) for x in lines[1].split(": ")[1].split(","))
-    print(p1(depth, target))
-    print(p2(depth, target))
+    print("Part 1: %s" % p1(depth, target))
+    print("Part 2: %s" % p2(depth, target))

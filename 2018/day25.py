@@ -22,4 +22,5 @@ if __name__ == "__main__":
         tuple(int(x) for x in line.split(","))
         for line in fileinput.input()
     ]
-    print(p1(points))
+    print("Part 1: %s" % p1(points))
+    print("Part 2: All Done!")

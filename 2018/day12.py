@@ -70,5 +70,5 @@ if __name__ == "__main__":
         for line in lines
         if line.strip().endswith("#")
     }
-    print(get_score(diagram, patterns, 20))
-    print(get_score(diagram, patterns, 50000000000))
+    print("Part 1: %s" % get_score(diagram, patterns, 20))
+    print("Part 2: %s" % get_score(diagram, patterns, 50000000000))

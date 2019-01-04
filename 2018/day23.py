@@ -53,5 +53,5 @@ def p2(bots):
 
 if __name__ == "__main__":
   bots = [NanoBot.from_string(line.strip()) for line in fileinput.input()]
-  print(p1(bots))
-  print(p2(bots))
+  print("Part 1: %s" % p1(bots))
+  print("Part 2: %s" % p2(bots))

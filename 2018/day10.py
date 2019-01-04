@@ -41,13 +41,10 @@ class PointSet:
             for j in range(y_range[1] - y_range[0] + 1)]
     for point in self.points:
       grid[point.position[1] - y_range[0]][point.position[0] - x_range[0]] = '#'
-    grid_string = '\n'.join(''.join(line) for line in grid)
-
-    return 'Time: %s\n%s\n' % (self.step_count, grid_string)
+    return '\n'.join(''.join(line) for line in grid)
 
 
 class Point:
-
   def __init__(self, position, velocity):
     self.position = position
     self.velocity = velocity
@@ -66,7 +63,7 @@ class Point:
         p + n * v for (p, v) in zip(self.position, self.velocity))
 
 
-def p_both(point_set):
+def find_message(point_set):
   step = -point_set.gradient() // point_set.expected_gradient()
   while step:
     point_set.step(step)
@@ -84,9 +81,11 @@ def p_both(point_set):
       point_set.step(-direction)
       break
 
-  return str(point_set)
+  return point_set
 
 
 if __name__ == '__main__':
   point_set = PointSet([Point.from_line(line) for line in fileinput.input()])
-  print(p_both(point_set))
+  point_set = find_message(point_set)
+  print("Part 1:\n%s" % point_set)
+  print("Part 2: %s" % point_set.step_count)

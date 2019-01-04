@@ -98,5 +98,5 @@ if __name__ == "__main__":
 
     water_count = len([1 for row in chart.grid for c in row if c == "~"])
     flow_count = len([1 for row in chart.grid for c in row if c == "|"])
-    print(flow_count + water_count - chart.min_y)
-    print(water_count)
+    print("Part 1: %d" % (flow_count + water_count - chart.min_y))
+    print("Part 2: %d" % water_count)

@@ -42,5 +42,5 @@ if __name__ == "__main__":
         GRID_SIZE
     )
 
-    print("%s,%s" % p1(table))
-    print("%s,%s,%s" % p2(table))
+    print("Part 1: %s,%s" % p1(table))
+    print("Part 2: %s,%s,%s" % p2(table))

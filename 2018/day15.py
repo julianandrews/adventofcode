@@ -163,5 +163,5 @@ def p2(lines):
 
 if __name__ == "__main__":
     lines = [line.strip() for line in fileinput.input()]
-    print(p1(lines))
-    print(p2(lines))
+    print("Part 1: %s" % p1(lines))
+    print("Part 2: %s" % p2(lines))

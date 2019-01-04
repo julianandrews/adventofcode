@@ -27,5 +27,5 @@ def p2(target_string, initial_scores):
 
 if __name__ == "__main__":
     data = next(iter(fileinput.input())).strip()
-    print(p1(int(data), [3, 7]))
-    print(p2(data, [3, 7]))
+    print("Part 1: %s" % p1(int(data), [3, 7]))
+    print("Part 2: %s" % p2(data, [3, 7]))

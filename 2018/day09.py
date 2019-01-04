@@ -20,5 +20,5 @@ def p1(num_players, max_marble):
 if __name__ == '__main__':
   words = fileinput.input()[0].split()
   num_players, max_marble = int(words[0]), int(words[6])
-  print(p1(num_players, max_marble))
-  print(p1(num_players, max_marble * 100))
+  print("Part 1: %s" % p1(num_players, max_marble))
+  print("Part 1: %s" % p1(num_players, max_marble * 100))

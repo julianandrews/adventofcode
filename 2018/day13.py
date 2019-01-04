@@ -119,6 +119,6 @@ def p2(cart_map):
 
 if __name__ == "__main__":
     cart_map = CartMap([line.strip("\n") for line in fileinput.input()])
-    print("%s,%s" % p1(cart_map))
+    print("Part 1: %s,%s" % p1(cart_map))
     cart_map = CartMap([line.strip("\n") for line in fileinput.input()])
-    print("%s,%s" % p2(cart_map))
+    print("Part 2: %s,%s" % p2(cart_map))
