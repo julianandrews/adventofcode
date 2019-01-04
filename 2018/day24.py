@@ -2,7 +2,62 @@ import fileinput
 import re
 
 
-class Group:
+class Army:
+    def __init__(self, battle_groups):
+        self.battle_groups = battle_groups
+
+    def battle(self, other):
+        self.reset()
+        other.reset()
+
+        friendly_count = self.unit_count()
+        enemy_count = other.unit_count()
+        while friendly_count and enemy_count:
+            targets = sorted(
+                self.choose_targets(other) + other.choose_targets(self),
+                key=lambda pair: -pair[0].initiative
+            )
+
+            for attacker, defender in targets:
+                defender.take_damage(attacker)
+
+            new_friendly_count = self.unit_count()
+            new_enemy_count = other.unit_count()
+            if (new_friendly_count, new_enemy_count) == (friendly_count, enemy_count):
+                return None
+            friendly_count = new_friendly_count
+            enemy_count = new_enemy_count
+
+        return self if friendly_count else other
+
+    def choose_targets(self, defending_army):
+        targets = []
+        potential_targets = {
+            defender for defender in defending_army.battle_groups
+            if defender.units
+        }
+        sorted_battle_groups = sorted(
+            self.battle_groups,
+            key=lambda group: (-group.effective_power, -group.initiative)
+        )
+        for attacker in sorted_battle_groups:
+            if potential_targets:
+                defender = attacker.choose_target(potential_targets)
+                if defender is not None:
+                    potential_targets.remove(defender)
+                    targets.append((attacker, defender))
+
+        return targets
+
+    def reset(self):
+        for battle_group in self.battle_groups:
+            battle_group.units = battle_group.starting_units
+
+    def unit_count(self):
+        return sum(battle_group.units for battle_group in self.battle_groups)
+
+
+class BattleGroup:
     GROUP_RE = re.compile(
         r"^(?P<units>\d+) units each with (?P<hp>\d+) hit points "
         r"(?:\((?P<info>[^)]+)\) )?"
@@ -10,8 +65,8 @@ class Group:
         r"(?P<damage_type>.*?) damage at initiative (?P<initiative>\d+)$"
     )
 
-    def __init__(self, line):
-        match = self.GROUP_RE.match(line)
+    def __init__(self, string):
+        match = self.GROUP_RE.match(string)
         self.units = self.starting_units = int(match.group("units"))
         self.hp = int(match.group("hp"))
         self.starting_damage = int(match.group("damage"))
@@ -36,8 +91,7 @@ class Group:
             return self.effective_power
 
     def take_damage(self, attacker):
-        units_lost = min(attacker.get_damage(self) // self.hp, self.units)
-        self.units -= units_lost
+        self.units -= min(attacker.get_damage(self) // self.hp, self.units)
 
     def choose_target(self, others):
         choice = max(
@@ -63,79 +117,40 @@ class Group:
     def total_hp(self):
         return self.units * self.hp
 
-    # def __str__(self):
-    #     return "%s units each with %s hit points (immune to %s; weak to %s) with an attack that does %s %s damage at initiative %s" % (self.units, self.hp, ", ".join(self.immunities), ", ".join(self.weaknesses), self.attack_damage, self.damage_type, self.initiative)
-
-
-def choose_targets(attackers, defenders):
-    targets = []
-    potential_targets = {defender for defender in defenders if defender.units}
-    for attacker in sorted(attackers, key=lambda group: (-group.effective_power, -group.initiative)):
-        if potential_targets:
-            defender = attacker.choose_target(potential_targets)
-            if defender is not None:
-                potential_targets.remove(defender)
-                targets.append((attacker, defender))
-
-    return targets
-
-
-def unit_count(army):
-    return sum(group.units for group in army)
-
-
-def run_battle(immune_army, infection_army):
-    for group in immune_army + infection_army:
-        group.units = group.starting_units
-    immune_count = unit_count(immune_army)
-    infection_count = unit_count(infection_army)
-    while immune_count and infection_count:
-        immune_targets = choose_targets(immune_army, infection_army)
-        infection_targets = choose_targets(infection_army, immune_army)
-        targets = sorted(
-            immune_targets + infection_targets,
-            key=lambda pair: -pair[0].initiative
-        )
-
-        for attacker, defender in targets:
-            defender.take_damage(attacker)
-
-        new_immune_count = unit_count(immune_army)
-        new_infection_count = unit_count(infection_army)
-        if (new_immune_count, new_infection_count) == (immune_count, infection_count):
-            break
-        immune_count = new_immune_count
-        infection_count = new_infection_count
-
 
 def p1(immune_army, infection_army):
-    run_battle(immune_army, infection_army)
-    winner = immune_army if unit_count(immune_army) else infection_army
+    winner = immune_army.battle(infection_army)
 
-    return unit_count(winner)
+    return winner.unit_count()
 
 
 def p2(immune_army, infection_army):
     min_boost = 0
-    max_boost = max(group.total_hp for group in infection_army)
+    max_boost = max(group.total_hp for group in infection_army.battle_groups)
     while True:
         boost = (min_boost + max_boost) // 2
-        for group in immune_army:
+        for group in immune_army.battle_groups:
             group.boost = boost
-        run_battle(immune_army, infection_army)
+        immune_army.battle(infection_army)
 
-        if unit_count(infection_army):
+        if infection_army.unit_count():
             min_boost = boost + 1
         elif boost == max_boost:
             break
         else:
             max_boost = boost
 
-    return unit_count(immune_army)
+    return immune_army.unit_count()
 
 if __name__ == "__main__":
-    immune_part, infection_part = "".join(fileinput.input()).split("\n\n")
-    immune_army = [Group(line.strip()) for line in immune_part.split("\n")[1:] if line]
-    infection_army = [Group(line.strip()) for line in infection_part.split("\n")[1:] if line]
+    immune_part, infection_part = "".join(fileinput.input()).strip().split("\n\n")
+    immune_army = Army([
+        BattleGroup(line.strip())
+        for line in immune_part.split("\n")[1:]
+    ])
+    infection_army = Army([
+        BattleGroup(line.strip())
+        for line in infection_part.split("\n")[1:]
+    ])
     print("Part 1: %s" % p1(immune_army, infection_army))
     print("Part 2: %s" % p2(immune_army, infection_army))
