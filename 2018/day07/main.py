@@ -2,7 +2,7 @@ import collections
 import fileinput
 import heapq
 
-from topological_sort import topological_sort
+from graphs import toposort
 
 
 MAX_WORKERS = 5
@@ -11,15 +11,12 @@ BASE_STEP_TIME = 60
 
 def p1(pairs):
     edges = collections.defaultdict(set)
-    indegrees = collections.defaultdict(int)
     for a, b in pairs:
         edges[a].add(b)
-        indegrees[b] += 1
 
-    return topological_sort(
+    return toposort(
         edges.keys(),
         lambda x: edges[x],
-        lambda x: indegrees[x]
     )
 
 

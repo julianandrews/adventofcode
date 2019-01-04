@@ -1,6 +1,9 @@
+import collections
+import functools
 import heapq
 
 
+@functools.total_ordering
 class TraversalNode:
     """Class representing a single Node in the traversal of a graph.
 
@@ -23,6 +26,8 @@ class TraversalNode:
             node = node.parent
 
     def __lt__(self, other):
+        # heapq requires values be ordered. Ordering by index in traversal
+        # is a reasonable default.
         return self.index < other.index
 
 
@@ -92,3 +97,32 @@ def dfs(start, neighbors, sort_key=None):
             return (-node.depth, sort_key(node.value), node.index)
 
     return graph_traversal(start, neighbors, node_key)
+
+
+def toposort(values, neighbors):
+    """Returns a topological ordering of the provided values.
+
+    Values must be unique. Returns None if no topological sort exists.
+
+    values    -- a list of node values from the graph.
+    neighbors -- a function from values to an iterable of neighbor values.
+
+    """
+    indegrees = collections.defaultdict(int)
+    for value in values:
+        for neighbor in neighbors(value):
+            indegrees[neighbor] += 1
+
+    working_values = [value for value in values if indegrees[value] == 0]
+    heapq.heapify(working_values)
+    sorted_values = []
+
+    while working_values:
+        value = heapq.heappop(working_values)
+        sorted_values.append(value)
+        for neighbor in neighbors(value):
+            indegrees[neighbor] -= 1
+            if indegrees[neighbor] == 0:
+                heapq.heappush(working_values, neighbor)
+
+    return sorted_values if len(sorted_values) == len(values) else None

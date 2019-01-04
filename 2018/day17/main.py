@@ -1,6 +1,6 @@
 import fileinput
 
-from graph_traversal import bfs
+from graphs import bfs
 
 
 class GroundChart:
