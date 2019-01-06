@@ -1,4 +1,9 @@
 import fileinput
+import sys
+
+
+if sys.version_info.major > 2:
+    xrange = range
 
 
 PATTERN_LOOKAROUND = 2
@@ -15,7 +20,7 @@ class PotLine:
 
     def find_cycle(self, max_iterations):
         seen = {}
-        for t in range(max_iterations):
+        for t in xrange(max_iterations):
             seen[self.state] = t, self.offset
             self.evolve()
             if self.state in seen:

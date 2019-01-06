@@ -23,11 +23,11 @@ class TreeNode:
 
 
 def p1(data):
-    return TreeNode(map(int, data.split())).metadata_sum()
+    return TreeNode(iter(map(int, data.split()))).metadata_sum()
 
 
 def p2(data):
-    return TreeNode(map(int, data.split())).value()
+    return TreeNode(iter(map(int, data.split()))).value()
 
 
 if __name__ == "__main__":

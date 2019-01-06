@@ -1,5 +1,16 @@
 import fileinput
 import itertools
+import sys
+
+
+if sys.version_info < (3, 2):
+    def accumulate(iterable):
+        value = 0
+        for adend in iterable:
+            value += adend
+            yield value
+else:
+    from itertools import accumulate
 
 
 def p1(data):
@@ -8,7 +19,7 @@ def p1(data):
 
 def p2(data):
     seen = set()
-    for frequency in itertools.accumulate(itertools.cycle(data)):
+    for frequency in accumulate(itertools.cycle(data)):
         if frequency in seen:
             return frequency
         seen.add(frequency)
