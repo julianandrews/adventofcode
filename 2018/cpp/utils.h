@@ -1,12 +1,24 @@
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 namespace aoc {
 namespace utils {
 
-std::string trim(std::string &s) {
+std::vector<std::string> split(const std::string &s, const char delim) {
+  std::vector<std::string> items;
+  std::stringstream ss(s);
+  std::string item;
+  while (std::getline(ss, item, delim)) {
+    items.push_back(item);
+  }
+
+  return items;
+}
+
+std::string trim(const std::string &s) {
   auto start = std::find_if_not(s.begin(), s.end(),
                                 [](int c) { return std::isspace(c); });
   auto end = std::find_if_not(s.rbegin(), s.rend(), [](int c) {
