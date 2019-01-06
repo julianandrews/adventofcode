@@ -51,12 +51,7 @@ p2(const std::vector<std::string> &lines) {
 }
 
 int main() {
-  std::vector<std::string> lines;
-
-  std::string buffer;
-  while (getline(std::cin, buffer)) {
-    lines.push_back(aoc::utils::trim(buffer));
-  }
+  std::vector<std::string> lines = aoc::utils::getlines();
 
   std::cout << "Part 1: " << p1(lines) << std::endl;
   std::cout << "Part 2: " << p2(lines).value_or("Failed to find unique box.")

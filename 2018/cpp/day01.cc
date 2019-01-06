@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils.h"
+
 int p1(const std::vector<int> &deltas) {
   return std::accumulate(deltas.begin(), deltas.end(), 0);
 }
@@ -24,12 +26,7 @@ int p2(const std::vector<int> &deltas) {
 }
 
 int main() {
-  std::vector<std::string> lines;
-
-  std::string buffer;
-  while (getline(std::cin, buffer)) {
-    lines.push_back(buffer);
-  }
+  std::vector<std::string> lines = aoc::utils::getlines();
 
   std::vector<int> deltas;
   for (std::string line : lines) {
