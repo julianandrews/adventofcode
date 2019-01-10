@@ -8,13 +8,12 @@
 
 #include "utils.h"
 
-std::multimap<int, std::pair<int, int>>
-get_sleep_times(const std::vector<std::string> &lines) {
+std::multimap<int, std::pair<int, int>> get_sleep_times(
+    const std::vector<std::string> &lines) {
   std::multimap<int, std::pair<int, int>> sleep_times;
   int current_guard;
   int sleep_start;
 
-  std::cout << std::endl;
   for (const auto &line : lines) {
     auto minute = std::stoi(line.substr(15, 2));
     if (line.find("begins shift") != std::string::npos) {
@@ -56,10 +55,9 @@ int p1(const std::vector<std::string> &lines) {
     }
   }
   auto sleepiest_minute =
-      std::max_element(sleep_counts.begin(), sleep_counts.end(), [](auto &a,
-                                                                    auto &b) {
-        return a.second < b.second;
-      })->first;
+      std::max_element(sleep_counts.begin(), sleep_counts.end(),
+                       [](auto &a, auto &b) { return a.second < b.second; })
+          ->first;
 
   return sleepiest_guard * sleepiest_minute;
 }
@@ -78,10 +76,9 @@ int p2(const std::vector<std::string> &lines) {
   }
 
   auto sleepiest_guard_and_minute =
-      std::max_element(sleep_counts.begin(), sleep_counts.end(), [](auto &a,
-                                                                    auto &b) {
-        return a.second < b.second;
-      })->first;
+      std::max_element(sleep_counts.begin(), sleep_counts.end(),
+                       [](auto &a, auto &b) { return a.second < b.second; })
+          ->first;
 
   return sleepiest_guard_and_minute.first * sleepiest_guard_and_minute.second;
   return 0;
