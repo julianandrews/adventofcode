@@ -1,71 +1,28 @@
+extern crate aoc;
+
+use aoc::graphs::traversal::BFSTraversal;
+use aoc::points::Point;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-struct Point {
-    x: isize,
-    y: isize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct PointParseError(());
-
-impl ::std::str::FromStr for Point {
-    type Err = PointParseError;
-
-    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-        let v: Vec<isize> = s.split(", ").flat_map(|v| v.parse()).collect();
-        if let [x, y] = v[..] {
-            Ok(Point { x, y })
-        } else {
-            Err(PointParseError(()))
-        }
-    }
-}
-
-impl Point {
-    fn ring(&self, d: usize) -> HashSet<Point> {
-        let mut points = HashSet::with_capacity(4 * d);
-        let d: isize = d as isize;
-        for x in 0..d + 1 {
-            let y = d - x;
-            points.insert(Point {
-                x: self.x + x,
-                y: self.y + y,
-            });
-            points.insert(Point {
-                x: self.x + x,
-                y: self.y - y,
-            });
-            points.insert(Point {
-                x: self.x - x,
-                y: self.y + y,
-            });
-            points.insert(Point {
-                x: self.x - x,
-                y: self.y - y,
-            });
-        }
-
-        points
-    }
-}
-
 struct Grid {
-    size: usize,
+    min_x: isize,
+    max_x: isize,
+    min_y: isize,
+    max_y: isize,
     points: Vec<Point>,
     grid: HashMap<Point, Option<usize>>,
 }
 
 impl ::std::fmt::Display for Grid {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> ::std::fmt::Result {
-        for y in 0..self.size {
+        for y in self.min_y..self.max_y + 1 {
             writeln!(
                 f,
                 "{}",
-                (0..self.size)
+                (self.min_x..self.max_x + 1)
                     .map(|x| self
                         .grid
                         .get(&Point {
@@ -85,34 +42,53 @@ impl ::std::fmt::Display for Grid {
 }
 
 impl Grid {
-    fn new(points: Vec<Point>, size: usize) -> Grid {
+    fn new(points: Vec<Point>) -> Grid {
         let mut grid = HashMap::new();
+        let min_x = points.iter().map(|p| p.x).min().unwrap();
+        let max_x = points.iter().map(|p| p.x).max().unwrap();
+        let min_y = points.iter().map(|p| p.y).min().unwrap();
+        let max_y = points.iter().map(|p| p.y).max().unwrap();
 
-        for d in 0..size {
-            let rings: Vec<HashSet<Point>> = points.iter().map(|point| point.ring(d)).collect();
-
-            let mut counts = HashMap::new();
-            for point in rings.iter().flatten() {
-                *counts.entry(point.clone()).or_insert(0) += 1;
+        let mut working_points = vec![];
+        for point in points.clone() {
+            let mut ps = HashSet::new();
+            ps.insert(point);
+            working_points.push(ps);
+        }
+        while working_points.iter().any(|ps| ps.len() > 0) {
+            let new_points: Vec<HashSet<Point>> = working_points
+                .iter()
+                .map(|ps| ps.iter().flat_map(|p| p.manhattan_neighbors()).collect())
+                .collect();
+            let mut counts: HashMap<&Point, u32> = HashMap::new();
+            for point in new_points.iter().flatten() {
+                *counts.entry(point).or_insert(0) += 1;
             }
-            for (i, ring) in rings.iter().enumerate() {
-                for point in ring.iter() {
-                    if !grid.contains_key(point) {
-                        let value;
-                        let &count = counts.get(point).unwrap();
-                        if count == 1 {
-                            value = Some(i)
+            for (i, ps) in new_points.iter().enumerate() {
+                working_points[i].clear();
+                for &p in ps {
+                    if min_x <= p.x
+                        && p.x <= max_x
+                        && min_y <= p.y
+                        && p.y <= max_y
+                        && !grid.contains_key(&p)
+                    {
+                        if counts[&p] == 1 {
+                            working_points[i].insert(p.clone());
+                            grid.insert(p, Some(i));
                         } else {
-                            value = None
-                        };
-                        grid.insert(point.clone(), value);
+                            grid.insert(p, None);
+                        }
                     }
                 }
             }
         }
 
         Grid {
-            size: size,
+            min_x: min_x,
+            max_x: max_x,
+            min_y: min_y,
+            max_y: max_y,
             points: points,
             grid: grid,
         }
@@ -120,8 +96,8 @@ impl Grid {
 
     fn areas(&self) -> HashMap<Point, usize> {
         let mut areas = HashMap::new();
-        for foo in self.grid.values() {
-            if let Some(i) = foo {
+        for points in self.grid.values() {
+            if let Some(i) = points {
                 *areas
                     .entry(self.points.get(*i).unwrap().clone())
                     .or_insert(0) += 1;
@@ -133,28 +109,25 @@ impl Grid {
 
     fn edge(&self) -> HashSet<Point> {
         let mut edge = HashSet::new();
-        for v in 0..self.size as isize {
-            edge.insert(Point { x: v, y: 0 });
-            edge.insert(Point {
-                x: v,
-                y: self.size as isize - 1,
-            });
-            edge.insert(Point { x: 0, y: v });
-            edge.insert(Point {
-                x: self.size as isize - 1,
-                y: v,
-            });
+        for x in self.min_x..self.max_x + 1 {
+            edge.insert(Point::new(x, self.min_y));
+            edge.insert(Point::new(x, self.max_y));
+        }
+
+        for y in self.min_y..self.max_y + 1 {
+            edge.insert(Point::new(self.min_x, y));
+            edge.insert(Point::new(self.max_x, y));
         }
 
         edge
     }
 
     fn finite_points(&self) -> HashSet<Point> {
-        let mut edge_points = HashSet::new();
-        for point in self.edge().iter() {
-            if let Some(foo) = self.grid.get(point) {
-                if let Some(i) = foo {
-                    edge_points.insert(self.points[*i].clone());
+        let mut edge_values = HashSet::new();
+        for p in self.edge() {
+            if let Some(i) = self.grid.get(&p) {
+                if let Some(i) = i {
+                    edge_values.insert(i);
                 }
             }
         }
@@ -162,15 +135,19 @@ impl Grid {
         self.points
             .iter()
             .cloned()
-            .filter(|point| !edge_points.contains(point))
+            .enumerate()
+            .filter(|(i, _)| !edge_values.contains(i))
+            .map(|(_, point)| point)
             .collect()
     }
 }
 
-fn part1(input: &str) -> Result<()> {
-    let points: Vec<Point> = input.lines().flat_map(|line| line.parse()).collect();
-    let size = 400;
-    let grid = Grid::new(points, size);
+fn total_manhattan_distance(point: &Point, points: &Vec<Point>) -> usize {
+    points.iter().map(|p| p.manhattan_distance(point)).sum()
+}
+
+fn part1(points: Vec<Point>) -> Result<()> {
+    let grid = Grid::new(points);
     let areas = grid.areas();
 
     let area = grid
@@ -185,16 +162,35 @@ fn part1(input: &str) -> Result<()> {
     Ok(())
 }
 
-fn part2(_input: &str) -> Result<()> {
-    // writeln!(io::stdout(), "{}", 0)?;
+fn part2(points: Vec<Point>) -> Result<()> {
+    let center = Point {
+        x: points.iter().map(|p| p.x).sum::<isize>() / points.len() as isize,
+        y: points.iter().map(|p| p.y).sum::<isize>() / points.len() as isize,
+    };
+
+    let neighbors = &move |p: &Point| {
+        p.manhattan_neighbors()
+            .into_iter()
+            .filter(|p| total_manhattan_distance(p, &points) < 10000)
+            .collect()
+    };
+    let it = BFSTraversal::new(center, neighbors);
+
+    let mut count = 0;
+    for _node in it {
+        count += 1;
+    }
+
+    writeln!(io::stdout(), "{}", count)?;
     Ok(())
 }
 
 fn main() -> Result<()> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
+    let points: Vec<Point> = input.lines().flat_map(|line| line.parse()).collect();
 
-    part1(&input)?;
-    part2(&input)?;
+    part1(points.clone())?;
+    part2(points.clone())?;
     Ok(())
 }
