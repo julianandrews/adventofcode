@@ -1,6 +1,6 @@
 extern crate aoc;
 
-use aoc::graphs::traversal::BFSTraversal;
+use aoc::graphs::{bfs, Graph};
 use aoc::points::Point;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read, Write};
@@ -142,8 +142,31 @@ impl Grid {
     }
 }
 
-fn total_manhattan_distance(point: &Point, points: &Vec<Point>) -> usize {
-    points.iter().map(|p| p.manhattan_distance(point)).sum()
+struct Part2Graph {
+    points: Vec<Point>,
+}
+
+impl Graph<Point> for Part2Graph {
+    fn neighbors(&self, point: &Point) -> Vec<Point> {
+        point
+            .manhattan_neighbors()
+            .into_iter()
+            .filter(|p| self.total_manhattan_distance(p) < 10000)
+            .collect()
+    }
+
+    fn values(&self) -> Vec<Point> {
+        self.points.clone()
+    }
+}
+
+impl Part2Graph {
+    fn total_manhattan_distance(&self, point: &Point) -> usize {
+        self.points
+            .iter()
+            .map(|p| p.manhattan_distance(point))
+            .sum()
+    }
 }
 
 fn part1(points: Vec<Point>) -> Result<()> {
@@ -168,16 +191,10 @@ fn part2(points: Vec<Point>) -> Result<()> {
         y: points.iter().map(|p| p.y).sum::<isize>() / points.len() as isize,
     };
 
-    let neighbors = &move |p: &Point| {
-        p.manhattan_neighbors()
-            .into_iter()
-            .filter(|p| total_manhattan_distance(p, &points) < 10000)
-            .collect()
-    };
-    let it = BFSTraversal::new(center, neighbors);
+    let graph = Part2Graph { points: points };
 
     let mut count = 0;
-    for _node in it {
+    for _node in bfs(graph, center) {
         count += 1;
     }
 

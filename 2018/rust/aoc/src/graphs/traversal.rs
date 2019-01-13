@@ -1,8 +1,7 @@
+use super::graph::Graph;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
-
-pub type NeighborFunc<T> = Fn(&T) -> std::vec::Vec<T>;
 
 #[derive(Clone)]
 pub struct TraversalNode<T> {
@@ -40,35 +39,33 @@ impl<T: Clone> Iterator for TraversalPathIterator<T> {
     }
 }
 
-pub struct BFSTraversal<'a, T> {
+pub struct BFSTraversal<T, G: Graph<T>> {
     index: u64,
-    neighbors: &'a NeighborFunc<T>,
+    graph: G,
     queue: VecDeque<TraversalNode<T>>,
     seen: HashSet<T>,
 }
 
-impl<'a, T: Clone + Eq + Hash> BFSTraversal<'a, T> {
-    pub fn new(start: T, neighbors: &NeighborFunc<T>) -> BFSTraversal<T> {
-        let mut seen = HashSet::new();
-        seen.insert(start.clone());
-        let mut queue = VecDeque::new();
-        queue.push_back(TraversalNode {
-            value: start,
-            index: 0,
-            depth: 0,
-            parent: None,
-        });
+pub fn bfs<T: Clone + Eq + Hash, G: Graph<T>>(graph: G, start: T) -> BFSTraversal<T, G> {
+    let mut seen = HashSet::new();
+    seen.insert(start.clone());
+    let mut queue = VecDeque::new();
+    queue.push_back(TraversalNode {
+        value: start,
+        index: 0,
+        depth: 0,
+        parent: None,
+    });
 
-        BFSTraversal {
-            index: 0,
-            neighbors: neighbors,
-            queue: queue,
-            seen: seen,
-        }
+    BFSTraversal {
+        index: 0,
+        graph: graph,
+        queue: queue,
+        seen: seen,
     }
 }
 
-impl<'a, T: Clone + Eq + Hash> Iterator for BFSTraversal<'a, T> {
+impl<T: Clone + Eq + Hash, G: Graph<T>> Iterator for BFSTraversal<T, G> {
     type Item = TraversalNode<T>;
 
     fn next(&mut self) -> Option<TraversalNode<T>> {
@@ -77,12 +74,12 @@ impl<'a, T: Clone + Eq + Hash> Iterator for BFSTraversal<'a, T> {
             None => return None,
         };
 
-        for neighbor in (self.neighbors)(&node.value) {
+        for neighbor in self.graph.neighbors(&node.value) {
             self.index += 1;
             if !self.seen.contains(&neighbor) {
                 self.seen.insert(neighbor.clone());
                 self.queue.push_back(TraversalNode {
-                    value: neighbor,
+                    value: neighbor.clone(),
                     index: self.index,
                     depth: node.depth + 1,
                     parent: Some(Box::new(node.clone())),
