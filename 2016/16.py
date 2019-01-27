@@ -1,3 +1,6 @@
+from utils import read_data
+
+
 def fill_data(size, a):
     b = ''.join('1' if c == '0' else '0' for c in reversed(list(a)))
     result = "{}0{}".format(a, b)
@@ -23,5 +26,7 @@ if __name__ == '__main__':
     assert get_data_checksum(20, '10000') == '01100'
     print("All tests passed")
 
-    print(get_data_checksum(272, '10001110011110000'))
-    print(get_data_checksum(35651584, '10001110011110000'))
+    initial_state = read_data(16).strip()
+
+    print(get_data_checksum(272, initial_state))
+    print(get_data_checksum(35651584, initial_state))

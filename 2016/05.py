@@ -1,6 +1,8 @@
 import hashlib
 import sys
 
+from utils import read_data
+
 
 def write_pa55w0rd(password, filler):
     pa55w0rd = ''.join(
@@ -52,5 +54,7 @@ if __name__ == '__main__':
     assert crack_hard_password('abc') == '05ace8e3'
     print('All tests passed')
 
-    print(crack_simple_password('cxdnnyjw'))
-    crack_hard_password('cxdnnyjw', leet=True)
+    password = read_data(5).strip()
+
+    print(crack_simple_password(password))
+    crack_hard_password(password, leet=True)

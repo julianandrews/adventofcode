@@ -31,6 +31,9 @@ class Grid(object):
     def __getitem__(self, location):
         return self.nodes[location]
 
+    def empty_nodes(self):
+        return [node for node in self.nodes.values() if node.used == 0]
+
     def neighbors(self, x, y):
         for (u, v) in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
             if 0 <= u <= self.max_x and 0 <= v <= self.max_y:
@@ -42,7 +45,11 @@ class Grid(object):
 class GridAStar(AStar):
     def __init__(self, data):
         self.grid = Grid(data)
-        super(GridAStar, self).__init__(((36, 0), (20, 6)))
+        empty_nodes = self.grid.empty_nodes()
+        assert len(empty_nodes) == 1
+        super(GridAStar, self).__init__(
+            ((self.grid.max_x, 0), (empty_nodes[0].x, empty_nodes[0].y))
+        )
 
     def get_neighbors(self, state):
         data, empty = state
