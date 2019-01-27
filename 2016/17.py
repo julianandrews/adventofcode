@@ -1,4 +1,4 @@
-from utils import bfs
+from utils import bfs, read_data
 
 import hashlib
 
@@ -46,5 +46,7 @@ if __name__ == '__main__':
     assert len(path('ulqzkmiv', longest=True)) == 830
     print('All tests passed')
 
-    print(path('pgflpeqp'))
-    print(len(path('pgflpeqp', longest=True)))
+    pass_hash = read_data(17).strip()
+
+    print(path(pass_hash))
+    print(len(path(pass_hash, longest=True)))

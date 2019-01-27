@@ -1,4 +1,4 @@
-from utils import bfs, lines
+from utils import bfs, lines, read_data
 
 
 def is_open(location, seed):
@@ -57,5 +57,7 @@ if __name__ == '__main__':
     assert shortest_path((7, 4), seed=10) == 11
     print('All tests passed')
 
-    print(shortest_path((31, 39), 1364))
-    print(seen_in_steps(50, 1364))
+    favorite_number = int(read_data(13))
+
+    print(shortest_path((31, 39), favorite_number))
+    print(seen_in_steps(50, favorite_number))

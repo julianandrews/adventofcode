@@ -3,6 +3,8 @@ from functools import lru_cache
 import hashlib
 import re
 
+from utils import read_data
+
 
 TRIPLET_RE = re.compile(r'(.)\1\1')
 QUINT_RE = re.compile(r'(.)\1\1\1\1')
@@ -46,5 +48,7 @@ if __name__ == '__main__':
     assert get_pad_length('abc', stretch=True) == 22551
     print("All tests passed")
 
-    print(get_pad_length('yjdafjpo'))
-    print(get_pad_length('yjdafjpo', stretch=True))
+    salt = read_data(14).strip()
+
+    print(get_pad_length(salt))
+    print(get_pad_length(salt, stretch=True))
