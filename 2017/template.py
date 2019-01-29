@@ -1,4 +1,4 @@
-from utils import read_data, get_lines,
+from utils import read_data
 
 
 def run_tests():
