@@ -32,11 +32,12 @@ def run_tests():
 
 
 if __name__ == "__main__":
+    run_tests()
+    print("All tests passed")
+
     data = [
         [int(cell) for cell in line.split()]
         for line in get_lines(read_data(2))
     ]
-    run_tests()
-    print("All tests passed")
     print("Part 1: {}".format(checksum(data)))
     print("Part 2: {}".format(fancy_checksum(data)))

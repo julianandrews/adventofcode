@@ -50,8 +50,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    data = int(read_data(3).strip())
     run_tests()
     print("All tests passed")
+
+    data = int(read_data(3).strip())
     print("Part 1: {}".format(transit_steps(data)))
     print("Part 2: {}".format(first_greater_than(data)))

@@ -32,8 +32,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    jumps = [int(line) for line in get_lines(read_data(5))]
     run_tests()
     print("All tests passed")
+
+    jumps = [int(line) for line in get_lines(read_data(5))]
     print("Part 1: {}".format(jumps_to_exit(jumps)))
     print("Part 2: {}".format(strange_jumps_to_exit(jumps)))

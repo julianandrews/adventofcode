@@ -34,8 +34,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    memory_banks = tuple(int(x) for x in read_data(6).split())
     run_tests()
     print("All tests passed")
+
+    memory_banks = tuple(int(x) for x in read_data(6).split())
     print("Part 1: {}".format(steps_to_repeat(memory_banks)))
     print("Part 2: {}".format(cycle_length(memory_banks)))

@@ -34,9 +34,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    data = read_data(1)
-    digits = [int(c) for c in data.strip()]
     run_tests()
     print("All tests passed")
+
+    digits = [int(c) for c in read_data(1).strip()]
     print("Part 1: {}".format(checksum(digits)))
     print("Part 2: {}".format(fancy_checksum(digits)))
