@@ -5,3 +5,7 @@ def read_data(n):
 
 def get_lines(data):
     return [line.strip() for line in data.strip().split('\n')]
+
+
+def manhattan_distance(a, b):
+    return sum(abs(u - v) for u, v in zip(a, b))
