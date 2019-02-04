@@ -6,8 +6,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    data = read_data(0)
     run_tests()
     print("All tests passed")
+
+    data = read_data(0)
     print("Part 1: {}".format(None))
     print("Part 2: {}".format(None))

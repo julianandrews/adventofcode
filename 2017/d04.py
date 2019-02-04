@@ -39,8 +39,9 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    passphrases = get_lines(read_data(4))
     run_tests()
     print("All tests passed")
+
+    passphrases = get_lines(read_data(4))
     print("Part 1: {}".format(part1(passphrases)))
     print("Part 2: {}".format(part2(passphrases)))
