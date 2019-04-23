@@ -99,6 +99,16 @@ def dfs(start, neighbors, sort_key=None):
     return graph_traversal(start, neighbors, node_key)
 
 
+def connected_components(values, neighbors):
+    unvisited = set(values)
+
+    while unvisited:
+        value = next(iter(unvisited))
+        nodes = set(node.value for node in dfs(value, neighbors))
+        yield nodes
+        unvisited -= nodes
+
+
 def toposort(values, neighbors):
     """Returns a topological ordering of the provided values.
 
