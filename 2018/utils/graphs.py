@@ -139,10 +139,12 @@ def astar(start, is_end, neighbors, edge_weights, heuristic):
     heuristic    -- the A* heuristic function which estimates the remaining
                     distance from a point.
     """
+    nodes = [start]
+    node_indices = {start: 0}
     closed_nodes = set()
-    open_nodes = set([start])
     distances = {start: 0}
     estimated_distances = {start: heuristic(start)}
+    open_nodes = [(estimated_distances[start], 0)]
     parents = {}
 
     def reconstruct_path(node):
@@ -154,18 +156,25 @@ def astar(start, is_end, neighbors, edge_weights, heuristic):
         return list(reversed(path))
 
     while open_nodes:
-        node = min(open_nodes, key=lambda node: estimated_distances[node])
-        open_nodes.remove(node)
-        closed_nodes.add(node)
-        if is_end(node):
-            return reconstruct_path(node), distances[node]
-        for neighbor in neighbors(node):
-            if neighbor not in closed_nodes:
-                open_nodes.add(neighbor)
-                distance = distances[node] + edge_weights(node, neighbor)
+        _, node_index = heapq.heappop(open_nodes)
+        node = nodes[node_index]
+        if node not in closed_nodes:
+            closed_nodes.add(node)
+            if is_end(node):
+                return reconstruct_path(node), distances[node]
+            for neighbor in neighbors(node):
+                if neighbor not in closed_nodes:
+                    if neighbor not in node_indices:
+                        node_indices[neighbor] = len(nodes)
+                        nodes.append(neighbor)
+                    distance = distances[node] + edge_weights(node, neighbor)
 
-                if distances.get(neighbor) is None or distance < distances[neighbor]:
-                    distances[neighbor] = distance
-                    estimated_distances[neighbor] = distances[neighbor] + heuristic(neighbor)
-                    parents[neighbor] = node
+                    if neighbor not in distances or distance < distances[neighbor]:
+                        distances[neighbor] = distance
+                        estimated_distances[neighbor] = distances[neighbor] + heuristic(neighbor)
+                        parents[neighbor] = node
+                        heapq.heappush(
+                            open_nodes,
+                            (estimated_distances[neighbor], node_indices[neighbor])
+                        )
     return None
