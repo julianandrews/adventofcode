@@ -6,7 +6,7 @@
 # 	make clean
 
 CXX ?= /usr/bin/clang++
-CXXFLAGS ?= -Wall -Werror -O3 -std=c++14
+CXXFLAGS ?= -lssl -lcrypto -Wall -Werror -O3 -std=c++14
 INPUT_PATH ?= ../inputs
 
 %: %.cc | bin
