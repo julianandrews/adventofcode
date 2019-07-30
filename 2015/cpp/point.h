@@ -8,6 +8,8 @@ struct Point {
   int y;
 
   bool operator==(const Point &p) const { return x == p.x && y == p.y; }
+
+  Point(int x, int y) : x(x), y(y) {}
 };
 
 } // namespace point
