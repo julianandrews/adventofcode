@@ -9,6 +9,8 @@ enum Direction { NORTH, EAST, SOUTH, WEST };
 
 class Santa {
 public:
+  Santa() : location(0, 0) {}
+
   void move(const Direction direction) {
     switch (direction) {
     case NORTH:
