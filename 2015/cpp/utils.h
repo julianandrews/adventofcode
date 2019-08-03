@@ -1,3 +1,6 @@
+#ifndef AOC_UTILS
+#define AOC_UTILS
+
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -47,3 +50,5 @@ std::vector<std::string> get_trimmed_lines() {
 
 } // namespace utils
 } // namespace aoc
+
+#endif
