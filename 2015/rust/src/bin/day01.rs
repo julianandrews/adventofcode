@@ -1,6 +1,7 @@
-use std::io::{self, Read, Write};
+extern crate aoc;
 
-type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+use aoc::Result;
+use std::io::{self, Read, Write};
 
 fn main() -> Result<()> {
     let mut input = String::new();
