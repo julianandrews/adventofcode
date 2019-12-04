@@ -1,5 +1,5 @@
 CXX ?= /usr/bin/clang++
-CXXFLAGS ?= -Wall -Werror -O3 -std=c++14
+CXXFLAGS ?= -Wall -Werror -O3 -std=c++17
 INPUT_PATH ?= ../inputs
 
 %: %.cc | bin
