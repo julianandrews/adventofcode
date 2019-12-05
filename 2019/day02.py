@@ -1,22 +1,25 @@
 import utils
-from utils.intcode import VM
+from utils.intcode import VM, Op
 
 
 def run_with_inputs(program, noun=None, verb=None):
     vm = VM(program[:], noun, verb)
-    vm.run()
+    while True:
+        op, _ = vm.step()
+        if op == Op.HALT:
+            break
 
     return vm
 
 
 def p1(program):
-    return run_with_inputs(program, 12, 2).output
+    return run_with_inputs(program, 12, 2).memory[0]
 
 
 def p2(program):
     for a in range(99):
         for b in range(99):
-            if run_with_inputs(program, a, b).output == 19690720:
+            if run_with_inputs(program, a, b).memory[0] == 19690720:
                 return 100 * a + b
 
 
@@ -24,7 +27,7 @@ if __name__ == "__main__":
     # import logging; logging.basicConfig(level=logging.DEBUG)
     data = utils.read_data(2)
     program = [int(x) for x in data.strip().split(',')]
-    assert run_with_inputs([1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50], 9, 10).output == 3500
+    assert run_with_inputs([1, 9, 10, 3, 2, 3, 11, 0, 99, 30, 40, 50], 9, 10).memory[0] == 3500
     assert run_with_inputs([1, 0, 0, 0, 99]).memory == [2, 0, 0, 0, 99]
     assert run_with_inputs([2, 3, 0, 3, 99]).memory == [2, 3, 0, 6, 99]
     assert run_with_inputs([2, 4, 4, 5, 99, 0]).memory == [2, 4, 4, 5, 99, 9801]
