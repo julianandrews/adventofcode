@@ -7,29 +7,21 @@
 using intcode::VM, intcode::Op;
 
 int p1(const std::vector<int> &program) {
-  VM vm = VM(program, 12, 2);
-  Op op;
+  VM vm = VM(program, 1);
   do {
-    op = vm.step();
-  } while (op != Op::HALT);
-  return vm.first_register();
+    vm.step();
+  } while (!vm.diagnostic_code());
+
+  return vm.diagnostic_code();
 }
 
 int p2(const std::vector<int> &program) {
-  for (int noun = 0; noun < 100; ++noun) {
-    for (int verb = 0; verb < 100; ++verb) {
-      VM vm = VM(program, noun, verb);
-    Op op;
-      do {
-        op = vm.step();
-      } while (op != Op::HALT);
-      if (vm.first_register() == 19690720) {
-        return 100 * noun + verb;
-      }
-    }
-  }
+  VM vm = VM(program, 5);
+  do {
+    vm.step();
+  } while (!vm.diagnostic_code());
 
-  return -1;
+  return vm.diagnostic_code();
 }
 
 int main() {
