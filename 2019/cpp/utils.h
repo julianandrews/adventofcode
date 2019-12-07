@@ -1,3 +1,6 @@
+#ifndef AOC_UTILS_H
+#define AOC_UTILS_H
+
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -21,9 +24,9 @@ std::vector<std::string> split(const std::string &s, const char delim) {
 std::string trim(const std::string &s) {
   auto start = std::find_if_not(s.begin(), s.end(),
                                 [](int c) { return std::isspace(c); });
-  auto end = std::find_if_not(s.rbegin(), s.rend(), [](int c) {
-               return std::isspace(c);
-             }).base();
+  auto end = std::find_if_not(s.rbegin(), s.rend(),
+                              [](int c) { return std::isspace(c); })
+                 .base();
 
   return start < end ? std::string(start, end) : std::string();
 }
@@ -41,3 +44,5 @@ std::vector<std::string> getlines() {
 
 } // namespace utils
 } // namespace aoc
+
+#endif
