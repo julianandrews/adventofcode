@@ -8,18 +8,16 @@ def always_n(n):
 
 def p1(program):
     vm = VM(program, inputs=always_n(1))
-    while not vm.diagnostic_code:
-        vm.step()
-
-    return vm.diagnostic_code
+    for diagnostic_code in vm.outputs():
+        if diagnostic_code:
+            return diagnostic_code
 
 
 def p2(program):
     vm = VM(program, inputs=always_n(5))
-    while not vm.diagnostic_code:
-        vm.step()
-
-    return vm.diagnostic_code
+    for diagnostic_code in vm.outputs():
+        if diagnostic_code:
+            return diagnostic_code
 
 
 if __name__ == "__main__":
