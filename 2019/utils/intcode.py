@@ -59,16 +59,21 @@ class VM:
         if verb is not None:
             self.verb = verb
 
-        self.outputs = []
+        self.output = None
         self.inputs = inputs
+
+    def outputs(self):
+        op = None
+        while op != Op.HALT:
+            op, _ = self.step()
+            if op == Op.OUTPUT:
+                yield self.output
 
     def step(self):
         op = Op(self.memory[self.ip] % 100)
         params = self.memory[self.ip + 1:self.ip + op.num_parameters + 1]
-        modes = [
-            ValueMode(int(c))
-            for c in reversed(str(self.memory[self.ip] // 100).zfill(len(params)))
-        ]
+        mode_str = (str(self.memory[self.ip] // 100) or '').zfill(len(params))
+        modes = [ValueMode(int(c)) for c in reversed(mode_str)]
         ip_offset = op.num_parameters + 1
 
         self.logger.debug(f"Executing {op} with {params} and {modes}")
@@ -101,7 +106,7 @@ class VM:
         elif op == Op.OUTPUT:
             value = self.get_value(params[0], modes[0])
             self.logger.debug(f"Outputting {value}")
-            self.outputs.append(value)
+            self.output = value
         elif op.is_jump:
             value = self.get_value(params[0], modes[0])
             address = self.get_value(params[1], modes[1])
@@ -145,4 +150,4 @@ class VM:
 
     @property
     def diagnostic_code(self):
-        return self.outputs[-1] if self.outputs else None
+        self.output
