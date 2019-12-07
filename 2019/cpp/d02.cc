@@ -4,10 +4,14 @@
 #include "intcode.h"
 #include "utils.h"
 
-using intcode::VM, intcode::Op;
+using intcode::ConstantInputs;
+using intcode::Inputs;
+using intcode::Op;
+using intcode::VM;
 
 int p1(const std::vector<int> &program) {
-  VM vm = VM(program, 12, 2);
+  auto inputs = ConstantInputs(0);
+  VM vm = VM(program, &inputs, 12, 2);
   Op op;
   do {
     op = vm.step();
@@ -16,10 +20,11 @@ int p1(const std::vector<int> &program) {
 }
 
 int p2(const std::vector<int> &program) {
+  auto inputs = ConstantInputs(0);
   for (int noun = 0; noun < 100; ++noun) {
     for (int verb = 0; verb < 100; ++verb) {
-      VM vm = VM(program, noun, verb);
-    Op op;
+      VM vm = VM(program, &inputs, noun, verb);
+      Op op;
       do {
         op = vm.step();
       } while (op != Op::HALT);

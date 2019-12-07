@@ -4,24 +4,30 @@
 #include "intcode.h"
 #include "utils.h"
 
-using intcode::VM, intcode::Op;
+using intcode::ConstantInputs;
+using intcode::Op;
+using intcode::VM;
 
 int p1(const std::vector<int> &program) {
-  VM vm = VM(program, 1);
+  auto inputs = ConstantInputs(1);
+  VM vm = VM(program, &inputs);
+  int output = 0;
   do {
-    vm.step();
-  } while (!vm.diagnostic_code());
+    output = vm.get_next_output().value();
+  } while (output == 0);
 
-  return vm.diagnostic_code();
+  return output;
 }
 
 int p2(const std::vector<int> &program) {
-  VM vm = VM(program, 5);
+  auto inputs = ConstantInputs(5);
+  VM vm = VM(program, &inputs);
+  int output = 0;
   do {
-    vm.step();
-  } while (!vm.diagnostic_code());
+    output = vm.get_next_output().value();
+  } while (output == 0);
 
-  return vm.diagnostic_code();
+  return output;
 }
 
 int main() {
