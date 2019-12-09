@@ -5,6 +5,7 @@ import logging
 class ValueMode(enum.Enum):
     POSITION = 0
     IMMEDIATE = 1
+    RELATIVE = 2
 
 
 class Op(enum.Enum):
@@ -16,6 +17,7 @@ class Op(enum.Enum):
     JUMP_IF_FALSE = 6
     LESS_THAN = 7
     EQUALS = 8
+    ADJUST_REL_OFFSET = 9
     HALT = 99
 
     @property
@@ -37,7 +39,7 @@ class Op(enum.Enum):
 
     @property
     def is_unary(self):
-        return self in {Op.STORE, Op.OUTPUT}
+        return self in {Op.STORE, Op.OUTPUT, Op.ADJUST_REL_OFFSET}
 
     @property
     def is_jump(self):
@@ -52,8 +54,9 @@ class VM:
 
     def __init__(self, memory, noun=None, verb=None, inputs=None):
         self.logger.debug(f"Initializing VM")
-        self.memory = memory
+        self.memory = VM.VMMemory(memory)
         self.ip = 0
+        self.relative_base = 0
         if noun is not None:
             self.noun = noun
         if verb is not None:
@@ -81,9 +84,9 @@ class VM:
         if op.is_binary_op:
             a = self.get_value(params[0], modes[0])
             b = self.get_value(params[1], modes[1])
-            if modes[2] != ValueMode.POSITION:
+            if modes[2] == ValueMode.IMMEDIATE:
                 raise RuntimeError(f"Unexpected {modes[2]} in {op} at 2")
-            address = params[2]
+            address = self.get_address(params[2], modes[2])
             if op == Op.ADD:
                 self.logger.debug(f"Storing {a} + {b} at {address}")
                 self.memory[address] = a + b
@@ -97,9 +100,9 @@ class VM:
                 self.logger.debug(f"Storing {a} == {b} at {address}")
                 self.memory[address] = 1 if a == b else 0
         elif op == Op.STORE:
-            if modes[0] != ValueMode.POSITION:
+            if modes[0] == ValueMode.IMMEDIATE:
                 raise RuntimeError(f"Unexpected {modes[0]} in {op} at 0")
-            address = params[0]
+            address = self.get_address(params[0], modes[0])
             value = next(self.inputs)
             self.logger.debug(f"Storing {value} at {address}")
             self.memory[address] = value
@@ -116,6 +119,10 @@ class VM:
                 ip_offset = 0
         elif op == Op.HALT:
             pass
+        elif op == Op.ADJUST_REL_OFFSET:
+            value = self.get_value(params[0], modes[0])
+            self.logger.debug(f"Adjusting relative base by {value}")
+            self.relative_base += value
         else:
             raise RuntimeError("Unexpected Operation {op}")
 
@@ -123,12 +130,20 @@ class VM:
         return op, params
 
     def get_value(self, value, mode):
-        return self.memory[value] if mode == ValueMode.POSITION else value
+        if mode == ValueMode.POSITION:
+            return self.memory[value]
+        elif mode == ValueMode.IMMEDIATE:
+            return value
+        elif mode == ValueMode.RELATIVE:
+            return self.memory[self.relative_base + value]
+        else:
+            raise RuntimeError("Unrecognized ValueMode {mode}")
 
-    def set_verb(self, verb):
-        self.logger.debug(f"Setting verb to {verb}")
-        if verb is not None:
-            self.memory[2] = verb
+    def get_address(self, base_address, mode):
+        if mode == ValueMode.POSITION:
+            return base_address
+        else:
+            return base_address + self.relative_base
 
     @property
     def noun(self):
@@ -151,3 +166,24 @@ class VM:
     @property
     def diagnostic_code(self):
         self.output
+
+    class VMMemory:
+        def __init__(self, memory):
+            self.memory = memory
+
+        def __getitem__(self, index):
+            if isinstance(index, slice):
+                start = index.start if index.start is not None else 0
+                stop = index.stop if index.stop is not None else len(self.memory)
+                step = index.step if index.step is not None else 1
+                return [
+                    self.memory[i] if i < len(self.memory) else 0
+                    for i in range(start, stop, step)
+                ]
+            else:
+                return self.memory[index] if index < len(self.memory) else 0
+
+        def __setitem__(self, index, value):
+            if index >= len(self.memory):
+                self.memory.extend(0 for _ in range(index - len(self.memory) + 1))
+            self.memory[index] = value
