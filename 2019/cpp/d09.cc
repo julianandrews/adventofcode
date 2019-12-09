@@ -5,36 +5,23 @@
 #include "utils.h"
 
 using intcode::ConstantInputs;
-using intcode::Inputs;
 using intcode::Op;
 using intcode::VM;
 
 long long p1(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(0);
-  VM vm = VM(program, &inputs, 12, 2);
-  Op op;
-  do {
-    op = vm.step();
-  } while (op != Op::HALT);
-  return vm.first_register();
+  auto inputs = ConstantInputs(1);
+  VM vm = VM(program, &inputs);
+  auto output = vm.get_next_output();
+
+  return output.value();
 }
 
 long long p2(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(0);
-  for (long long noun = 0; noun < 100; ++noun) {
-    for (long long verb = 0; verb < 100; ++verb) {
-      VM vm = VM(program, &inputs, noun, verb);
-      Op op;
-      do {
-        op = vm.step();
-      } while (op != Op::HALT);
-      if (vm.first_register() == 19690720) {
-        return 100 * noun + verb;
-      }
-    }
-  }
+  auto inputs = ConstantInputs(2);
+  VM vm = VM(program, &inputs);
+  auto output = vm.get_next_output();
 
-  return -1;
+  return output.value();
 }
 
 int main() {

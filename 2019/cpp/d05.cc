@@ -8,10 +8,10 @@ using intcode::ConstantInputs;
 using intcode::Op;
 using intcode::VM;
 
-int p1(const std::vector<int> &program) {
+long long p1(const std::vector<long long> &program) {
   auto inputs = ConstantInputs(1);
   VM vm = VM(program, &inputs);
-  int output = 0;
+  long long output = 0;
   do {
     output = vm.get_next_output().value();
   } while (output == 0);
@@ -19,10 +19,10 @@ int p1(const std::vector<int> &program) {
   return output;
 }
 
-int p2(const std::vector<int> &program) {
+long long p2(const std::vector<long long> &program) {
   auto inputs = ConstantInputs(5);
   VM vm = VM(program, &inputs);
-  int output = 0;
+  long long output = 0;
   do {
     output = vm.get_next_output().value();
   } while (output == 0);
@@ -34,7 +34,7 @@ int main() {
   std::string line;
   getline(std::cin, line);
 
-  std::vector<int> program;
+  std::vector<long long> program;
   for (std::string s : aoc::utils::split(line, ',')) {
     program.push_back(std::stoi(s));
   }
