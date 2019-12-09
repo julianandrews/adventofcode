@@ -45,7 +45,7 @@ def p2(wire1, wire2):
     return min(wire1.signal_distances[p] + wire2.signal_distances[p] for p in intersections)
 
 
-if __name__ == "__main__":
+def run_tests():
     wire_a1 = Wire(["R8", "U5", "L5", "D3"])
     wire_a2 = Wire(["U7", "R6", "D4", "L4"])
     assert p1(wire_a1, wire_a2) == 6
@@ -60,6 +60,11 @@ if __name__ == "__main__":
     wire_c2 = Wire(['U98', 'R91', 'D20', 'R16', 'D67', 'R40', 'U7', 'R15', 'U6', 'R7'])
     assert p1(wire_c1, wire_c2) == 135
     assert p2(wire_c1, wire_c2) == 410
+
+
+if __name__ == "__main__":
+    run_tests()
+    print("All tests passed")
 
     data = utils.read_data(3)
     wires = [Wire(line.split(",")) for line in data.strip().split("\n")]
