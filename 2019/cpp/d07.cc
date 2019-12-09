@@ -9,14 +9,15 @@ using intcode::Op;
 using intcode::VM;
 
 class TwoStepInputs : public intcode::Inputs {
-  int initial_;
-  int value_;
+  long long initial_;
+  long long value_;
   bool returned_once = false;
 
 public:
-  TwoStepInputs(int first, int value) : initial_(first), value_(value) {}
+  TwoStepInputs(long long first, long long value)
+      : initial_(first), value_(value) {}
 
-  int next() {
+  long long next() {
     if (!returned_once) {
       returned_once = true;
       return initial_;
@@ -24,15 +25,15 @@ public:
     return value_;
   }
 
-  void set_value(int value) { value_ = value; }
+  void set_value(long long value) { value_ = value; }
 };
 
-int p1(const std::vector<int> &program) {
-  int best = 0;
-  int permutation[] = {0, 1, 2, 3, 4};
+long long p1(const std::vector<long long> &program) {
+  long long best = 0;
+  long long permutation[] = {0, 1, 2, 3, 4};
   do {
-    int signal = 0;
-    for (int phase : permutation) {
+    long long signal = 0;
+    for (long long phase : permutation) {
       auto inputs = TwoStepInputs(phase, signal);
       VM vm = VM(program, &inputs);
       signal = vm.get_next_output().value();
@@ -43,9 +44,9 @@ int p1(const std::vector<int> &program) {
   return best;
 }
 
-int p2(const std::vector<int> &program) {
-  int best = 0;
-  int permutation[] = {5, 6, 7, 8, 9};
+long long p2(const std::vector<long long> &program) {
+  long long best = 0;
+  long long permutation[] = {5, 6, 7, 8, 9};
   do {
     TwoStepInputs inputs[5] = {
         TwoStepInputs(permutation[0], 0), TwoStepInputs(permutation[1], 0),
@@ -76,7 +77,7 @@ int main() {
   std::string line;
   getline(std::cin, line);
 
-  std::vector<int> program;
+  std::vector<long long> program;
   for (std::string s : aoc::utils::split(line, ',')) {
     program.push_back(std::stoi(s));
   }

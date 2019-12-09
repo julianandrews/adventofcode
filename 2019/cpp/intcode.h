@@ -7,7 +7,7 @@
 
 namespace intcode {
 
-enum class ValueMode { POSITION = 0, IMMEDIATE = 1 };
+enum class ValueMode { POSITION = 0, IMMEDIATE = 1, RELATIVE = 2 };
 
 enum class Op {
   ADD = 1,
@@ -18,21 +18,22 @@ enum class Op {
   JUMP_IF_FALSE = 6,
   LESS_THAN = 7,
   EQUALS = 8,
+  ADJUST_REL_OFFSET = 9,
   HALT = 99
 };
 
 class Inputs {
 public:
-  virtual int next() = 0;
+  virtual long long next() = 0;
 };
 
 class ConstantInputs : public Inputs {
-  const int n_;
+  const long long n_;
 
 public:
-  ConstantInputs(int n) : n_(n) {}
+  ConstantInputs(long long n) : n_(n) {}
 
-  int next() override { return n_; }
+  long long next() override { return n_; }
 };
 
 bool is_binary_op(Op op) {
@@ -49,7 +50,8 @@ int num_params(Op op) {
     return 3;
   } else if (is_jump(op)) {
     return 2;
-  } else if (op == Op::STORE || op == Op::OUTPUT) {
+  } else if (op == Op::STORE || op == Op::OUTPUT ||
+             op == Op::ADJUST_REL_OFFSET) {
     return 1;
   } else if (op == Op::HALT) {
     return 0;
@@ -59,76 +61,112 @@ int num_params(Op op) {
 }
 
 class VM {
-  std::vector<int> memory_;
-  int ip_ = 0;
-  int output_ = 0;
+  class VMMemory {
+    std::vector<long long> memory_;
+
+  public:
+    VMMemory(std::vector<long long> memory) : memory_(memory) {}
+
+    long long at(const size_t index) const {
+      return index < memory_.size() ? memory_.at(index) : 0;
+    }
+
+    long long &operator[](const size_t index) {
+      if (index >= memory_.size()) {
+        memory_.resize(index + 1);
+      }
+      return memory_[index];
+    }
+  };
+
+  VMMemory memory_;
+  long long ip_ = 0;
+  long long relative_base_ = 0;
+  long long output_ = 0;
   Inputs *inputs_;
 
-  int get_value(int value, ValueMode mode) {
+  long long get_value(long long value, ValueMode mode) const {
     switch (mode) {
     case ValueMode::POSITION:
       return memory_.at(value);
+    case ValueMode::RELATIVE:
+      return memory_.at(relative_base_ + value);
     default:
       return value;
     }
   }
 
-public:
-  VM(std::vector<int> memory, Inputs *inputs)
-      : memory_(memory), inputs_(inputs) {}
+  long long get_address(long long base_address, ValueMode mode) const {
+    switch (mode) {
+    case ValueMode::POSITION:
+      return base_address;
+    case ValueMode::RELATIVE:
+      return base_address + relative_base_;
+    default:
+      throw "Unexpected Mode";
+    }
+  }
 
-  VM(std::vector<int> memory, Inputs *inputs, int noun, int verb)
-      : memory_(memory), inputs_(inputs) {
+public:
+  VM(std::vector<long long> memory, Inputs *inputs)
+      : memory_(std::move(memory)), inputs_(inputs) {}
+
+  VM(std::vector<long long> memory, Inputs *inputs, long long noun,
+     long long verb)
+      : memory_(std::move(memory)), inputs_(inputs) {
     memory_[1] = noun;
     memory_[2] = verb;
   }
 
   Op step() {
-    int instruction = memory_.at(ip_);
+    long long instruction = memory_.at(ip_);
     Op op = Op(instruction % 100);
     instruction /= 100;
-    std::vector<int> params;
+    std::vector<long long> params;
     std::vector<ValueMode> modes;
     for (int i = 0; i < num_params(op); ++i) {
       params.push_back(memory_.at(ip_ + i + 1));
       modes.push_back(ValueMode(instruction % 10));
       instruction /= 10;
     }
-    int ip_offset = num_params(op) + 1;
+    long long ip_offset = num_params(op) + 1;
 
     if (is_binary_op(op)) {
-      int a = get_value(params.at(0), modes.at(0));
-      int b = get_value(params.at(1), modes.at(1));
-      int address = params.at(2);
+      long long a = get_value(params.at(0), modes.at(0));
+      long long b = get_value(params.at(1), modes.at(1));
+      long long address = get_address(params.at(2), modes.at(2));
       switch (op) {
-        case Op::ADD:
-          memory_[address] = a + b;
-          break;
-        case Op::MULTIPLY:
-          memory_[address] = a * b;
-          break;
-        case Op::LESS_THAN:
-          memory_[address] = a < b ? 1 : 0;
-          break;
-        case Op::EQUALS:
-          memory_[address] = a == b ? 1 : 0;
-          break;
-        default:
-          throw "Unexpecetd operation!";
+      case Op::ADD:
+        memory_[address] = a + b;
+        break;
+      case Op::MULTIPLY:
+        memory_[address] = a * b;
+        break;
+      case Op::LESS_THAN:
+        memory_[address] = a < b ? 1 : 0;
+        break;
+      case Op::EQUALS:
+        memory_[address] = a == b ? 1 : 0;
+        break;
+      default:
+        throw "Unexpected operation!";
       }
     } else if (is_jump(op)) {
-      int value = get_value(params.at(0), modes.at(0));
-      int address = get_value(params.at(1), modes.at(1));
+      long long value = get_value(params.at(0), modes.at(0));
+      long long address = get_value(params.at(1), modes.at(1));
       if ((op == Op::JUMP_IF_TRUE && value) ||
           (op == Op::JUMP_IF_FALSE && !value)) {
         ip_ = address;
         ip_offset = 0;
       }
     } else if (op == Op::STORE) {
-      int address = params.at(0);
+      long long address = get_address(params.at(0), modes.at(0));
       memory_[address] = inputs_->next();
     } else if (op == Op::OUTPUT) {
       output_ = get_value(params.at(0), modes.at(0));
+    } else if (op == Op::ADJUST_REL_OFFSET) {
+      int value = get_value(params.at(0), modes.at(0));
+      relative_base_ += value;
     } else if (op == Op::HALT) {
       ip_offset = 0;
     } else {
@@ -139,18 +177,18 @@ public:
     return op;
   }
 
-  std::optional<int> get_next_output() {
+  std::optional<long long> get_next_output() {
     Op op;
     do {
       op = step();
     } while (op != Op::HALT && op != Op::OUTPUT);
 
-    return op == Op::OUTPUT ? std::optional<int>(output_) : std::nullopt;
+    return op == Op::OUTPUT ? std::optional<long long>(output_) : std::nullopt;
   }
 
-  int first_register() const { return memory_.at(0); }
+  long long first_register() const { return memory_.at(0); }
 
-  int diagnostic_code() const { return output_; }
+  long long diagnostic_code() const { return output_; }
 };
 
 } // namespace intcode
