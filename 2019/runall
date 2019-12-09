@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+for f in day*.py
+do
+  d=${f:3:-3}
+  echo "Day ${d}:"
+  python3 "$f"
+  echo
+done
