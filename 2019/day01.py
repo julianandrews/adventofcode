@@ -22,7 +22,21 @@ def p2(masses):
     return sum(fuel(mass) for mass in masses)
 
 
+def run_tests():
+    assert simple_fuel(12) == 2
+    assert simple_fuel(14) == 2
+    assert simple_fuel(1969) == 654
+    assert simple_fuel(100756) == 33583
+
+    assert fuel(14) == 2
+    assert fuel(1969) == 966
+    assert fuel(100756) == 50346
+
+
 if __name__ == "__main__":
+    run_tests()
+    print("All tests passed")
+
     data = utils.read_data(1)
     masses = [int(s.strip()) for s in utils.get_lines(data)]
     print("Part 1: %d" % p1(masses))
