@@ -145,6 +145,9 @@ class VM:
         else:
             return base_address + self.relative_base
 
+    def set_memory(self, index, value):
+        self.memory[index] = value
+
     @property
     def noun(self):
         return self.memory[1]
