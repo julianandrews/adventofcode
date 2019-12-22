@@ -1,12 +1,7 @@
 import enum
 import utils
 
-
-class Direction(enum.Enum):
-    UP = "U"
-    DOWN = "D"
-    LEFT = "L"
-    RIGHT = "R"
+from utils.direction import Direction
 
 
 class Wire:
@@ -15,20 +10,24 @@ class Wire:
         signal_distance = 0
         x = y = 0
         for instruction in instructions:
-            direction = Direction(instruction[0])
+            direction = self.direction_from_char(instruction[0])
             distance = int(instruction[1:])
             for i in range(distance):
-                if direction == Direction.UP:
-                    y += 1
-                elif direction == Direction.DOWN:
-                    y -= 1
-                if direction == Direction.RIGHT:
-                    x += 1
-                elif direction == Direction.LEFT:
-                    x -= 1
+                x, y = direction.next_position((x, y))
                 signal_distance += 1
                 if (x, y) not in self.signal_distances:
                     self.signal_distances[(x, y)] = signal_distance
+
+    @staticmethod
+    def direction_from_char(c):
+        if c == "U":
+            return Direction.NORTH
+        elif c == "R":
+            return Direction.EAST
+        elif c == "D":
+            return Direction.SOUTH
+        elif c == "L":
+            return Direction.WEST
 
     @property
     def points(self):
