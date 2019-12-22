@@ -1,36 +1,9 @@
 import enum
 
 from utils import read_data
+from utils.direction import Direction
 from utils.intcode import VM
 from utils.graphs import bfs
-
-
-class Direction(enum.Enum):
-    NORTH = 1
-    SOUTH = 2
-    WEST = 3
-    EAST = 4
-
-    def next_position(self, p):
-        x, y = p
-        if self == Direction.NORTH:
-            return x, y + 1
-        elif self == Direction.SOUTH:
-            return x, y - 1
-        elif self == Direction.WEST:
-            return x - 1, y
-        else: return x + 1, y
-
-    @property
-    def reverse(self):
-        if self == Direction.NORTH:
-            return Direction.SOUTH
-        elif self == Direction.SOUTH:
-            return Direction.NORTH
-        elif self == Direction.WEST:
-            return Direction.EAST
-        else:
-            return Direction.WEST
 
 
 class StatusCode(enum.Enum):
@@ -53,8 +26,19 @@ class Robot:
         while True:
             yield self.next_input
 
+    @staticmethod
+    def direction_input(direction):
+        if direction == Direction.NORTH:
+            return 1
+        elif direction == Direction.SOUTH:
+            return 2
+        elif direction == Direction.WEST:
+            return 3
+        elif direction == Direction.EAST:
+            return 4
+
     def try_move(self, direction):
-        self.next_input = direction.value
+        self.next_input = self.direction_input(direction)
         status_code = StatusCode(next(self.vm.outputs()))
         next_position = direction.next_position(self.position)
         self.ship_map[next_position] = status_code
@@ -63,8 +47,8 @@ class Robot:
             self.route.append(direction)
 
     def backtrack(self):
-        direction = self.route.pop().reverse
-        self.next_input = direction.value
+        direction = self.route.pop().reverse()
+        self.next_input = self.direction_input(direction)
         status_code = StatusCode(next(self.vm.outputs()))
         self.position = direction.next_position(self.position)
         if status_code != self.ship_map[self.position]:

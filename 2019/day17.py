@@ -27,13 +27,16 @@ class Scaffold:
     def width(self):
         return len(self.map[0]) if self.map else 0
 
+    def at(self, x, y):
+        return self.map[self.height - y - 1][x]
+
     def on_scaffold(self, x, y):
-        return 0 <= x < self.width and 0 <= y < self.height and self.map[y][x] != "."
+        return 0 <= x < self.width and 0 <= y < self.height and self.at(x, y) != "."
 
     def vacuum_location(self):
         for y in range(self.height):
             for x in range(self.width):
-                if self.map[y][x] in self.VACUUM_CHARS:
+                if self.at(x, y) in self.VACUUM_CHARS:
                     return (x, y)
 
     def intersections(self):
@@ -51,7 +54,7 @@ class Scaffold:
         visited = {(x, y)}
 
         directions = []
-        current_direction = Direction(self.VACUUM_CHARS.index(self.map[y][x]))
+        current_direction = Direction(self.VACUUM_CHARS.index(self.at(x, y)))
         while True:
             dx, dy = current_direction.offset
             distance = 0
@@ -115,7 +118,7 @@ def get_routines(directions):
 def p1(program):
     vm = VM(program[:])
     scaffold = Scaffold(vm.outputs())
-    return sum(a * b for a, b in scaffold.intersections())
+    return sum(x * (scaffold.height - y - 1) for x, y in scaffold.intersections())
 
 
 def p2(program):

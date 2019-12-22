@@ -1,20 +1,8 @@
 import enum
 
 from utils import read_data
+from utils.direction import Direction
 from utils.intcode import VM
-
-
-class Direction(enum.Enum):
-    UP = 0
-    RIGHT = 1
-    DOWN = 2
-    LEFT = 3
-
-    def turn_left(self):
-        return Direction((self.value - 1) % 4)
-
-    def turn_right(self):
-        return Direction((self.value + 1) % 4)
 
 
 def pairs(seq):
@@ -32,21 +20,16 @@ class Robot:
         self.painted_panels = set()
         self.x = 0
         self.y = 0
-        self.direction = Direction.UP
+        self.direction = Direction.NORTH
 
     def inputs(self):
         while True:
             yield (self.x, self.y) in self.painted_panels
 
     def move(self):
-        if self.direction == Direction.UP:
-            self.y += 1
-        elif self.direction == Direction.RIGHT:
-            self.x += 1
-        if self.direction == Direction.DOWN:
-            self.y -= 1
-        elif self.direction == Direction.LEFT:
-            self.x -= 1
+        dx, dy = self.direction.offset
+        self.x += dx
+        self.y += dy
 
     def paint_instructions(self):
         for paint_white, turn_right in pairs(self.vm.outputs()):
@@ -56,9 +39,9 @@ class Robot:
             else:
                 self.painted_panels.discard((self.x, self.y))
             if turn_right:
-                self.direction = self.direction.turn_right()
+                self.direction = self.direction.right_turn()
             else:
-                self.direction = self.direction.turn_left()
+                self.direction = self.direction.left_turn()
             self.move()
             yield paint_location, (self.x, self.y), paint_white
 
