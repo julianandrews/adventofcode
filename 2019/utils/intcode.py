@@ -68,9 +68,12 @@ class VM:
     def outputs(self):
         op = None
         while op != Op.HALT:
-            op, _ = self.step()
-            if op == Op.OUTPUT:
-                yield self.output
+            try:
+                op, _ = self.step()
+                if op == Op.OUTPUT:
+                    yield self.output
+            except StopIteration:
+                break
 
     def step(self):
         op = Op(self.memory[self.ip] % 100)
