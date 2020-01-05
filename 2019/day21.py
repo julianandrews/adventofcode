@@ -11,10 +11,9 @@ def run_commands(program, commands):
     outputs = list(vm.outputs())
     if outputs[-1] <= 128:
         print("".join(map(chr, outputs[:-1])))
-        print(f"Ran for {vm.step_count} steps")
         raise RuntimeError("Failure!")
 
-    print(''.join(chr(c) for c in outputs[:-1]))
+    # print(''.join(chr(c) for c in outputs[:-1]))
     return outputs[-1]
 
 
