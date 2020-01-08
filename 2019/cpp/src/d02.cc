@@ -4,10 +4,10 @@
 #include "intcode.h"
 #include "utils.h"
 
-using intcode::ConstantInputs;
-using intcode::Inputs;
-using intcode::Op;
-using intcode::VM;
+using aoc::intcode::ConstantInputs;
+using aoc::intcode::Inputs;
+using aoc::intcode::Op;
+using aoc::intcode::VM;
 
 long long p1(const std::vector<long long> &program) {
   auto inputs = ConstantInputs(0);

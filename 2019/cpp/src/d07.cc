@@ -5,10 +5,10 @@
 #include "intcode.h"
 #include "utils.h"
 
-using intcode::Op;
-using intcode::VM;
+using ::aoc::intcode::Op;
+using ::aoc::intcode::VM;
 
-class TwoStepInputs : public intcode::Inputs {
+class TwoStepInputs : public ::aoc::intcode::Inputs {
   long long initial_;
   long long value_;
   bool returned_once = false;

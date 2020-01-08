@@ -5,6 +5,7 @@
 #include <optional>
 #include <vector>
 
+namespace aoc {
 namespace intcode {
 
 enum class ValueMode { POSITION = 0, IMMEDIATE = 1, RELATIVE = 2 };
@@ -192,5 +193,6 @@ public:
 };
 
 } // namespace intcode
+} // namespace aoc
 
 #endif
