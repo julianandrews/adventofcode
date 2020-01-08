@@ -4,14 +4,13 @@
 #include "intcode.h"
 #include "utils.h"
 
-using aoc::intcode::ConstantInputs;
-using aoc::intcode::Inputs;
 using aoc::intcode::Op;
 using aoc::intcode::VM;
 
+long long always_zero() { return 0; }
+
 long long p1(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(0);
-  VM vm = VM(program, &inputs, 12, 2);
+  VM vm = VM(program, &always_zero, 12, 2);
   Op op;
   do {
     op = vm.step();
@@ -20,10 +19,9 @@ long long p1(const std::vector<long long> &program) {
 }
 
 long long p2(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(0);
   for (long long noun = 0; noun < 100; ++noun) {
     for (long long verb = 0; verb < 100; ++verb) {
-      VM vm = VM(program, &inputs, noun, verb);
+      VM vm = VM(program, &always_zero, noun, verb);
       Op op;
       do {
         op = vm.step();

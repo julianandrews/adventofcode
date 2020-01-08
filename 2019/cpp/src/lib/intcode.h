@@ -1,12 +1,15 @@
 #ifndef AOC_INTCODE_H
 #define AOC_INTCODE_H
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
 
 namespace aoc {
 namespace intcode {
+
+typedef std::function<long long ()> input_function;
 
 enum class ValueMode { POSITION = 0, IMMEDIATE = 1, RELATIVE = 2 };
 
@@ -21,20 +24,6 @@ enum class Op {
   EQUALS = 8,
   ADJUST_REL_OFFSET = 9,
   HALT = 99
-};
-
-class Inputs {
-public:
-  virtual long long next() = 0;
-};
-
-class ConstantInputs : public Inputs {
-  const long long n_;
-
-public:
-  ConstantInputs(long long n) : n_(n) {}
-
-  long long next() override { return n_; }
 };
 
 bool is_binary_op(Op op) {
@@ -65,7 +54,7 @@ class VM {
   class VMMemory {
     std::vector<long long> memory_;
 
-  public:
+   public:
     VMMemory(std::vector<long long> memory) : memory_(memory) {}
 
     long long at(const size_t index) const {
@@ -84,37 +73,37 @@ class VM {
   long long ip_ = 0;
   long long relative_base_ = 0;
   long long output_ = 0;
-  Inputs *inputs_;
+  std::function<long long()> next_input_;
 
   long long get_value(long long value, ValueMode mode) const {
     switch (mode) {
-    case ValueMode::POSITION:
-      return memory_.at(value);
-    case ValueMode::RELATIVE:
-      return memory_.at(relative_base_ + value);
-    default:
-      return value;
+      case ValueMode::POSITION:
+        return memory_.at(value);
+      case ValueMode::RELATIVE:
+        return memory_.at(relative_base_ + value);
+      default:
+        return value;
     }
   }
 
   long long get_address(long long base_address, ValueMode mode) const {
     switch (mode) {
-    case ValueMode::POSITION:
-      return base_address;
-    case ValueMode::RELATIVE:
-      return base_address + relative_base_;
-    default:
-      throw "Unexpected Mode";
+      case ValueMode::POSITION:
+        return base_address;
+      case ValueMode::RELATIVE:
+        return base_address + relative_base_;
+      default:
+        throw "Unexpected Mode";
     }
   }
 
-public:
-  VM(std::vector<long long> memory, Inputs *inputs)
-      : memory_(std::move(memory)), inputs_(inputs) {}
+ public:
+  VM(std::vector<long long> memory, input_function next_input)
+      : memory_(std::move(memory)), next_input_(next_input) {}
 
-  VM(std::vector<long long> memory, Inputs *inputs, long long noun,
+  VM(std::vector<long long> memory, input_function next_input, long long noun,
      long long verb)
-      : memory_(std::move(memory)), inputs_(inputs) {
+      : memory_(std::move(memory)), next_input_(next_input) {
     memory_[1] = noun;
     memory_[2] = verb;
   }
@@ -137,20 +126,20 @@ public:
       long long b = get_value(params.at(1), modes.at(1));
       long long address = get_address(params.at(2), modes.at(2));
       switch (op) {
-      case Op::ADD:
-        memory_[address] = a + b;
-        break;
-      case Op::MULTIPLY:
-        memory_[address] = a * b;
-        break;
-      case Op::LESS_THAN:
-        memory_[address] = a < b ? 1 : 0;
-        break;
-      case Op::EQUALS:
-        memory_[address] = a == b ? 1 : 0;
-        break;
-      default:
-        throw "Unexpected operation!";
+        case Op::ADD:
+          memory_[address] = a + b;
+          break;
+        case Op::MULTIPLY:
+          memory_[address] = a * b;
+          break;
+        case Op::LESS_THAN:
+          memory_[address] = a < b ? 1 : 0;
+          break;
+        case Op::EQUALS:
+          memory_[address] = a == b ? 1 : 0;
+          break;
+        default:
+          throw "Unexpected operation!";
       }
     } else if (is_jump(op)) {
       long long value = get_value(params.at(0), modes.at(0));
@@ -162,7 +151,7 @@ public:
       }
     } else if (op == Op::STORE) {
       long long address = get_address(params.at(0), modes.at(0));
-      memory_[address] = inputs_->next();
+      memory_[address] = next_input_();
     } else if (op == Op::OUTPUT) {
       output_ = get_value(params.at(0), modes.at(0));
     } else if (op == Op::ADJUST_REL_OFFSET) {

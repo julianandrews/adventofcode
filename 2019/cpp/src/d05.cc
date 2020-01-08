@@ -4,13 +4,14 @@
 #include "intcode.h"
 #include "utils.h"
 
-using aoc::intcode::ConstantInputs;
 using aoc::intcode::Op;
 using aoc::intcode::VM;
 
+long long always_one() { return 1; };
+long long always_five() { return 5; };
+
 long long p1(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(1);
-  VM vm = VM(program, &inputs);
+  VM vm = VM(program, &always_one);
   long long output = 0;
   do {
     output = vm.get_next_output().value();
@@ -20,8 +21,7 @@ long long p1(const std::vector<long long> &program) {
 }
 
 long long p2(const std::vector<long long> &program) {
-  auto inputs = ConstantInputs(5);
-  VM vm = VM(program, &inputs);
+  VM vm = VM(program, &always_five);
   long long output = 0;
   do {
     output = vm.get_next_output().value();
