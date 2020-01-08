@@ -10,9 +10,8 @@
 #include "utils.h"
 
 using ::aoc::direction::Direction;
-using ::aoc::point::Point;
-using ::aoc::intcode::ConstantInputs;
 using ::aoc::intcode::VM;
+using ::aoc::point::Point;
 
 struct PaintInstruction {
   Point<int> paint_location;
@@ -20,28 +19,19 @@ struct PaintInstruction {
   bool paint_white;
 };
 
-class Robot : aoc::intcode::Inputs {
+class Robot {
   VM vm_;
   Point<int> location_ = Point<int>(0, 0);
   Direction direction_ = Direction::NORTH;
   std::unordered_set<Point<int>> painted_panels_;
-
-  long long next() {
-    return panel_painted(location_);
-  }
-
-  void move() {
-    Point<int> offset = aoc::direction::offset(direction_);
-    location_.x += offset.x;
-    location_.y += offset.y;
-  }
 
   bool panel_painted(const Point<int> p) const {
     return painted_panels_.find(p) != painted_panels_.end();
   }
 
  public:
-  Robot(const std::vector<long long> &program) : vm_(program, this) {}
+  Robot(const std::vector<long long> &program)
+      : vm_(program, [this] { return this->panel_painted(this->location_); }) {}
 
   void paint(const Point<int> p) {
     painted_panels_.insert(p);
@@ -66,7 +56,9 @@ class Robot : aoc::intcode::Inputs {
       direction_ = aoc::direction::left_turn(direction_);
     }
     Point<int> paint_location = location_;
-    move();
+    Point<int> offset = aoc::direction::offset(direction_);
+    location_.x += offset.x;
+    location_.y += offset.y;
     return {{paint_location, location_, paint_white}};
   }
 
