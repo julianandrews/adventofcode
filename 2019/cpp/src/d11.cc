@@ -5,27 +5,28 @@
 #include <vector>
 
 #include "direction.h"
-#include "point.h"
 #include "intcode.h"
+#include "point.h"
 #include "utils.h"
 
 using ::aoc::direction::Direction;
 using ::aoc::intcode::VM;
-using ::aoc::point::Point;
+
+typedef ::aoc::point::Point<int, 2> Coords;
 
 struct PaintInstruction {
-  Point<int> paint_location;
-  Point<int> move_location;
+  Coords paint_location;
+  Coords move_location;
   bool paint_white;
 };
 
 class Robot {
   VM vm_;
-  Point<int> location_ = Point<int>(0, 0);
+  Coords location_ = {0, 0};
   Direction direction_ = Direction::NORTH;
-  std::unordered_set<Point<int>> painted_panels_;
+  std::unordered_set<Coords> painted_panels_;
 
-  bool panel_painted(const Point<int> p) const {
+  bool panel_painted(const Coords p) const {
     return painted_panels_.find(p) != painted_panels_.end();
   }
 
@@ -33,9 +34,7 @@ class Robot {
   Robot(const std::vector<long long> &program)
       : vm_(program, [this] { return this->panel_painted(this->location_); }) {}
 
-  void paint(const Point<int> p) {
-    painted_panels_.insert(p);
-  }
+  void paint(const Coords p) { painted_panels_.insert(p); }
 
   std::optional<PaintInstruction> next_paint_instruction() {
     auto maybe_paint_white = vm_.get_next_output();
@@ -55,10 +54,10 @@ class Robot {
     } else {
       direction_ = aoc::direction::left_turn(direction_);
     }
-    Point<int> paint_location = location_;
-    Point<int> offset = aoc::direction::offset(direction_);
-    location_.x += offset.x;
-    location_.y += offset.y;
+    Coords paint_location = location_;
+    Coords offset = aoc::direction::offset(direction_);
+    location_.values[0] += offset.values[0];
+    location_.values[1] += offset.values[1];
     return {{paint_location, location_, paint_white}};
   }
 
@@ -68,16 +67,16 @@ class Robot {
     int min_y = INT_MAX;
     int max_y = INT_MIN;
     for (const auto &p : painted_panels_) {
-      min_x = std::min(min_x, p.x);
-      max_x = std::max(max_x, p.x);
-      min_y = std::min(min_y, p.y);
-      max_y = std::max(max_y, p.y);
+      min_x = std::min(min_x, p.values[0]);
+      max_x = std::max(max_x, p.values[0]);
+      min_y = std::min(min_y, p.values[1]);
+      max_y = std::max(max_y, p.values[1]);
     }
 
     std::stringstream s;
     for (int y = min_y; y <= max_y; ++y) {
       for (int x = min_x; x <= max_x; ++x) {
-        s << (panel_painted(Point<int>(x, y)) ? "█" : " ");
+        s << (panel_painted({x, y}) ? "█" : " ");
       }
       s << "\n";
     }
@@ -88,7 +87,7 @@ class Robot {
 
 int p1(const std::vector<long long> program) {
   Robot robot = Robot(program);
-  std::unordered_set<Point<int>> painted_locations;
+  std::unordered_set<Coords> painted_locations;
   std::optional<PaintInstruction> instruction;
   do {
     instruction = robot.next_paint_instruction();
@@ -102,7 +101,7 @@ int p1(const std::vector<long long> program) {
 
 std::string p2(const std::vector<long long> program) {
   Robot robot = Robot(program);
-  robot.paint(Point(0, 0));
+  robot.paint({0, 0});
   std::optional<PaintInstruction> instruction;
   do {
     instruction = robot.next_paint_instruction();

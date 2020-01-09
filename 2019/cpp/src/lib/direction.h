@@ -25,23 +25,22 @@ Direction left_turn(Direction d) {
   return static_cast<Direction>((static_cast<int>(d) + 3) % 4);
 }
 
-aoc::point::Point<int> offset(Direction d) {
-  using ::aoc::point::Point;
+aoc::point::Point<int, 2> offset(Direction d) {
   switch (d) {
-    case Direction::NORTH:
-      return Point<int>(0, 1);
-    case Direction::SOUTH:
-      return Point<int>(0, -1);
-    case Direction::EAST:
-      return Point<int>(1, 0);
-    case Direction::WEST:
-      return Point<int>(-1, 0);
-    default:
-      throw "Unexpected direction!";
+  case Direction::NORTH:
+    return {0, 1};
+  case Direction::SOUTH:
+    return {0, -1};
+  case Direction::EAST:
+    return {1, 0};
+  case Direction::WEST:
+    return {-1, 0};
+  default:
+    throw "Unexpected direction!";
   }
 }
 
-}  // namespace direction
-}  // namespace aoc
+} // namespace direction
+} // namespace aoc
 
 #endif
