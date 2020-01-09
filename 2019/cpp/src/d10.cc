@@ -11,20 +11,20 @@
 
 using ::aoc::point::Point;
 
-bool direction_cmp(const Point<int> &a, const Point<int> &b) {
-  auto key_func = [](const Point<int> &p) {
-    return fmod(-atan2(p.x, p.y) + M_PI, 2 * M_PI);
+bool direction_cmp(const Point<int, 2> &a, const Point<int, 2> &b) {
+  auto key_func = [](const Point<int, 2> &p) {
+    return fmod(-atan2(p.values[0], p.values[1]) + M_PI, 2 * M_PI);
   };
   return key_func(a) < key_func(b);
 };
 
-typedef std::set<Point<int>, decltype(&direction_cmp)> DirectionSet;
+typedef std::set<Point<int, 2>, decltype(&direction_cmp)> DirectionSet;
 
 class AsteroidField {
   const int height_;
   const int width_;
 
-  std::unordered_set<Point<int>> asteroids_;
+  std::unordered_set<Point<int, 2>> asteroids_;
 
 public:
   explicit AsteroidField(const std::vector<std::string> &lines)
@@ -38,26 +38,26 @@ public:
     for (int y = 0; y < height_; ++y) {
       for (int x = 0; x < width_; ++x) {
         if (lines.at(y).at(x) == '#') {
-          asteroids_.insert(Point<int>(x, y));
+          asteroids_.insert({x, y});
         }
       }
     }
   }
 
-  bool asteroid_at(const Point<int> &p) const {
+  bool asteroid_at(const Point<int, 2> &p) const {
     return asteroids_.find(p) != asteroids_.end();
   }
 
-  DirectionSet directions(const Point<int> &p) const {
+  DirectionSet directions(const Point<int, 2> &p) const {
     DirectionSet directions(&direction_cmp);
 
     for (int x = 0; x < width_; ++x) {
-      int dx = x - p.x;
+      int dx = x - p.values[0];
       for (int y = 0; y < height_; ++y) {
-        int dy = y - p.y;
+        int dy = y - p.values[1];
         if (dx || dy) {
           int denom = std::gcd(dx, dy);
-          directions.insert(Point<int>(dx / denom, dy / denom));
+          directions.insert({dx / denom, dy / denom});
         }
       }
     }
@@ -65,13 +65,14 @@ public:
     return directions;
   }
 
-  std::optional<Point<int>>
-  first_visible_asteroid(const Point<int> &location,
-                         const Point<int> &direction) const {
-    Point<int> p = Point(location.x, location.y);
-    while (p.y >= 0 && p.y < height_ && p.x >= 0 && p.x < width_) {
-      p.x += direction.x;
-      p.y += direction.y;
+  std::optional<Point<int, 2>>
+  first_visible_asteroid(const Point<int, 2> &location,
+                         const Point<int, 2> &direction) const {
+    Point<int, 2> p = {location.values[0], location.values[1]};
+    while (p.values[1] >= 0 && p.values[1] < height_ && p.values[0] >= 0 &&
+           p.values[0] < width_) {
+      p.values[0] += direction.values[0];
+      p.values[1] += direction.values[1];
       if (asteroid_at(p)) {
         return p;
       }
@@ -79,7 +80,7 @@ public:
     return std::nullopt;
   }
 
-  int visible_count(const Point<int> &p) const {
+  int visible_count(const Point<int, 2> &p) const {
     int count = 0;
     for (const auto &d : directions(p)) {
       if (first_visible_asteroid(p, d).has_value()) {
@@ -90,9 +91,9 @@ public:
     return count;
   }
 
-  Point<int> monitoring_station() const {
+  Point<int, 2> monitoring_station() const {
     int best = -1;
-    Point<int> best_point = Point<int>(0, 0);
+    Point<int, 2> best_point = {0, 0};
     for (const auto &p : asteroids_) {
       int count = visible_count(p);
       if (count > best) {
@@ -104,7 +105,7 @@ public:
     return best_point;
   }
 
-  Point<int> destroy_n_asteroids(const Point<int> &p, int n) {
+  Point<int, 2> destroy_n_asteroids(const Point<int, 2> &p, int n) {
     int count = 0;
     auto dirs = directions(p);
     auto it = dirs.begin();
@@ -130,8 +131,8 @@ int p1(const std::vector<std::string> lines) {
 
 int p2(const std::vector<std::string> lines) {
   auto field = AsteroidField(lines);
-  Point<int> p = field.destroy_n_asteroids(field.monitoring_station(), 200);
-  return 100 * p.x + p.y;
+  Point<int, 2> p = field.destroy_n_asteroids(field.monitoring_station(), 200);
+  return 100 * p.values[0] + p.values[1];
 }
 
 int main() {

@@ -6,15 +6,16 @@
 namespace aoc {
 namespace point {
 
-template <class T> struct Point {
-  T x;
-  T y;
+template <class T, unsigned size> struct Point {
+  T values[size];
 
   bool operator==(const Point &other) const {
-    return x == other.x and y == other.y;
+    for (unsigned i = 0; i < size; ++i) {
+      if (values[i] != other.values[i])
+        return false;
+    }
+    return true;
   }
-
-  Point(T x, T y) : x(x), y(y) {}
 };
 
 } // namespace point
@@ -22,9 +23,13 @@ template <class T> struct Point {
 
 namespace std {
 
-template <class T> struct hash<aoc::point::Point<T>> {
-  std::size_t operator()(const aoc::point::Point<T> &p) const {
-    return std::hash<T>()(p.x) ^ std::hash<T>()(p.y);
+template <class T, unsigned size> struct hash<aoc::point::Point<T, size>> {
+  std::size_t operator()(const aoc::point::Point<T, size> &p) const {
+    std::size_t hash_value = 0;
+    for (unsigned i = 0; i < size; ++i) {
+      hash_value ^= std::hash<T>()(p.values[i]);
+    }
+    return hash_value;
   }
 };
 
