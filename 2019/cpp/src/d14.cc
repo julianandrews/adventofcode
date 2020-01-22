@@ -9,6 +9,8 @@
 #include "graphs.h"
 #include "utils.h"
 
+typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
+
 struct Material {
   std::string kind;
   long long quantity;
@@ -19,7 +21,7 @@ struct Reaction {
   std::vector<Material> inputs;
 };
 
-class ReactionGraph : public aoc::graphs::Graph<std::string> {
+class ReactionGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
   std::unordered_map<std::string, std::unordered_set<std::string>> inputs_;
   std::unordered_map<std::string, Reaction> reactions_;
   const std::unordered_set<std::string> EMPTY_;
@@ -42,12 +44,19 @@ public:
                                   : std::optional<Reaction>(it->second);
   }
 
-  const std::unordered_set<std::string> &
-  neighbors(const std::string &kind) const {
+  NeighborIterator neighbors_begin(const std::string &kind) const override {
     if (inputs_.find(kind) != inputs_.end()) {
-      return inputs_.at(kind);
+      return inputs_.at(kind).begin();
     } else {
-      return ReactionGraph::EMPTY_;
+      return ReactionGraph::EMPTY_.begin();
+    }
+  }
+
+  NeighborIterator neighbors_end(const std::string &kind) const override {
+    if (inputs_.find(kind) != inputs_.end()) {
+      return inputs_.at(kind).end();
+    } else {
+      return ReactionGraph::EMPTY_.end();
     }
   }
 };
@@ -94,7 +103,8 @@ std::vector<Material> raw_inputs(const std::vector<Reaction> &reactions,
 
   std::vector<Material> inputs;
   auto topo_traversal =
-      aoc::graphs::TopologicalTraversal<std::string>(graph, all_kinds);
+      aoc::graphs::TopologicalTraversal<std::string, NeighborIterator>(
+          graph, all_kinds);
   while (topo_traversal.hasnext()) {
     const std::string kind = topo_traversal.next();
     if (needed_materials.find(kind) != needed_materials.end()) {

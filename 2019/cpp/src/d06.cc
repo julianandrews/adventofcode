@@ -7,7 +7,11 @@
 #include "graphs.h"
 #include "utils.h"
 
-class OrbitGraph : public aoc::graphs::Graph<std::string> {
+typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
+typedef ::aoc::graphs::BFSTraversal<std::string, NeighborIterator>
+    OrbitGraphTraversal;
+
+class OrbitGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
   std::unordered_map<std::string, std::unordered_set<std::string>> orbits_;
 
 public:
@@ -22,14 +26,17 @@ public:
     }
   }
 
-  const std::unordered_set<std::string> &
-  neighbors(const std::string &body) const override {
-    return orbits_.at(body);
+  NeighborIterator neighbors_begin(const std::string &body) const override {
+    return orbits_.at(body).begin();
+  }
+
+  NeighborIterator neighbors_end(const std::string &body) const override {
+    return orbits_.at(body).end();
   }
 };
 
 int p1(const OrbitGraph &orbit_graph) {
-  auto traversal = aoc::graphs::BFSTraversal<std::string>(orbit_graph, "COM");
+  auto traversal = OrbitGraphTraversal(orbit_graph, "COM");
   int total = 0;
   while (traversal.hasnext()) {
     total += traversal.next()->depth;
@@ -39,7 +46,7 @@ int p1(const OrbitGraph &orbit_graph) {
 }
 
 int p2(const OrbitGraph &orbit_graph) {
-  auto traversal = aoc::graphs::BFSTraversal<std::string>(orbit_graph, "YOU");
+  auto traversal = OrbitGraphTraversal(orbit_graph, "YOU");
   while (traversal.hasnext()) {
     auto node = traversal.next();
     if (node->value == "SAN") {

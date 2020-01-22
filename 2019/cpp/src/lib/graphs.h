@@ -30,19 +30,22 @@ template <class T> struct TraversalNode {
  * T must implement `operator==()` and must be hashable.
  * T is assumed to be cheap/fast to copy.
  */
-template <class T> class Graph {
+template <class T, class NeighborIterator> class Graph {
 public:
-  virtual const std::unordered_set<T> &neighbors(const T &value) const = 0;
+  virtual NeighborIterator neighbors_begin(const T &value) const = 0;
+
+  virtual NeighborIterator neighbors_end(const T &value) const = 0;
 };
 
-template <class T> class BFSTraversal {
-  const Graph<T> &graph_;
+template <class T, class NeighborIterator> class BFSTraversal {
+  const Graph<T, NeighborIterator> &graph_;
   std::unordered_set<T> visited_;
   std::queue<std::shared_ptr<TraversalNode<T>>> to_visit_;
   int index_ = 0;
 
 public:
-  BFSTraversal(const Graph<T> &graph, const T start) : graph_(graph) {
+  BFSTraversal(const Graph<T, NeighborIterator> &graph, const T start)
+      : graph_(graph) {
     to_visit_.push(std::make_shared<TraversalNode<T>>(start, 0, 0));
   }
 
@@ -51,11 +54,12 @@ public:
   const std::shared_ptr<TraversalNode<T>> next() {
     auto node = to_visit_.front();
     to_visit_.pop();
-    for (const auto &neighbor : graph_.neighbors(node->value)) {
-      if (visited_.find(neighbor) == visited_.end()) {
+    for (auto neighbor = graph_.neighbors_begin(node->value);
+         neighbor != graph_.neighbors_end(node->value); ++neighbor) {
+      if (visited_.find(*neighbor) == visited_.end()) {
         ++index_;
         to_visit_.push(std::make_shared<TraversalNode<T>>(
-            neighbor, node->depth + 1, index_, node));
+            *neighbor, node->depth + 1, index_, node));
       }
       visited_.insert(node->value);
     }
@@ -64,18 +68,19 @@ public:
   }
 };
 
-template <class T> class TopologicalTraversal {
-  const Graph<T> &graph_;
+template <class T, class NeighborIterator> class TopologicalTraversal {
+  const Graph<T, NeighborIterator> &graph_;
   std::unordered_map<T, int> indegrees_;
   std::vector<T> to_visit_;
 
 public:
-  TopologicalTraversal(const Graph<T> &graph,
+  TopologicalTraversal(const Graph<T, NeighborIterator> &graph,
                        const std::unordered_set<T> &values)
       : graph_(graph) {
     for (const auto &value : values) {
-      for (const auto &neighbor : graph_.neighbors(value)) {
-        ++indegrees_[neighbor];
+      for (auto neighbor = graph_.neighbors_begin(value);
+           neighbor != graph_.neighbors_end(value); ++neighbor) {
+        ++indegrees_[*neighbor];
       }
     }
     for (const auto &value : values) {
@@ -90,10 +95,11 @@ public:
   const T next() {
     T value = std::move(to_visit_.back());
     to_visit_.pop_back();
-    for (const auto &neighbor : graph_.neighbors(value)) {
-      --indegrees_[neighbor];
-      if (indegrees_[neighbor] == 0) {
-        auto search = indegrees_.find(neighbor);
+    for (auto neighbor = graph_.neighbors_begin(value);
+         neighbor != graph_.neighbors_end(value); ++neighbor) {
+      --indegrees_[*neighbor];
+      if (indegrees_[*neighbor] == 0) {
+        auto search = indegrees_.find(*neighbor);
         if (search == indegrees_.end()) {
           throw "Failed to find neighbor in values";
         }
