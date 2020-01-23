@@ -55,7 +55,7 @@ class Robot {
       direction_ = aoc::direction::left_turn(direction_);
     }
     Coords paint_location = location_;
-    Coords offset = aoc::direction::offset(direction_);
+    Coords offset = aoc::direction::offset<int>(direction_);
     location_.values[0] += offset.values[0];
     location_.values[1] += offset.values[1];
     return {{paint_location, location_, paint_white}};
