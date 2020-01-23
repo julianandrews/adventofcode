@@ -37,7 +37,7 @@ public:
       Direction d = parse_direction(instruction.at(0));
       int distance = std::stoi(instruction.substr(1));
 
-      Coords offset = aoc::direction::offset(d);
+      Coords offset = aoc::direction::offset<int>(d);
       for (int i = 0; i < distance; ++i) {
         x += offset.values[0];
         y += offset.values[1];
