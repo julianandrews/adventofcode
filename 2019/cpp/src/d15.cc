@@ -14,45 +14,11 @@
 using ::aoc::direction::Direction;
 
 typedef ::aoc::point::Point<long long, 2> Coords;
+typedef const ::std::vector<Coords> Neighbors;
 
 enum class StatusCode { HIT_WALL = 0, MOVED = 1, FOUND_OXYGEN = 2 };
 
-class NeighborIterator {
-  size_t index_;
-  std::vector<Coords> neighbors_;
-
-public:
-  NeighborIterator(std::vector<Coords> neighbors, size_t index = 0)
-      : neighbors_(neighbors), index_(index) {}
-
-  NeighborIterator &operator++() {
-    ++index_;
-    return *this;
-  }
-
-  Coords &operator*() { return neighbors_.at(index_); }
-
-  friend bool operator==(const NeighborIterator &, const NeighborIterator &);
-  friend bool operator!=(const NeighborIterator &, const NeighborIterator &);
-};
-
-bool operator==(const NeighborIterator &lhs, const NeighborIterator &rhs) {
-  for (const auto &neighbor : lhs.neighbors_) {
-    if (std::find(rhs.neighbors_.begin(), rhs.neighbors_.end(), neighbor) ==
-        rhs.neighbors_.end()) {
-      return false;
-    }
-  }
-
-  return lhs.neighbors_.size() == rhs.neighbors_.size() &&
-         lhs.index_ == rhs.index_;
-}
-
-bool operator!=(const NeighborIterator &lhs, const NeighborIterator &rhs) {
-  return !(lhs == rhs);
-}
-
-class Robot : public aoc::graphs::Graph<Coords, NeighborIterator> {
+class Robot : public aoc::graphs::Graph<Coords, Neighbors> {
   aoc::intcode::VM vm_;
   std::unordered_map<Coords, StatusCode> ship_map_;
   Coords position_ = {0, 0};
@@ -136,7 +102,7 @@ public:
     return ship_map_.at(position);
   }
 
-  std::vector<Coords> get_neighbors(const Coords &position) const {
+  Neighbors neighbors(const Coords &position) const override {
     std::vector<Coords> neighbors;
     for (int i = 0; i < 4; ++i) {
       Direction direction = Direction(i);
@@ -148,25 +114,10 @@ public:
     }
     return neighbors;
   }
-
-  NeighborIterator neighbors_begin(const Coords &position) const override {
-    if (!explored_) {
-      throw "Must explore first!";
-    }
-    return NeighborIterator(get_neighbors(position));
-  }
-
-  NeighborIterator neighbors_end(const Coords &position) const override {
-    if (!explored_) {
-      throw "Must explore first!";
-    }
-    auto neighbors = get_neighbors(position);
-    return NeighborIterator(neighbors, neighbors.size());
-  }
 };
 
 int p1(const Robot &robot) {
-  auto bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, {0, 0});
   for (const auto &node : bfs) {
     if (robot.status_at(node.value) == StatusCode::FOUND_OXYGEN) {
       return node.depth;
@@ -178,7 +129,7 @@ int p1(const Robot &robot) {
 int p2(const Robot &robot) {
   // Find the oxygen.
   Coords start_position;
-  auto initial_bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  auto initial_bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, {0, 0});
   for (const auto &node : initial_bfs) {
     if (robot.status_at(node.value) == StatusCode::FOUND_OXYGEN) {
       start_position = node.value;
@@ -188,7 +139,7 @@ int p2(const Robot &robot) {
 
   // Find the farthest point from it.
   int depth;
-  auto bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, {0, 0});
   for (const auto &node : bfs) {
     depth = node.depth;
   }
