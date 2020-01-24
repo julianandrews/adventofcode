@@ -2,6 +2,7 @@
 #define AOC_GRAPHS_H
 
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <queue>
 #include <unordered_map>
@@ -30,28 +31,43 @@ template <class T> struct TraversalNode {
  * T must implement `operator==()` and must be hashable.
  * T is assumed to be cheap/fast to copy.
  */
-template <class T, class NeighborIterator> class Graph {
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+class Graph {
 public:
   virtual NeighborIterator neighbors_begin(const T &value) const = 0;
 
-  virtual NeighborIterator neighbors_end(const T &value) const = 0;
+  virtual NeighborIteratorEnd neighbors_end(const T &value) const = 0;
 };
 
-template <class T, class NeighborIterator> class BFSTraversal {
-  const Graph<T, NeighborIterator> &graph_;
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+class BFSIterator {
+  const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph_;
   std::unordered_set<T> visited_;
   std::queue<std::shared_ptr<TraversalNode<T>>> to_visit_;
   int index_ = 0;
 
 public:
-  BFSTraversal(const Graph<T, NeighborIterator> &graph, const T start)
+  using iterator_category = std::input_iterator_tag;
+  using value_type = TraversalNode<T>;
+  using reference = TraversalNode<T> &;
+  using pointer = std::shared_ptr<TraversalNode<T>>;
+  using diference_type = void;
+
+  BFSIterator(const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph,
+              const T start)
       : graph_(graph) {
     to_visit_.push(std::make_shared<TraversalNode<T>>(start, 0, 0));
   }
 
-  bool hasnext() const { return !to_visit_.empty(); }
+  BFSIterator(const BFSIterator &other)
+      : graph_(other.graph_), visited_(other.visited_),
+        to_visit_(other.to_visit_), index_(other.index_) {}
 
-  const std::shared_ptr<TraversalNode<T>> next() {
+  bool empty() const { return to_visit_.empty(); }
+
+  BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &operator++() {
     auto node = to_visit_.front();
     to_visit_.pop();
     for (auto neighbor = graph_.neighbors_begin(node->value);
@@ -63,19 +79,92 @@ public:
       }
       visited_.insert(node->value);
     }
-
-    return node;
+    return *this;
   }
+
+  TraversalNode<T> &operator*() { return *to_visit_.front(); }
 };
 
-template <class T, class NeighborIterator> class TopologicalTraversal {
-  const Graph<T, NeighborIterator> &graph_;
+struct BFSIteratorEnd {};
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator==(
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &lhs,
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &rhs) {
+  return lhs.index_ == rhs.index_;
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator==(
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &lhs,
+    const BFSIteratorEnd &rhs) {
+  return lhs.empty();
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator==(
+    const BFSIteratorEnd &lhs,
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &rhs) {
+  return rhs.empty();
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator!=(
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &lhs,
+    const BFSIteratorEnd &rhs) {
+  return !(lhs == rhs);
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator!=(
+    const BFSIteratorEnd &lhs,
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &rhs) {
+  return !(lhs == rhs);
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+bool operator!=(
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &lhs,
+    const BFSIterator<T, NeighborIterator, NeighborIteratorEnd> &rhs) {
+  return !(lhs == rhs);
+}
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+class BFS {
+  const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph_;
+  const T &start_;
+
+public:
+  BFS(const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph,
+      const T &start)
+      : graph_(graph), start_(start) {}
+
+  BFSIterator<T, NeighborIterator, NeighborIteratorEnd> begin() {
+    return BFSIterator<T, NeighborIterator, NeighborIteratorEnd>(graph_,
+                                                                 start_);
+  }
+
+  BFSIteratorEnd end() { return BFSIteratorEnd(); }
+};
+
+template <class T, class NeighborIterator,
+          class NeighborIteratorEnd = NeighborIterator>
+class TopologicalTraversal {
+  const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph_;
   std::unordered_map<T, int> indegrees_;
   std::vector<T> to_visit_;
 
 public:
-  TopologicalTraversal(const Graph<T, NeighborIterator> &graph,
-                       const std::unordered_set<T> &values)
+  TopologicalTraversal(
+      const Graph<T, NeighborIterator, NeighborIteratorEnd> &graph,
+      const std::unordered_set<T> &values)
       : graph_(graph) {
     for (const auto &value : values) {
       for (auto neighbor = graph_.neighbors_begin(value);

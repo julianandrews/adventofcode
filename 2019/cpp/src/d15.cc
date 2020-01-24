@@ -12,7 +12,6 @@
 #include "strings.h"
 
 using ::aoc::direction::Direction;
-using ::aoc::graphs::BFSTraversal;
 
 typedef ::aoc::point::Point<long long, 2> Coords;
 
@@ -167,11 +166,10 @@ public:
 };
 
 int p1(const Robot &robot) {
-  auto traversal = BFSTraversal<Coords, NeighborIterator>(robot, {0, 0});
-  while (traversal.hasnext()) {
-    auto node = traversal.next();
-    if (robot.status_at(node->value) == StatusCode::FOUND_OXYGEN) {
-      return node->depth;
+  auto bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  for (const auto &node : bfs) {
+    if (robot.status_at(node.value) == StatusCode::FOUND_OXYGEN) {
+      return node.depth;
     }
   }
   return 0;
@@ -180,22 +178,19 @@ int p1(const Robot &robot) {
 int p2(const Robot &robot) {
   // Find the oxygen.
   Coords start_position;
-  auto initial_traversal =
-      BFSTraversal<Coords, NeighborIterator>(robot, {0, 0});
-  while (initial_traversal.hasnext()) {
-    auto node = initial_traversal.next();
-    if (robot.status_at(node->value) == StatusCode::FOUND_OXYGEN) {
-      start_position = node->value;
+  auto initial_bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  for (const auto &node : initial_bfs) {
+    if (robot.status_at(node.value) == StatusCode::FOUND_OXYGEN) {
+      start_position = node.value;
       break;
     }
   }
 
   // Find the farthest point from it.
   int depth;
-  auto traversal =
-      BFSTraversal<Coords, NeighborIterator>(robot, start_position);
-  while (traversal.hasnext()) {
-    depth = traversal.next()->depth;
+  auto bfs = aoc::graphs::BFS<Coords, NeighborIterator>(robot, {0, 0});
+  for (const auto &node : bfs) {
+    depth = node.depth;
   }
   return depth;
 }
