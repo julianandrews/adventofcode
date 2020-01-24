@@ -92,11 +92,9 @@ std::vector<Material> raw_inputs(const std::vector<Reaction> &reactions,
   }
 
   std::vector<Material> inputs;
-  auto topo_traversal =
-      aoc::graphs::TopologicalTraversal<std::string, Neighbors>(graph,
-                                                                all_kinds);
-  while (topo_traversal.hasnext()) {
-    const std::string kind = topo_traversal.next();
+  auto toposort =
+      aoc::graphs::Toposort<std::string, Neighbors>(graph, all_kinds);
+  for (const auto &kind : toposort) {
     if (needed_materials.find(kind) != needed_materials.end()) {
       const long long needed_quantity = needed_materials[kind];
       const auto reaction = graph.reaction_for_kind(kind);
