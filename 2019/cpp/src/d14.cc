@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "graphs.h"
-#include "utils.h"
+#include "strings.h"
 
 typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
 
@@ -164,7 +164,7 @@ int p2(const std::vector<Reaction> &reactions) {
 }
 
 int main() {
-  std::vector<Reaction> reactions = parse_reactions(aoc::utils::getlines());
+  std::vector<Reaction> reactions = parse_reactions(aoc::strings::getlines());
   std::cout << "Part 1: " << p1(reactions) << std::endl;
   std::cout << "Part 2: " << p2(reactions) << std::endl;
 }

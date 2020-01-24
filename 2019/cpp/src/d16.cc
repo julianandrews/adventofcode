@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "utils.h"
+#include "strings.h"
 
 int first_n_digits(const std::vector<int> &digits, int n) {
   int result = 0;
@@ -42,7 +42,7 @@ std::vector<int> fft(const std::vector<int> &input_list, int num_phases) {
 }
 
 std::string p1(const std::vector<int> &input_list) {
-  return aoc::utils::zero_pad(first_n_digits(fft(input_list, 100), 8), 8);
+  return aoc::strings::zero_pad(first_n_digits(fft(input_list, 100), 8), 8);
 }
 
 std::string p2(const std::vector<int> &input_list) {
@@ -63,7 +63,7 @@ std::string p2(const std::vector<int> &input_list) {
       last_n[j] = (last_n[j + 1] + last_n[j]) % 10;
     }
   }
-  return aoc::utils::zero_pad(first_n_digits(last_n, 8), 8);
+  return aoc::strings::zero_pad(first_n_digits(last_n, 8), 8);
 }
 
 int main() {

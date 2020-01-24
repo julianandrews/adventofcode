@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace aoc {
-namespace utils {
+namespace strings {
 
 std::vector<std::string> split(const std::string &s, const char delim) {
   std::vector<std::string> items;
@@ -43,13 +43,13 @@ std::vector<std::string> getlines() {
   return lines;
 }
 
-std::string zero_pad(int n, int width) {
+template <class T> std::string zero_pad(T value, int width) {
   std::stringstream ss;
-  ss << std::setw(width) << std::setfill('0') << n;
+  ss << std::setw(width) << std::setfill('0') << value;
   return ss.str();
 }
 
-} // namespace utils
+} // namespace strings
 } // namespace aoc
 
 #endif

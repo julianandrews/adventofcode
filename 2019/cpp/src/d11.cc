@@ -7,7 +7,7 @@
 #include "direction.h"
 #include "intcode.h"
 #include "point.h"
-#include "utils.h"
+#include "strings.h"
 
 using ::aoc::direction::Direction;
 using ::aoc::intcode::VM;
@@ -108,7 +108,7 @@ std::string p2(const std::vector<long long> program) {
   } while (instruction.has_value());
 
   std::vector<std::string> lines =
-      aoc::utils::split(robot.panel_string(), '\n');
+      aoc::strings::split(robot.panel_string(), '\n');
   std::stringstream ss;
   for (auto rit = lines.rbegin(); rit != lines.rend(); ++rit) {
     ss << *rit << std::endl;
@@ -122,7 +122,7 @@ int main() {
   getline(std::cin, line);
 
   std::vector<long long> program;
-  for (std::string s : aoc::utils::split(line, ',')) {
+  for (std::string s : aoc::strings::split(line, ',')) {
     program.push_back(std::stoll(s));
   }
 

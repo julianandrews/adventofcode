@@ -4,7 +4,7 @@
 
 #include "intcode.h"
 #include "point.h"
-#include "utils.h"
+#include "strings.h"
 
 typedef ::aoc::point::Point<long long, 2> Coords;
 
@@ -89,7 +89,7 @@ int main() {
   getline(std::cin, line);
 
   std::vector<long long> program;
-  for (std::string s : aoc::utils::split(line, ',')) {
+  for (std::string s : aoc::strings::split(line, ',')) {
     program.push_back(std::stoll(s));
   }
 

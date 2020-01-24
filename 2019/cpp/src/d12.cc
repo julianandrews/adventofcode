@@ -2,15 +2,15 @@
 #include <vector>
 
 #include "point.h"
-#include "utils.h"
+#include "strings.h"
 
 typedef ::aoc::point::Point<int, 3> Coords;
 
 Coords parse_position(std::string s) {
-  auto parts = aoc::utils::split(s.substr(1, s.length() - 2), ',');
-  int x = std::stoi(aoc::utils::trim(parts[0]).substr(2));
-  int y = std::stoi(aoc::utils::trim(parts[1]).substr(2));
-  int z = std::stoi(aoc::utils::trim(parts[2]).substr(2));
+  auto parts = aoc::strings::split(s.substr(1, s.length() - 2), ',');
+  int x = std::stoi(aoc::strings::trim(parts[0]).substr(2));
+  int y = std::stoi(aoc::strings::trim(parts[1]).substr(2));
+  int z = std::stoi(aoc::strings::trim(parts[2]).substr(2));
 
   return {x, y, z};
 }
@@ -119,7 +119,7 @@ long p2(PlanetarySystem system) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::utils::getlines();
+  std::vector<std::string> lines = aoc::strings::getlines();
   std::vector<Moon> moons;
   for (const auto &line : lines) {
     moons.push_back(parse_position(line));
