@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "strings.h"
@@ -54,7 +55,7 @@ public:
           ss << "░";
           break;
         default:
-          throw "Unexpected pixel value";
+          throw std::runtime_error("Unexpected pixel value");
         }
       }
       ss << std::endl;
@@ -81,15 +82,20 @@ int p1(const Image &image) {
 std::string p2(const Image &image) { return image.output(); }
 
 int main() {
-  std::string line;
-  std::getline(std::cin, line);
+  try {
+    std::string line;
+    std::getline(std::cin, line);
 
-  std::vector<int> pixels;
-  for (auto c : aoc::strings::trim(line)) {
-    pixels.push_back(c - '0');
+    std::vector<int> pixels;
+    for (auto c : aoc::strings::trim(line)) {
+      pixels.push_back(c - '0');
+    }
+    Image image = Image(pixels, 25, 6);
+
+    std::cout << "Part 1: " << p1(image) << std::endl;
+    std::cout << "Part 2: \n" << p2(image) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-  Image image = Image(pixels, 25, 6);
-
-  std::cout << "Part 1: " << p1(image) << std::endl;
-  std::cout << "Part 2: \n" << p2(image) << std::endl;
 }

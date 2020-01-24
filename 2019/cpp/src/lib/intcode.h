@@ -4,12 +4,13 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <vector>
 
 namespace aoc {
 namespace intcode {
 
-typedef std::function<long long ()> input_function;
+typedef std::function<long long()> input_function;
 
 enum class ValueMode { POSITION = 0, IMMEDIATE = 1, RELATIVE = 2 };
 
@@ -46,7 +47,7 @@ int num_params(Op op) {
   } else if (op == Op::HALT) {
     return 0;
   } else {
-    throw "Unexpected operation!";
+    throw std::invalid_argument("Unexpected operation");
   }
 }
 
@@ -54,7 +55,7 @@ class VM {
   class VMMemory {
     std::vector<long long> memory_;
 
-   public:
+  public:
     VMMemory(std::vector<long long> memory) : memory_(memory) {}
 
     long long at(const size_t index) const {
@@ -77,23 +78,23 @@ class VM {
 
   long long get_value(long long value, ValueMode mode) const {
     switch (mode) {
-      case ValueMode::POSITION:
-        return memory_.at(value);
-      case ValueMode::RELATIVE:
-        return memory_.at(relative_base_ + value);
-      default:
-        return value;
+    case ValueMode::POSITION:
+      return memory_.at(value);
+    case ValueMode::RELATIVE:
+      return memory_.at(relative_base_ + value);
+    default:
+      return value;
     }
   }
 
   long long get_address(long long base_address, ValueMode mode) const {
     switch (mode) {
-      case ValueMode::POSITION:
-        return base_address;
-      case ValueMode::RELATIVE:
-        return base_address + relative_base_;
-      default:
-        throw "Unexpected Mode";
+    case ValueMode::POSITION:
+      return base_address;
+    case ValueMode::RELATIVE:
+      return base_address + relative_base_;
+    default:
+      throw std::invalid_argument("Unexpected Mode");
     }
   }
 
@@ -126,20 +127,20 @@ class VM {
       long long b = get_value(params.at(1), modes.at(1));
       long long address = get_address(params.at(2), modes.at(2));
       switch (op) {
-        case Op::ADD:
-          memory_[address] = a + b;
-          break;
-        case Op::MULTIPLY:
-          memory_[address] = a * b;
-          break;
-        case Op::LESS_THAN:
-          memory_[address] = a < b ? 1 : 0;
-          break;
-        case Op::EQUALS:
-          memory_[address] = a == b ? 1 : 0;
-          break;
-        default:
-          throw "Unexpected operation!";
+      case Op::ADD:
+        memory_[address] = a + b;
+        break;
+      case Op::MULTIPLY:
+        memory_[address] = a * b;
+        break;
+      case Op::LESS_THAN:
+        memory_[address] = a < b ? 1 : 0;
+        break;
+      case Op::EQUALS:
+        memory_[address] = a == b ? 1 : 0;
+        break;
+      default:
+        throw std::runtime_error("Unexpected operation!");
       }
     } else if (is_jump(op)) {
       long long value = get_value(params.at(0), modes.at(0));
@@ -160,7 +161,7 @@ class VM {
     } else if (op == Op::HALT) {
       ip_offset = 0;
     } else {
-      throw "Unexpected operation!";
+      throw std::runtime_error("Unexpected operation!");
     }
 
     ip_ += ip_offset;

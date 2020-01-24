@@ -119,12 +119,17 @@ long p2(PlanetarySystem system) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::strings::getlines();
-  std::vector<Moon> moons;
-  for (const auto &line : lines) {
-    moons.push_back(parse_position(line));
+  try {
+    std::vector<std::string> lines = aoc::strings::getlines();
+    std::vector<Moon> moons;
+    for (const auto &line : lines) {
+      moons.push_back(parse_position(line));
+    }
+    PlanetarySystem system(std::move(moons));
+    std::cout << "Part 1: " << p1(system) << std::endl;
+    std::cout << "Part 2: " << p2(system) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-  PlanetarySystem system(std::move(moons));
-  std::cout << "Part 1: " << p1(system) << std::endl;
-  std::cout << "Part 2: " << p2(system) << std::endl;
 }

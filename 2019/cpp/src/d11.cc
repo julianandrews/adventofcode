@@ -1,6 +1,7 @@
 #include <iostream>
 #include <limits.h>
 #include <optional>
+#include <stdexcept>
 #include <unordered_set>
 #include <vector>
 
@@ -118,14 +119,19 @@ std::string p2(const std::vector<long long> program) {
 }
 
 int main() {
-  std::string line;
-  getline(std::cin, line);
+  try {
+    std::string line;
+    getline(std::cin, line);
 
-  std::vector<long long> program;
-  for (std::string s : aoc::strings::split(line, ',')) {
-    program.push_back(std::stoll(s));
+    std::vector<long long> program;
+    for (std::string s : aoc::strings::split(line, ',')) {
+      program.push_back(std::stoll(s));
+    }
+
+    std::cout << "Part 1: " << p1(program) << std::endl;
+    std::cout << "Part 2:" << std::endl << p2(program) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-
-  std::cout << "Part 1: " << p1(program) << std::endl;
-  std::cout << "Part 2:" << std::endl << p2(program) << std::endl;
 }

@@ -1,3 +1,4 @@
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -20,7 +21,7 @@ Direction parse_direction(char c) {
   case 'L':
     return Direction::WEST;
   default:
-    throw "Unexpected Direction";
+    throw std::invalid_argument("Unexpected Direction");
   }
 }
 
@@ -100,12 +101,15 @@ int p2(const Wire &first_wire, const Wire &second_wire) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::strings::getlines();
-  Wire first_wire = Wire(aoc::strings::split(lines.at(0), ','));
-  Wire second_wire = Wire(aoc::strings::split(lines.at(1), ','));
+  try {
+    std::vector<std::string> lines = aoc::strings::getlines();
+    Wire first_wire = Wire(aoc::strings::split(lines.at(0), ','));
+    Wire second_wire = Wire(aoc::strings::split(lines.at(1), ','));
 
-  std::cout << "Part 1: " << p1(first_wire, second_wire) << std::endl;
-  std::cout << "Part 2: " << p2(first_wire, second_wire) << std::endl;
-
-  return 0;
+    std::cout << "Part 1: " << p1(first_wire, second_wire) << std::endl;
+    std::cout << "Part 2: " << p2(first_wire, second_wire) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
 }

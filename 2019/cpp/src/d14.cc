@@ -1,6 +1,7 @@
 #include <cmath>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -153,7 +154,13 @@ int p2(const std::vector<Reaction> &reactions) {
 }
 
 int main() {
-  std::vector<Reaction> reactions = parse_reactions(aoc::strings::getlines());
-  std::cout << "Part 1: " << p1(reactions) << std::endl;
-  std::cout << "Part 2: " << p2(reactions) << std::endl;
+  try {
+    std::vector<Reaction> reactions = parse_reactions(aoc::strings::getlines());
+
+    std::cout << "Part 1: " << p1(reactions) << std::endl;
+    std::cout << "Part 2: " << p2(reactions) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
 }

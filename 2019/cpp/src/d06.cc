@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -18,7 +19,7 @@ public:
     for (const auto &line : lines) {
       const auto parts = aoc::strings::split(line, ')');
       if (parts.size() != 2) {
-        throw "Failed to parse line";
+        throw std::invalid_argument("Failed to parse line");
       }
       orbits_[parts[0]].insert(parts[1]);
       orbits_[parts[1]].insert(parts[0]);
@@ -48,13 +49,18 @@ int p2(const OrbitGraph &orbit_graph) {
     }
   }
 
-  throw "Failed to find SAN!";
+  throw std::runtime_error("Failed to find SAN!");
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::strings::getlines();
-  const OrbitGraph orbits = OrbitGraph(lines);
+  try {
+    std::vector<std::string> lines = aoc::strings::getlines();
+    const OrbitGraph orbits = OrbitGraph(lines);
 
-  std::cout << "Part 1: " << p1(orbits) << std::endl;
-  std::cout << "Part 2: " << p2(orbits) << std::endl;
+    std::cout << "Part 1: " << p1(orbits) << std::endl;
+    std::cout << "Part 2: " << p2(orbits) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
 }
