@@ -2,6 +2,7 @@
 #define AOC_UTILS_H
 
 #include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -40,6 +41,12 @@ std::vector<std::string> getlines() {
   }
 
   return lines;
+}
+
+std::string zero_pad(int n, int width) {
+  std::stringstream ss;
+  ss << std::setw(width) << std::setfill('0') << n;
+  return ss.str();
 }
 
 } // namespace utils
