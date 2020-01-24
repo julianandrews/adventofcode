@@ -140,7 +140,7 @@ int p2(const Robot &robot) {
 
   // Find the farthest point from it.
   int depth;
-  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, {0, 0});
+  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, start_position);
   for (const auto &node : bfs) {
     depth = node.depth;
   }
