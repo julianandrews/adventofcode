@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -39,7 +40,7 @@ class Robot : public aoc::graphs::Graph<Coords, Neighbors> {
     case Direction::EAST:
       return 4;
     default:
-      throw "Unexpected direction.";
+      throw std::invalid_argument("Unexpected direction.");
     }
   }
 
@@ -63,7 +64,7 @@ class Robot : public aoc::graphs::Graph<Coords, Neighbors> {
     StatusCode status_code = static_cast<StatusCode>(*output);
     position_ = aoc::direction::step(position_, direction);
     if (status_code != ship_map_.at(position_)) {
-      throw "Inconsistent map data";
+      throw std::runtime_error("Inconsistent map data");
     }
   }
 
@@ -147,16 +148,21 @@ int p2(const Robot &robot) {
 }
 
 int main() {
-  std::string line;
-  getline(std::cin, line);
+  try {
+    std::string line;
+    getline(std::cin, line);
 
-  std::vector<long long> program;
-  for (std::string s : aoc::strings::split(line, ',')) {
-    program.push_back(std::stoll(s));
+    std::vector<long long> program;
+    for (std::string s : aoc::strings::split(line, ',')) {
+      program.push_back(std::stoll(s));
+    }
+    Robot robot = Robot(program);
+    robot.explore();
+
+    std::cout << "Part 1: " << p1(robot) << std::endl;
+    std::cout << "Part 2: " << p2(robot) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-  Robot robot = Robot(program);
-  robot.explore();
-
-  std::cout << "Part 1: " << p1(robot) << std::endl;
-  std::cout << "Part 2: " << p2(robot) << std::endl;
 }

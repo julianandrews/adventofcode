@@ -1,4 +1,5 @@
 #include <cassert>
+#include <stdexcept>
 
 #include "strings.h"
 
@@ -85,15 +86,18 @@ void run_tests() {
 
 int main() {
   run_tests();
-  std::string line;
-  getline(std::cin, line);
+  try {
+    std::string line;
+    getline(std::cin, line);
 
-  auto bits = aoc::strings::split(line, '-');
-  int start = std::stoi(bits.at(0));
-  int end = std::stoi(bits.at(1));
+    auto bits = aoc::strings::split(line, '-');
+    int start = std::stoi(bits.at(0));
+    int end = std::stoi(bits.at(1));
 
-  std::cout << "Part 1: " << p1(start, end) << std::endl;
-  std::cout << "Part 2: " << p2(start, end) << std::endl;
-
-  return 0;
+    std::cout << "Part 1: " << p1(start, end) << std::endl;
+    std::cout << "Part 2: " << p2(start, end) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
 }

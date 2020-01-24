@@ -67,19 +67,18 @@ std::string p2(const std::vector<int> &input_list) {
 }
 
 int main() {
-  std::string line;
-  getline(std::cin, line);
-  std::vector<int> input_list;
-  for (char c : line) {
-    input_list.push_back(c - '0');
-  }
-
   try {
+    std::string line;
+    getline(std::cin, line);
+    std::vector<int> input_list;
+    for (char c : line) {
+      input_list.push_back(c - '0');
+    }
+
     std::cout << "Part 1: " << p1(input_list) << std::endl;
     std::cout << "Part 2: " << p2(input_list) << std::endl;
   } catch (const std::exception &e) {
     std::cerr << e.what() << std::endl;
     return 1;
   }
-  return 0;
 }

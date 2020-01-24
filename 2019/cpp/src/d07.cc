@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "intcode.h"
@@ -17,7 +18,7 @@ public:
   TwoStepInputs(long long first, long long value)
       : initial_(first), value_(value) {}
 
-  std::function<long long ()> next_input_function() {
+  std::function<long long()> next_input_function() {
     return [this] {
       if (!returned_once) {
         returned_once = true;
@@ -78,14 +79,19 @@ long long p2(const std::vector<long long> &program) {
 }
 
 int main() {
-  std::string line;
-  getline(std::cin, line);
+  try {
+    std::string line;
+    getline(std::cin, line);
 
-  std::vector<long long> program;
-  for (std::string s : aoc::strings::split(line, ',')) {
-    program.push_back(std::stoi(s));
+    std::vector<long long> program;
+    for (std::string s : aoc::strings::split(line, ',')) {
+      program.push_back(std::stoi(s));
+    }
+
+    std::cout << "Part 1: " << p1(program) << std::endl;
+    std::cout << "Part 2: " << p2(program) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-
-  std::cout << "Part 1: " << p1(program) << std::endl;
-  std::cout << "Part 2: " << p2(program) << std::endl;
 }

@@ -1,6 +1,8 @@
 #ifndef AOC_DIRECTION_H_
 #define AOC_DIRECTION_H_
 
+#include <stdexcept>
+
 #include "point.h"
 
 namespace aoc {
@@ -36,7 +38,7 @@ template <class T> aoc::point::Point<T, 2> offset(Direction d) {
   case Direction::WEST:
     return {-1, 0};
   default:
-    throw "Unexpected direction!";
+    throw std::invalid_argument("Unexpected direction!");
   }
 }
 

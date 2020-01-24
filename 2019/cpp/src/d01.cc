@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 
 #include "strings.h"
 
@@ -34,13 +35,18 @@ int p2(const std::vector<int> &masses) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::strings::getlines();
-  std::vector<int> masses;
+  try {
+    std::vector<std::string> lines = aoc::strings::getlines();
+    std::vector<int> masses;
 
-  for (std::string s : lines) {
-    masses.push_back(std::stoi(s));
+    for (std::string s : lines) {
+      masses.push_back(std::stoi(s));
+    }
+
+    std::cout << "Part 1: " << p1(masses) << std::endl;
+    std::cout << "Part 2: " << p2(masses) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
   }
-
-  std::cout << "Part 1: " << p1(masses) << std::endl;
-  std::cout << "Part 2: " << p2(masses) << std::endl;
 }

@@ -3,6 +3,7 @@
 #include <numeric>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <unordered_set>
 #include <vector>
 
@@ -31,7 +32,7 @@ public:
       : height_(lines.size()), width_(lines.size() ? lines.at(0).length() : 0) {
     for (const std::string &line : lines) {
       if ((int)line.length() != width_) {
-        throw "Inconsistent grid size!";
+        throw std::invalid_argument("Inconsistent grid size!");
       }
     }
 
@@ -136,8 +137,13 @@ int p2(const std::vector<std::string> lines) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::strings::getlines();
+  try {
+    std::vector<std::string> lines = aoc::strings::getlines();
 
-  std::cout << "Part 1: " << p1(lines) << std::endl;
-  std::cout << "Part 2: " << p2(lines) << std::endl;
+    std::cout << "Part 1: " << p1(lines) << std::endl;
+    std::cout << "Part 2: " << p2(lines) << std::endl;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << std::endl;
+    return 1;
+  }
 }
