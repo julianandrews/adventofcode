@@ -7,10 +7,10 @@
 #include "graphs.h"
 #include "strings.h"
 
-typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
-typedef ::aoc::graphs::BFS<std::string, NeighborIterator> OrbitGraphBFS;
+typedef const ::std::unordered_set<std::string> &Neighbors;
+typedef ::aoc::graphs::BFS<std::string, Neighbors> OrbitGraphBFS;
 
-class OrbitGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
+class OrbitGraph : public aoc::graphs::Graph<std::string, Neighbors> {
   std::unordered_map<std::string, std::unordered_set<std::string>> orbits_;
 
 public:
@@ -25,12 +25,8 @@ public:
     }
   }
 
-  NeighborIterator neighbors_begin(const std::string &body) const override {
-    return orbits_.at(body).begin();
-  }
-
-  NeighborIterator neighbors_end(const std::string &body) const override {
-    return orbits_.at(body).end();
+  Neighbors neighbors(const std::string &body) const override {
+    return orbits_.at(body);
   }
 };
 

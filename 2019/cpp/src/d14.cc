@@ -9,7 +9,7 @@
 #include "graphs.h"
 #include "strings.h"
 
-typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
+typedef const ::std::unordered_set<std::string> &Neighbors;
 
 struct Material {
   std::string kind;
@@ -21,10 +21,10 @@ struct Reaction {
   std::vector<Material> inputs;
 };
 
-class ReactionGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
+class ReactionGraph : public aoc::graphs::Graph<std::string, Neighbors> {
   std::unordered_map<std::string, std::unordered_set<std::string>> inputs_;
   std::unordered_map<std::string, Reaction> reactions_;
-  const std::unordered_set<std::string> EMPTY_;
+  std::unordered_set<std::string> EMPTY_;
 
 public:
   ReactionGraph(std::vector<Reaction> reactions) {
@@ -44,20 +44,9 @@ public:
                                   : std::optional<Reaction>(it->second);
   }
 
-  NeighborIterator neighbors_begin(const std::string &kind) const override {
-    if (inputs_.find(kind) != inputs_.end()) {
-      return inputs_.at(kind).begin();
-    } else {
-      return ReactionGraph::EMPTY_.begin();
-    }
-  }
-
-  NeighborIterator neighbors_end(const std::string &kind) const override {
-    if (inputs_.find(kind) != inputs_.end()) {
-      return inputs_.at(kind).end();
-    } else {
-      return ReactionGraph::EMPTY_.end();
-    }
+  Neighbors neighbors(const std::string &kind) const override {
+    return inputs_.find(kind) != inputs_.end() ? inputs_.at(kind)
+                                               : ReactionGraph::EMPTY_;
   }
 };
 
@@ -103,8 +92,8 @@ std::vector<Material> raw_inputs(const std::vector<Reaction> &reactions,
 
   std::vector<Material> inputs;
   auto topo_traversal =
-      aoc::graphs::TopologicalTraversal<std::string, NeighborIterator>(
-          graph, all_kinds);
+      aoc::graphs::TopologicalTraversal<std::string, Neighbors>(graph,
+                                                                all_kinds);
   while (topo_traversal.hasnext()) {
     const std::string kind = topo_traversal.next();
     if (needed_materials.find(kind) != needed_materials.end()) {
