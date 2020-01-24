@@ -8,8 +8,7 @@
 #include "strings.h"
 
 typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
-typedef ::aoc::graphs::BFSTraversal<std::string, NeighborIterator>
-    OrbitGraphTraversal;
+typedef ::aoc::graphs::BFS<std::string, NeighborIterator> OrbitGraphBFS;
 
 class OrbitGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
   std::unordered_map<std::string, std::unordered_set<std::string>> orbits_;
@@ -36,21 +35,20 @@ public:
 };
 
 int p1(const OrbitGraph &orbit_graph) {
-  auto traversal = OrbitGraphTraversal(orbit_graph, "COM");
+  auto bfs = OrbitGraphBFS(orbit_graph, "COM");
   int total = 0;
-  while (traversal.hasnext()) {
-    total += traversal.next()->depth;
+  for (const auto &node : bfs) {
+    total += node.depth;
   }
 
   return total;
 }
 
 int p2(const OrbitGraph &orbit_graph) {
-  auto traversal = OrbitGraphTraversal(orbit_graph, "YOU");
-  while (traversal.hasnext()) {
-    auto node = traversal.next();
-    if (node->value == "SAN") {
-      return node->depth - 2;
+  auto bfs = OrbitGraphBFS(orbit_graph, "YOU");
+  for (const auto &node : bfs) {
+    if (node.value == "SAN") {
+      return node.depth - 2;
     }
   }
 
