@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "point.h"
-#include "utils.h"
+#include "strings.h"
 
 using ::aoc::point::Point;
 
@@ -136,7 +136,7 @@ int p2(const std::vector<std::string> lines) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::utils::getlines();
+  std::vector<std::string> lines = aoc::strings::getlines();
 
   std::cout << "Part 1: " << p1(lines) << std::endl;
   std::cout << "Part 2: " << p2(lines) << std::endl;

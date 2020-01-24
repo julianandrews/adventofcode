@@ -1,6 +1,6 @@
 #include <cassert>
 
-#include "utils.h"
+#include "strings.h"
 
 bool is_candidate(int n) {
   std::vector<int> digits;
@@ -88,7 +88,7 @@ int main() {
   std::string line;
   getline(std::cin, line);
 
-  auto bits = aoc::utils::split(line, '-');
+  auto bits = aoc::strings::split(line, '-');
   int start = std::stoi(bits.at(0));
   int end = std::stoi(bits.at(1));
 

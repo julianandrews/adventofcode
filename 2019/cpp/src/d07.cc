@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "intcode.h"
-#include "utils.h"
+#include "strings.h"
 
 using ::aoc::intcode::Op;
 using ::aoc::intcode::VM;
@@ -82,7 +82,7 @@ int main() {
   getline(std::cin, line);
 
   std::vector<long long> program;
-  for (std::string s : aoc::utils::split(line, ',')) {
+  for (std::string s : aoc::strings::split(line, ',')) {
     program.push_back(std::stoi(s));
   }
 

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-#include "utils.h"
+#include "strings.h"
 
 class Image {
   const int width_;
@@ -85,7 +85,7 @@ int main() {
   std::getline(std::cin, line);
 
   std::vector<int> pixels;
-  for (auto c : aoc::utils::trim(line)) {
+  for (auto c : aoc::strings::trim(line)) {
     pixels.push_back(c - '0');
   }
   Image image = Image(pixels, 25, 6);

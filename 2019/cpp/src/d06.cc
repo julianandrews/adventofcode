@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "graphs.h"
-#include "utils.h"
+#include "strings.h"
 
 typedef ::std::unordered_set<std::string>::const_iterator NeighborIterator;
 typedef ::aoc::graphs::BFSTraversal<std::string, NeighborIterator>
@@ -17,7 +17,7 @@ class OrbitGraph : public aoc::graphs::Graph<std::string, NeighborIterator> {
 public:
   OrbitGraph(std::vector<std::string> lines) {
     for (const auto &line : lines) {
-      const auto parts = aoc::utils::split(line, ')');
+      const auto parts = aoc::strings::split(line, ')');
       if (parts.size() != 2) {
         throw "Failed to parse line";
       }
@@ -58,7 +58,7 @@ int p2(const OrbitGraph &orbit_graph) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::utils::getlines();
+  std::vector<std::string> lines = aoc::strings::getlines();
   const OrbitGraph orbits = OrbitGraph(lines);
 
   std::cout << "Part 1: " << p1(orbits) << std::endl;

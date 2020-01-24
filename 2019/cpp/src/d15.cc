@@ -9,7 +9,7 @@
 #include "graphs.h"
 #include "intcode.h"
 #include "point.h"
-#include "utils.h"
+#include "strings.h"
 
 using ::aoc::direction::Direction;
 using ::aoc::graphs::BFSTraversal;
@@ -205,7 +205,7 @@ int main() {
   getline(std::cin, line);
 
   std::vector<long long> program;
-  for (std::string s : aoc::utils::split(line, ',')) {
+  for (std::string s : aoc::strings::split(line, ',')) {
     program.push_back(std::stoll(s));
   }
   Robot robot = Robot(program);

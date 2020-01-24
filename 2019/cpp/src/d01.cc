@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "utils.h"
+#include "strings.h"
 
 int simple_fuel(int mass) { return std::max(0, mass / 3 - 2); }
 
@@ -34,7 +34,7 @@ int p2(const std::vector<int> &masses) {
 }
 
 int main() {
-  std::vector<std::string> lines = aoc::utils::getlines();
+  std::vector<std::string> lines = aoc::strings::getlines();
   std::vector<int> masses;
 
   for (std::string s : lines) {
