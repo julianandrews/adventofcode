@@ -1,6 +1,7 @@
 #ifndef AOC_GRAPHS_TRAVERSAL_H
 #define AOC_GRAPHS_TRAVERSAL_H
 
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <queue>
@@ -51,13 +52,15 @@ public:
   GraphIterator<T, Neighbors, Container> &operator++() {
     auto node = to_visit_.peek();
     to_visit_.pop();
-    for (const auto &neighbor : graph_.neighbors(node->value)) {
-      if (visited_.find(neighbor) == visited_.end()) {
-        ++index_;
-        to_visit_.push(std::make_shared<TraversalNode<T>>(
-            neighbor, node->depth + 1, index_, node));
-      }
+    if (visited_.find(node->value) == visited_.end()) {
       visited_.insert(node->value);
+      for (const auto &neighbor : graph_.neighbors(node->value)) {
+        if (visited_.find(neighbor) == visited_.end()) {
+          ++index_;
+          to_visit_.push(std::make_shared<TraversalNode<T>>(
+              neighbor, node->depth + 1, index_, node));
+        }
+      }
     }
     return *this;
   }
