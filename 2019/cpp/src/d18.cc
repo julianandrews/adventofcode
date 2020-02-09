@@ -3,9 +3,12 @@
 #include <point.h>
 #include <strings.h>
 
+#include <algorithm>
+#include <bitset>
+#include <cassert>
 #include <cctype>
 #include <iostream>
-#include <queue>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -18,41 +21,97 @@ typedef char Tile;
 typedef aoc::point::Point<int, 2> Coords;
 typedef const std::vector<Coords> Neighbors;
 
-struct MazeState {
-  std::set<Tile> robot_locations;
-  std::set<Tile> collected_keys;
+class MazeState {
+  const long long collected_keys_ = 0;
+  std::set<Tile> robot_locations_;
 
-  MazeState(std::set<Tile> robot_locations, std::set<Tile> collected_keys)
-      : robot_locations(std::move(robot_locations)),
-        collected_keys(std::move(collected_keys)) {}
+  MazeState(std::set<Tile> robot_locations, long long collected_keys)
+      : robot_locations_(std::move(robot_locations)),
+        collected_keys_(collected_keys) {}
 
-  MazeState() {}
+public:
+  MazeState next_state(Tile from_tile, Tile to_tile) const {
+    auto new_locations = robot_locations_;
+    new_locations.erase(from_tile);
+    new_locations.insert(to_tile);
+    auto new_keys = collected_keys_ | (1 << (to_tile - 'a'));
+    return MazeState(std::move(new_locations), new_keys);
+  }
+
+  bool has_key(Tile key) const { return collected_keys_ & (1 << (key - 'a')); }
+
+  int key_count() const {
+    return std::bitset<std::numeric_limits<long long>::digits>(collected_keys_)
+        .count();
+  }
+
+  std::string get_robot_tiles() const {
+    std::string output;
+    for (Tile tile : robot_locations_) {
+      output.push_back(tile);
+    }
+
+    return output;
+  }
+
+  explicit MazeState(int num_entry_points) {
+    for (int i = 0; i < num_entry_points; ++i) {
+      robot_locations_.insert(i + '0');
+    }
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const MazeState &state);
+  friend bool operator==(const MazeState &lhs, const MazeState &rhs);
+  friend struct std::hash<MazeState>;
 };
 
+std::ostream &operator<<(std::ostream &os, const MazeState &state) {
+  os << "MazeState(";
+  for (Tile tile : state.robot_locations_) {
+    os << tile;
+  }
+  os << ", ";
+  for (int i = 0; i < 64; ++i) {
+    if (state.collected_keys_ & (1 << i)) {
+      os << (char)(i + 'a');
+    }
+  }
+  os << ")";
+  return os;
+}
+
 bool operator==(const MazeState &lhs, const MazeState &rhs) {
-  return lhs.robot_locations == rhs.robot_locations &&
-         lhs.collected_keys == rhs.collected_keys;
+  return lhs.robot_locations_ == rhs.robot_locations_ &&
+         lhs.collected_keys_ == rhs.collected_keys_;
 }
 
 namespace std {
 
-template <>
-struct hash<MazeState> {
+template <> struct hash<MazeState> {
   std::size_t operator()(const MazeState &state) const {
-    std::size_t value = 0;
-    for (Tile tile : state.collected_keys) {
-      value = value * 101 + tile;
-    }
-    for (Tile tile : state.robot_locations) {
+    std::size_t value = state.collected_keys_;
+    for (Tile tile : state.robot_locations_) {
       value = value * 101 + tile;
     }
     return value;
   }
 };
 
-}  // namespace std
+} // namespace std
 
 class KeyMaze : public aoc::graphs::Graph<Coords, Neighbors> {
+  bool should_visit(const MazeState &maze_state, Tile from_tile, Tile to_tile) {
+    if (maze_state.has_key(to_tile)) {
+      return false;
+    }
+    for (Tile door : waypoint_doors_[from_tile][to_tile]) {
+      if (!maze_state.has_key(door)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
  public:
   KeyMaze(const std::vector<std::string> &lines)
       : map_(lines.size(), std::vector<Tile>(lines.at(0).size())) {
@@ -72,76 +131,67 @@ class KeyMaze : public aoc::graphs::Graph<Coords, Neighbors> {
     }
   }
 
-  int steps() {
+  std::optional<int> steps() {
     if (!initialized_) {
       throw std::runtime_error("Must initialize first");
     }
-    std::set<Tile> entry_points;
-    for (int i = 0; i < entry_point_count_; ++i) {
-      entry_points.insert(i + '0');
-    }
-    MazeState starting_state = MazeState(std::move(entry_points), {});
-    auto comp = [](const auto &lhs, const auto &rhs) {
-      return lhs.first < rhs.first;
+
+    typedef std::unordered_map<MazeState, int> DistanceMap;
+    DistanceMap distances;
+
+    const MazeState starting_state = MazeState(entry_point_count_);
+    std::vector<std::pair<int, DistanceMap::iterator>> to_process;
+    auto [it, _] =
+        distances.insert(std::make_pair(std::move(starting_state), 0));
+    to_process.push_back(std::make_pair(0, it));
+    auto comapare_first = [](const auto &lhs, const auto &rhs) {
+      return lhs.first > rhs.first;
     };
-    std::priority_queue<std::pair<int, MazeState>,
-                        std::vector<std::pair<int, MazeState>>, decltype(comp)>
-        to_process(comp);
-    to_process.push(std::make_pair(0, starting_state));
-    std::unordered_map<MazeState, int> distances;
-    distances[starting_state] = 0;
 
+    int key_count = waypoint_distances_.size() - entry_point_count_;
     while (!to_process.empty()) {
-      MazeState maze_state = to_process.top().second;
-      to_process.pop();
+      const auto &maze_state = to_process.front().second->first;
+      int current_distance = to_process.front().first;
+      std::pop_heap(to_process.begin(), to_process.end(), comapare_first);
+      to_process.pop_back();
+      if (distances.at(maze_state) != current_distance) {
+        continue;
+      }
+      if (maze_state.key_count() == key_count) {
+        return current_distance;
+      }
 
-      for (Tile from_tile : maze_state.robot_locations) {
-        for (const auto [to_tile, distance] : waypoint_distances_[from_tile]) {
-          bool already_visited = maze_state.collected_keys.find(to_tile) !=
-                                 maze_state.collected_keys.end();
-          bool has_blocking_doors =
-              std::any_of(waypoint_doors_[from_tile][to_tile].begin(),
-                          waypoint_doors_[from_tile][to_tile].end(),
-                          [&maze_state](Tile door) {
-                            return maze_state.collected_keys.find(door) ==
-                                   maze_state.collected_keys.end();
-                          });
-          if (!already_visited && !has_blocking_doors) {
-            std::set<Tile> new_locations = maze_state.robot_locations;
-            new_locations.erase(from_tile);
-            new_locations.insert(to_tile);
-            std::set<Tile> new_keys = maze_state.collected_keys;
-            new_keys.insert(to_tile);
-            MazeState new_state =
-                MazeState(std::move(new_locations), std::move(new_keys));
-            int extra_distance = waypoint_distances_.at(from_tile).at(to_tile);
-            int new_distance = distances.at(maze_state) + extra_distance;
-            if (distances.find(new_state) == distances.end() ||
-                new_distance < distances.at(new_state)) {
-              to_process.push(std::make_pair(new_distance, new_state));
-              distances[new_state] = new_distance;
+      for (Tile from_tile : maze_state.get_robot_tiles()) {
+        for (const auto [to_tile, distance] :
+             waypoint_distances_.at(from_tile)) {
+          if (should_visit(maze_state, from_tile, to_tile)) {
+            int new_distance = distances.at(maze_state) +
+                               waypoint_distances_.at(from_tile).at(to_tile);
+
+            MazeState new_state = maze_state.next_state(from_tile, to_tile);
+            auto search = distances.find(new_state);
+            if (search == distances.end()) {
+              auto [it, _] = distances.insert(
+                  std::make_pair(std::move(new_state), new_distance));
+              to_process.push_back(std::make_pair(new_distance, it));
+              std::push_heap(to_process.begin(), to_process.end(),
+                             comapare_first);
+            } else if (new_distance < search->second) {
+              search->second = new_distance;
+              to_process.push_back(std::make_pair(new_distance, search));
+              std::push_heap(to_process.begin(), to_process.end(),
+                             comapare_first);
             }
           }
         }
       }
     }
-
-    int min_distance = std::numeric_limits<int>::max();
-    for (const auto &[state, distance] : distances) {
-      if (state.collected_keys.size() == key_count()) {
-        min_distance = std::min(min_distance, distance);
-      }
-    }
-    return min_distance;
+    return std::nullopt;
   }
 
   int height() const { return map_.size(); }
 
   int width() const { return map_.size() > 0 ? map_.at(0).size() : 0; }
-
-  int key_count() const {
-    return waypoint_distances_.size() - entry_point_count_;
-  }
 
   Tile at(const Coords &position) const {
     int x = position[0];
@@ -196,38 +246,124 @@ class KeyMaze : public aoc::graphs::Graph<Coords, Neighbors> {
   bool initialized_ = false;
 };
 
-int p1(const std::vector<std::string> &lines) {
-  KeyMaze maze = KeyMaze(lines);
-  maze.initialize();
-  return maze.steps();
-}
-
-int p2(const std::vector<std::string> &lines) {
-  std::vector<std::string> modified_lines = lines;
-  for (int y = 0; y < modified_lines.size(); ++y) {
-    for (int x = 0; x < modified_lines.at(y).size(); ++x) {
-      if (modified_lines.at(y).at(x) == '@') {
-        modified_lines[y - 1][x - 1] = '@';
-        modified_lines[y - 1][x] = '#';
-        modified_lines[y - 1][x + 1] = '@';
-        modified_lines[y][x - 1] = '#';
-        modified_lines[y][x] = '#';
-        modified_lines[y][x + 1] = '#';
-        modified_lines[y + 1][x - 1] = '@';
-        modified_lines[y + 1][x] = '#';
-        modified_lines[y + 1][x + 1] = '@';
+std::vector<std::string> tweak_lines(const std::vector<std::string> &lines) {
+  std::vector<std::string> mod_lines = lines;
+  for (int y = 0; y < lines.size(); ++y) {
+    for (int x = 0; x < lines.at(y).size(); ++x) {
+      if (lines.at(y).at(x) == '@') {
+        mod_lines[y - 1][x - 1] = '@';
+        mod_lines[y - 1][x] = '#';
+        mod_lines[y - 1][x + 1] = '@';
+        mod_lines[y][x - 1] = '#';
+        mod_lines[y][x] = '#';
+        mod_lines[y][x + 1] = '#';
+        mod_lines[y + 1][x - 1] = '@';
+        mod_lines[y + 1][x] = '#';
+        mod_lines[y + 1][x + 1] = '@';
       }
     }
   }
-  KeyMaze maze = KeyMaze(modified_lines);
+
+  return mod_lines;
+}
+
+int maze_steps(const std::vector<std::string> &lines) {
+  KeyMaze maze = KeyMaze(lines);
   maze.initialize();
-  return maze.steps();
+  auto steps = maze.steps();
+  if (!steps.has_value()) {
+    throw std::runtime_error("No path found through maze");
+  }
+  return steps.value();
+}
+
+void run_tests() {
+  assert(maze_steps({
+             "#########",
+             "#b.A.@.a#",
+             "#########",
+         }) == 8);
+
+  assert(maze_steps({
+             "########################",
+             "#f.D.E.e.C.b.A.@.a.B.c.#",
+             "######################.#",
+             "#d.....................#",
+             "########################",
+         }) == 86);
+
+  assert(maze_steps({
+             "########################",
+             "#...............b.C.D.f#",
+             "#.######################",
+             "#.....@.a.B.c.d.A.e.F.g#",
+             "########################",
+         }) == 132);
+
+  assert(maze_steps({
+             "#################",
+             "#i.G..c...e..H.p#",
+             "########.########",
+             "#j.A..b...f..D.o#",
+             "########@########",
+             "#k.E..a...g..B.n#",
+             "########.########",
+             "#l.F..d...h..C.m#",
+             "#################",
+         }) == 136);
+
+  assert(maze_steps({
+             "########################",
+             "#@..............ac.GI.b#",
+             "###d#e#f################",
+             "###A#B#C################",
+             "###g#h#i################",
+             "########################",
+         }) == 81);
+
+  assert(maze_steps({
+             "#######",
+             "#a.#Cd#",
+             "##@#@##",
+             "#######",
+             "##@#@##",
+             "#cB#Ab#",
+             "#######",
+         }) == 8);
+
+  assert(maze_steps({
+             "###############",
+             "#d.ABC.#.....a#",
+             "######@#@######",
+             "###############",
+             "######@#@######",
+             "#b.....#.....c#",
+             "###############",
+         }) == 24);
+
+  assert(maze_steps({
+             "#############",
+             "#DcBa.#.GhKl#",
+             "#.###@#@#I###",
+             "#e#d#####j#k#",
+             "###C#@#@###J#",
+             "#fEbA.#.FgHi#",
+             "#############",
+         }) == 32);
+}
+
+int p1(const std::vector<std::string> &lines) { return maze_steps(lines); }
+
+int p2(const std::vector<std::string> &lines) {
+  return maze_steps(tweak_lines(lines));
 }
 
 int main() {
   try {
-    std::vector<std::string> lines = aoc::strings::getlines();
+    run_tests();
+    std::cout << "All tests passed" << std::endl;
 
+    std::vector<std::string> lines = aoc::strings::getlines();
     std::cout << "Part 1: " << p1(lines) << std::endl;
     std::cout << "Part 2: " << p2(lines) << std::endl;
   } catch (const std::exception &e) {
