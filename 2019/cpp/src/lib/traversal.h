@@ -80,12 +80,12 @@ bool operator==(const GraphIterator<T, Neighbors, Container> &lhs,
 
 template <class T, class Neighbors, class Container>
 bool operator==(const GraphIterator<T, Neighbors, Container> &lhs,
-                const GraphIteratorEnd &rhs) {
+                [[maybe_unused]] const GraphIteratorEnd &rhs) {
   return lhs.empty();
 }
 
 template <class T, class Neighbors, class Container>
-bool operator==(const GraphIteratorEnd &lhs,
+bool operator==([[maybe_unused]] const GraphIteratorEnd &lhs,
                 const GraphIterator<T, Neighbors, Container> &rhs) {
   return rhs.empty();
 }

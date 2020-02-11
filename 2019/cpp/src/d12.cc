@@ -92,8 +92,8 @@ public:
             return moon.position_[i] == initial_positions[m][i] &&
                    moon.velocity_[i] == 0;
           };
-          std::vector<int> moon_indices;
-          for (int m = 0; m < moons_.size(); ++m)
+          std::vector<std::size_t> moon_indices;
+          for (std::size_t m = 0; m < moons_.size(); ++m)
             moon_indices.push_back(m);
           if (std::all_of(moon_indices.begin(), moon_indices.end(), is_cycle)) {
             periods[i] = steps;

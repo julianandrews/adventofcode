@@ -28,9 +28,9 @@ std::vector<int> fft(const std::vector<int> &input_list, int num_phases) {
 
   for (int phase = 0; phase < num_phases; ++phase) {
     std::swap(source, destination);
-    for (int pos = 0; pos < destination->size(); ++pos) {
+    for (std::size_t pos = 0; pos < destination->size(); ++pos) {
       int value = 0;
-      for (int i = 0; i < source->size(); ++i) {
+      for (std::size_t i = 0; i < source->size(); ++i) {
         int pattern = BASE_PATTERN[((i + 1) / (pos + 1)) % 4];
         value += source->at(i) * pattern;
       }

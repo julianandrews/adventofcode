@@ -22,8 +22,8 @@ typedef aoc::point::Point<int, 2> Coords;
 typedef const std::vector<Coords> Neighbors;
 
 class MazeState {
-  const long long collected_keys_ = 0;
   std::set<Tile> robot_locations_;
+  const long long collected_keys_ = 0;
 
   MazeState(std::set<Tile> robot_locations, long long collected_keys)
       : robot_locations_(std::move(robot_locations)),
@@ -115,9 +115,9 @@ class KeyMaze : public aoc::graphs::Graph<Coords, Neighbors> {
  public:
   KeyMaze(const std::vector<std::string> &lines)
       : map_(lines.size(), std::vector<Tile>(lines.at(0).size())) {
-    for (int y = 0; y < lines.size(); ++y) {
+    for (int y = 0; y < static_cast<int>(lines.size()); ++y) {
       const auto &line = lines.at(y);
-      for (int x = 0; x < line.size(); ++x) {
+      for (int x = 0; x < static_cast<int>(line.size()); ++x) {
         Tile tile = line.at(x);
         if (tile == '@') {
           tile = entry_point_count_ + '0';
@@ -248,8 +248,8 @@ class KeyMaze : public aoc::graphs::Graph<Coords, Neighbors> {
 
 std::vector<std::string> tweak_lines(const std::vector<std::string> &lines) {
   std::vector<std::string> mod_lines = lines;
-  for (int y = 0; y < lines.size(); ++y) {
-    for (int x = 0; x < lines.at(y).size(); ++x) {
+  for (int y = 0; y < static_cast<int>(lines.size()); ++y) {
+    for (int x = 0; x < static_cast<int>(lines.at(y).size()); ++x) {
       if (lines.at(y).at(x) == '@') {
         mod_lines[y - 1][x - 1] = '@';
         mod_lines[y - 1][x] = '#';
