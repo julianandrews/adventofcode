@@ -12,20 +12,18 @@ using ::aoc::intcode::VM;
 class TwoStepInputs {
   long long initial_;
   long long value_;
-  bool returned_once = false;
+  bool returned_once_ = false;
 
 public:
   TwoStepInputs(long long first, long long value)
       : initial_(first), value_(value) {}
 
-  std::function<long long()> next_input_function() {
-    return [this] {
-      if (!returned_once) {
-        returned_once = true;
-        return initial_;
-      }
-      return value_;
-    };
+  long long operator()() {
+    if (!returned_once_) {
+      returned_once_ = true;
+      return initial_;
+    }
+    return value_;
   }
 
   void set_value(long long value) { value_ = value; }
@@ -37,8 +35,7 @@ long long p1(const std::vector<long long> &program) {
   do {
     long long signal = 0;
     for (long long phase : permutation) {
-      auto inputs = TwoStepInputs(phase, signal).next_input_function();
-      VM vm = VM(program, std::move(inputs));
+      VM vm = VM(program, TwoStepInputs(phase, signal));
       signal = vm.get_next_output().value();
     }
     best = std::max(best, signal);
@@ -56,11 +53,11 @@ long long p2(const std::vector<long long> &program) {
         TwoStepInputs(permutation[2], 0), TwoStepInputs(permutation[3], 0),
         TwoStepInputs(permutation[4], 0)};
     VM vms[5] = {
-        VM(program, std::move(inputs[0].next_input_function())),
-        VM(program, std::move(inputs[1].next_input_function())),
-        VM(program, std::move(inputs[2].next_input_function())),
-        VM(program, std::move(inputs[3].next_input_function())),
-        VM(program, std::move(inputs[4].next_input_function())),
+        VM(program, [&inputs] { return inputs[0](); }),
+        VM(program, [&inputs] { return inputs[1](); }),
+        VM(program, [&inputs] { return inputs[2](); }),
+        VM(program, [&inputs] { return inputs[3](); }),
+        VM(program, [&inputs] { return inputs[4](); }),
     };
 
     int i = 0;
