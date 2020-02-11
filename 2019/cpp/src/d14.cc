@@ -63,7 +63,7 @@ std::vector<Reaction> parse_reactions(std::vector<std::string> lines) {
     auto i = line.find(" => ");
     std::string input_part = line.substr(0, i);
     std::vector<Material> inputs;
-    int start = 0;
+    std::size_t start = 0;
     while (start < input_part.length()) {
       auto end = std::min(input_part.find(", ", start), input_part.length());
       inputs.push_back(parse_material(input_part.substr(start, end - start)));

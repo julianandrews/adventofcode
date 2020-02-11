@@ -91,12 +91,12 @@ bool operator==(const TopoIterator<T, Neighbors> &lhs,
 
 template <class T, class Neighbors>
 bool operator==(const TopoIterator<T, Neighbors> &lhs,
-                const TopoIteratorEnd &rhs) {
+                [[maybe_unused]] const TopoIteratorEnd &rhs) {
   return lhs.empty();
 }
 
 template <class T, class Neighbors>
-bool operator==(const TopoIteratorEnd &lhs,
+bool operator==([[maybe_unused]] const TopoIteratorEnd &lhs,
                 const TopoIterator<T, Neighbors> &rhs) {
   return rhs.empty();
 }

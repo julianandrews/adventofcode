@@ -3,7 +3,8 @@ project(AdventOfCode C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+add_compile_options("$<$<CONFIG:RELEASE>:-W;-Wall;-O3;-pedantic>")
+add_compile_options("$<$<CONFIG:DEBUG>:-W;-Wall;-O0;-g;-pedantic>")
 
 file(GLOB executable_sources RELATIVE ${CMAKE_SOURCE_DIR} "src/d*.cc")
 

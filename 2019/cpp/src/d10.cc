@@ -109,7 +109,6 @@ public:
   Point<int, 2> destroy_n_asteroids(const Point<int, 2> &p, int n) {
     int count = 0;
     auto dirs = directions(p);
-    auto it = dirs.begin();
     for (auto it = dirs.begin(); true; ++it) {
       if (it == dirs.end())
         it = dirs.begin();
