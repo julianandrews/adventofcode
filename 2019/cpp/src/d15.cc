@@ -12,6 +12,8 @@
 #include "point.h"
 #include "strings.h"
 
+#include <limits.h>
+
 using ::aoc::direction::Direction;
 
 typedef ::aoc::point::Point<long long, 2> Coords;
@@ -25,7 +27,7 @@ class Robot : public aoc::graphs::Graph<Coords, Neighbors> {
   Coords position_ = {0, 0};
   std::vector<Direction> route_;
   long long next_input_;
-  bool explored_;
+  bool explored_ = false;
 
   long long inputs() { return next_input_; }
 
@@ -129,18 +131,18 @@ int p1(const Robot &robot) {
 
 int p2(const Robot &robot) {
   // Find the oxygen.
-  Coords start_position;
+  Coords oxygen_position;
   auto initial_bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, {0, 0});
   for (const auto &node : initial_bfs) {
     if (robot.status_at(node.value) == StatusCode::FOUND_OXYGEN) {
-      start_position = node.value;
+      oxygen_position = node.value;
       break;
     }
   }
 
   // Find the farthest point from it.
   int depth;
-  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, start_position);
+  auto bfs = aoc::graphs::BFS<Coords, Neighbors>(robot, oxygen_position);
   for (const auto &node : bfs) {
     depth = node.depth;
   }
