@@ -40,9 +40,9 @@ public:
   using pointer = std::shared_ptr<TraversalNode<T>>;
   using diference_type = void;
 
-  GraphIterator(const Graph<T, Neighbors> &graph, const T &start)
+  GraphIterator(const Graph<T, Neighbors> &graph, const T start)
       : graph_(graph) {
-    to_visit_.push(std::make_shared<TraversalNode<T>>(start, 0, 0));
+    to_visit_.push(std::make_shared<TraversalNode<T>>(std::move(start), 0, 0));
   }
 
   GraphIterator(const GraphIterator<T, Neighbors, Container> &other)
@@ -110,11 +110,11 @@ bool operator!=(const GraphIterator<T, Neighbors, Container> &lhs,
 
 template <class T, class Neighbors, class Container> class GraphTraversal {
   const Graph<T, Neighbors> &graph_;
-  const T &start_;
+  const T start_;
 
 public:
-  GraphTraversal(const Graph<T, Neighbors> &graph, const T &start)
-      : graph_(graph), start_(start) {}
+  GraphTraversal(const Graph<T, Neighbors> &graph, const T start)
+      : graph_(graph), start_(std::move(start)) {}
 
   GraphIterator<T, Neighbors, Container> begin() {
     return GraphIterator<T, Neighbors, Container>(graph_, start_);
