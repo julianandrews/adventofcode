@@ -45,7 +45,7 @@ template <class T, std::size_t size>
 std::ostream &operator<<(std::ostream &os,
                          const aoc::point::Point<T, size> &point) {
   os << '(';
-  for (int i = 0; i < size; ++i) {
+  for (std::size_t i = 0; i < size; ++i) {
     os << point.values[i];
     if (i != size - 1) {
       os << ", ";
