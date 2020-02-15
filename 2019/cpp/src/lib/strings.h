@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace aoc {
@@ -20,6 +21,28 @@ std::vector<std::string> split(const std::string &s, const char delim) {
   }
 
   return items;
+}
+
+std::string join(const std::vector<std::string> &strings,
+                 const std::string &delim) {
+  std::string joined;
+  for (const auto &s : strings) {
+    if (!joined.empty())
+      joined += delim;
+    joined += s;
+  }
+  return joined;
+}
+
+std::string replace_substring(std::string subject,
+                              const std::string_view search,
+                              const std::string_view replace) {
+  std::size_t pos = 0;
+  while ((pos = subject.find(search, pos)) != std::string::npos) {
+    subject.replace(pos, search.length(), replace);
+    pos += replace.length();
+  }
+  return subject;
 }
 
 std::string trim(const std::string &s) {
