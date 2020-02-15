@@ -27,6 +27,20 @@ Direction left_turn(Direction d) {
   return static_cast<Direction>((static_cast<int>(d) + 3) % 4);
 }
 
+template <class T> Direction from_offset(aoc::point::Point<T, 2> offset) {
+  if (offset == aoc::point::Point<T, 2>({0, 1})) {
+    return Direction::NORTH;
+  } else if (offset == aoc::point::Point<T, 2>({0, -1})) {
+    return Direction::SOUTH;
+  } else if (offset == aoc::point::Point<T, 2>({1, 0})) {
+    return Direction::EAST;
+  } else if (offset == aoc::point::Point<T, 2>({-1, 0})) {
+    return Direction::WEST;
+  } else {
+    throw std::invalid_argument("Invalid offset for direction.");
+  }
+}
+
 template <class T> aoc::point::Point<T, 2> offset(Direction d) {
   switch (d) {
   case Direction::NORTH:
