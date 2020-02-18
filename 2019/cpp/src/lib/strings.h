@@ -60,7 +60,7 @@ std::vector<std::string> getlines() {
 
   std::string buffer;
   while (getline(std::cin, buffer)) {
-    lines.push_back(trim(buffer));
+    lines.push_back(buffer);
   }
 
   return lines;
