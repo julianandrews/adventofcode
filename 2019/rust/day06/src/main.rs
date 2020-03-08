@@ -1,11 +1,14 @@
 extern crate aoc;
 
+use aoc::aoc_error::AOCError;
 use aoc::graphs::{bfs, Graph};
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read};
+use std::str::FromStr;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
+#[derive(Debug)]
 struct OrbitGraph {
     orbits: HashMap<String, HashSet<String>>,
 }
@@ -23,23 +26,33 @@ impl Graph<String> for OrbitGraph {
     }
 }
 
-fn parse_orbits(data: String) -> OrbitGraph {
-    let mut orbits = HashMap::new();
-    for line in data.lines() {
-        let mut split = line.trim().splitn(2, ')');
-        let a = split.next().unwrap();
-        let b = split.next().unwrap();
-        orbits
-            .entry(a.to_string())
-            .or_insert_with(HashSet::new)
-            .insert(b.to_string());
-        orbits
-            .entry(b.to_string())
-            .or_insert_with(HashSet::new)
-            .insert(a.to_string());
-    }
+impl FromStr for OrbitGraph {
+    type Err = AOCError;
 
-    OrbitGraph { orbits: orbits }
+    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+        let mut orbits = HashMap::new();
+        for line in s.lines() {
+            let mut split = line.trim().splitn(2, ')');
+            let a = match split.next() {
+                Some(value) => value,
+                None => return Err(AOCError::new(&format!("Failed to parse line: {}", line))),
+            };
+            let b = match split.next() {
+                Some(value) => value,
+                None => return Err(AOCError::new(&format!("Failed to parse line: {}", line))),
+            };
+            orbits
+                .entry(a.to_string())
+                .or_insert_with(HashSet::new)
+                .insert(b.to_string());
+            orbits
+                .entry(b.to_string())
+                .or_insert_with(HashSet::new)
+                .insert(a.to_string());
+        }
+
+        Ok(OrbitGraph { orbits: orbits })
+    }
 }
 
 fn part1(orbit_graph: &OrbitGraph) -> Result<u64> {
@@ -54,13 +67,13 @@ fn part2(orbit_graph: &OrbitGraph) -> Result<u64> {
             return Ok(node.depth - 2);
         }
     }
-    Ok(0)
+    Err(AOCError::new("Failed to find Santa!"))?
 }
 
 fn main() -> Result<()> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
-    let orbit_graph = parse_orbits(input);
+    let orbit_graph = input.parse()?;
 
     println!("Part 1: {}", part1(&orbit_graph)?);
     println!("Part 2: {}", part2(&orbit_graph)?);
