@@ -1,5 +1,5 @@
 **/cpp/bin/
-**/rust/target/
+**/rust/**/target/
 *.pyc
 CMakeLists.txt.user
 CMakeCache.txt
