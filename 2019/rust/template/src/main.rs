@@ -21,3 +21,11 @@ fn main() -> Result<()> {
     println!("Part 2: {}", part2()?);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_case() {}
+}
