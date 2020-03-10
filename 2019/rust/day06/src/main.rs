@@ -13,13 +13,13 @@ struct OrbitGraph {
     orbits: HashMap<String, HashSet<String>>,
 }
 
-impl Graph<String> for OrbitGraph {
-    fn nodes<'a>(&'a self) -> Box<dyn Iterator<Item = &'a String> + 'a> {
+impl<'a> Graph<'a, &'a String> for OrbitGraph {
+    fn nodes(&'a self) -> Box<dyn Iterator<Item = &'a String> + 'a> {
         Box::new(self.orbits.keys())
     }
 
-    fn neighbors<'a>(&'a self, value: &String) -> Box<dyn Iterator<Item = &'a String> + 'a> {
-        match self.orbits.get(value) {
+    fn neighbors(&'a self, value: &&String) -> Box<dyn Iterator<Item = &'a String> + 'a> {
+        match self.orbits.get(*value) {
             Some(neighbors) => Box::new(neighbors.iter()),
             None => Box::new(std::iter::empty()),
         }
