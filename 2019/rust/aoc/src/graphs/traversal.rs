@@ -4,32 +4,32 @@ use std::collections::VecDeque;
 use std::hash::Hash;
 use std::rc::Rc;
 
-pub struct TraversalNode<'a, T> {
-    pub value: &'a T,
+pub struct TraversalNode<T> {
+    pub value: T,
     pub index: u64,
     pub depth: u64,
-    pub parent: Option<Rc<TraversalNode<'a, T>>>,
+    pub parent: Option<Rc<TraversalNode<T>>>,
 }
 
-impl<'a, T> TraversalNode<'a, T> {
-    pub fn path(self) -> TraversalPathIterator<'a, T> {
+impl<T> TraversalNode<T> {
+    pub fn path(self) -> TraversalPathIterator<T> {
         TraversalPathIterator {
             node: Some(Rc::new(self)),
         }
     }
 }
 
-pub struct TraversalPathIterator<'a, T> {
-    node: Option<Rc<TraversalNode<'a, T>>>,
+pub struct TraversalPathIterator<T> {
+    node: Option<Rc<TraversalNode<T>>>,
 }
 
-impl<'a, T> Iterator for TraversalPathIterator<'a, T> {
-    type Item = &'a T;
+impl<T: Clone> Iterator for TraversalPathIterator<T> {
+    type Item = T;
 
-    fn next(&mut self) -> Option<&'a T> {
+    fn next(&mut self) -> Option<T> {
         match &self.node {
             Some(node) => {
-                let value = node.value;
+                let value = node.value.clone();
                 self.node = node.parent.clone();
 
                 Some(value)
@@ -39,16 +39,19 @@ impl<'a, T> Iterator for TraversalPathIterator<'a, T> {
     }
 }
 
-pub struct BFSTraversal<'a, T, G: Graph<T>> {
+pub struct BFSTraversal<'a, T, G: Graph<'a, T>> {
     index: u64,
     graph: &'a G,
-    queue: VecDeque<TraversalNode<'a, T>>,
-    seen: HashSet<&'a T>,
+    queue: VecDeque<TraversalNode<T>>,
+    seen: HashSet<T>,
 }
 
-pub fn bfs<'a, T: Eq + Hash, G: Graph<T>>(graph: &'a G, start: &'a T) -> BFSTraversal<'a, T, G> {
+pub fn bfs<'a, T: Eq + Hash + Clone, G: Graph<'a, T>>(
+    graph: &'a G,
+    start: T,
+) -> BFSTraversal<'a, T, G> {
     let mut seen = HashSet::new();
-    seen.insert(start);
+    seen.insert(start.clone());
     let mut queue = VecDeque::new();
     queue.push_back(TraversalNode {
         value: start,
@@ -65,8 +68,8 @@ pub fn bfs<'a, T: Eq + Hash, G: Graph<T>>(graph: &'a G, start: &'a T) -> BFSTrav
     }
 }
 
-impl<'a, T: Eq + Hash, G: Graph<T>> Iterator for BFSTraversal<'a, T, G> {
-    type Item = Rc<TraversalNode<'a, T>>;
+impl<'a, T: Eq + Hash + Clone, G: Graph<'a, T>> Iterator for BFSTraversal<'a, T, G> {
+    type Item = Rc<TraversalNode<T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = match self.queue.pop_front() {
@@ -74,9 +77,9 @@ impl<'a, T: Eq + Hash, G: Graph<T>> Iterator for BFSTraversal<'a, T, G> {
             None => return None,
         };
 
-        for neighbor in self.graph.neighbors(node.value) {
+        for neighbor in self.graph.neighbors(&node.value) {
             self.index += 1;
-            if !self.seen.contains(neighbor) {
+            if !self.seen.contains(&neighbor) {
                 self.seen.insert(neighbor.clone());
                 self.queue.push_back(TraversalNode {
                     value: neighbor,
