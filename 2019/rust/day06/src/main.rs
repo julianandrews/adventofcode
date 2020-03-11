@@ -79,3 +79,50 @@ fn main() -> Result<()> {
     println!("Part 2: {}", part2(&orbit_graph)?);
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1() {
+        let orbit_graph = "COM)B
+                           B)C
+                           C)D
+                           D)E
+                           E)F
+                           B)G
+                           G)H
+                           D)I
+                           E)J
+                           J)K
+                           K)L"
+        .parse();
+        assert!(orbit_graph.is_ok());
+        let result = part1(&orbit_graph.unwrap());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 42);
+    }
+
+    #[test]
+    fn test_part2() {
+        let orbit_graph = "COM)B
+                           B)C
+                           C)D
+                           D)E
+                           E)F
+                           B)G
+                           G)H
+                           D)I
+                           E)J
+                           J)K
+                           K)L
+                           K)YOU
+                           I)SAN"
+            .parse();
+        assert!(orbit_graph.is_ok());
+        let result = part2(&orbit_graph.unwrap());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 4);
+    }
+}
