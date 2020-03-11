@@ -49,7 +49,7 @@ impl OpType {
 
 pub struct VM<I: Iterator<Item = RegisterValue>> {
     memory: VMMemory,
-    _inputs: I, // TODO: Change this once used!
+    inputs: I,
     ip: Address,
     relative_base: Address,
     output: Option<RegisterValue>,
@@ -59,7 +59,7 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
     pub fn new(program: Vec<RegisterValue>, inputs: I) -> VM<I> {
         VM {
             memory: VMMemory { memory: program },
-            _inputs: inputs, // TODO: Change this once used!
+            inputs: inputs,
             ip: 0,
             relative_base: 0,
             output: None,
@@ -70,15 +70,23 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
         let op_type = self.get_op_type()?;
         let params = self.get_params(op_type.num_params());
         let modes = self.get_modes(op_type.num_params())?;
+        let mut ip_offset = 1 + op_type.num_params();
+
+        if params.len() != op_type.num_params() {
+            return Err(AOCError::new("Incorrect number of parameters"))?;
+        } else if modes.len() != op_type.num_params() {
+            return Err(AOCError::new("Incorrect number of modes"))?;
+        }
 
         log::trace!("Executing {:?} with {:?} and {:?}", op_type, params, modes);
 
         match op_type {
-            OpType::Add | OpType::Multiply => {
-                if params.len() != 3 {
-                    return Err(AOCError::new("Incorrect number of parameters"))?;
-                } else if modes.len() != 3 {
-                    return Err(AOCError::new("Incorrect number of modes"))?;
+            OpType::Add | OpType::Multiply | OpType::LessThan | OpType::Equals => {
+                if modes[2] == ValueMode::Immediate {
+                    return Err(AOCError::new(&format!(
+                        "Unexpected {:?} in {:?} at 0",
+                        modes[2], op_type
+                    )))?;
                 }
                 let a = self.get_value(params[0], modes[0]);
                 let b = self.get_value(params[1], modes[1]);
@@ -92,18 +100,60 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
                         log::trace!("Storing {} * {} at {}", a, b, address);
                         self.memory[address] = a * b;
                     }
+                    OpType::LessThan => {
+                        log::trace!("Storing {} < {} at {}", a, b, address);
+                        self.memory[address] = if a < b { 1 } else { 0 }
+                    }
+                    OpType::Equals => {
+                        log::trace!("Storing {} == {} at {}", a, b, address);
+                        self.memory[address] = if a == b { 1 } else { 0 }
+                    }
                     _ => return Err(AOCError::new(&format!("Unexpected Op {:?}", op_type)))?,
                 }
             }
+            OpType::Store => {
+                if modes[0] == ValueMode::Immediate {
+                    return Err(AOCError::new(&format!(
+                        "Unexpected {:?} in {:?} at 0",
+                        modes[0], op_type
+                    )))?;
+                }
+                let address = self.get_address(params[0], modes[0]);
+                let value = self
+                    .inputs
+                    .next()
+                    .ok_or(AOCError::new("Failed to get input"))?;
+                log::trace!("Storing {} at {}", value, address);
+                self.memory[address] = value;
+            }
+            OpType::Output => {
+                let value = self.get_value(params[0], modes[0]);
+                log::trace!("Outputting {:?}", value);
+                self.output = Some(value);
+            }
+            OpType::JumpIfTrue | OpType::JumpIfFalse => {
+                let value = self.get_value(params[0], modes[0]);
+                // TODO: Day 9, Deal with over/underflow
+                let address = self.get_value(params[1], modes[1]) as Address;
+                log::trace!("value: {:?} address: {:?}", value, address);
+                let should_jump = (op_type == OpType::JumpIfTrue && value != 0)
+                    || (op_type == OpType::JumpIfFalse && value == 0);
+                if should_jump {
+                    log::trace!("Jumping to {:?}", address);
+                    self.ip = address;
+                    ip_offset = 0;
+                }
+            }
+            OpType::AdjustRelOffset => {
+                let value = self.get_value(params[0], modes[0]);
+                log::trace!("Adjusting relative base by {:?}", value);
+                // TODO: Day 9, Deal with over/underflow
+                self.relative_base = (self.relative_base as RegisterValue + value) as Address
+            }
             OpType::Halt => log::trace!("Halting"),
-            // TODO: Implement other operations!
-            _ => unimplemented!(),
         }
 
-        match op_type {
-            OpType::JumpIfTrue | OpType::JumpIfFalse => {}
-            _ => self.ip += 1 + op_type.num_params(),
-        }
+        self.ip += ip_offset;
 
         Ok((op_type, params))
     }
@@ -112,8 +162,8 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
         self.memory[0]
     }
 
-    pub fn last_output(&self) -> Option<RegisterValue> {
-        self.output
+    pub fn outputs<'a>(&'a mut self) -> impl Iterator<Item = RegisterValue> + 'a {
+        OutputIterator { vm: self }
     }
 
     pub fn set_memory(&mut self, index: Address, value: RegisterValue) {
@@ -126,7 +176,7 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
     }
 
     fn get_op_type(&self) -> Result<OpType> {
-        Ok(OpType::try_from(u8::try_from(self.memory[self.ip])?)?)
+        Ok(OpType::try_from(u8::try_from(self.memory[self.ip] % 100)?)?)
     }
 
     fn get_params(&self, n: usize) -> Vec<RegisterValue> {
@@ -143,7 +193,7 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
     }
 
     fn get_value(&self, value: RegisterValue, mode: ValueMode) -> RegisterValue {
-        // TODO: Make `as Address` casts safe
+        // TODO: Day 9, Deal with over/underflow
         match mode {
             ValueMode::Position => self.memory[value as Address],
             ValueMode::Immediate => value,
@@ -152,10 +202,29 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
     }
 
     fn get_address(&self, base_address: RegisterValue, mode: ValueMode) -> Address {
-        // TODO: Make `as Address` cast safe
+        // TODO: Day 9, Deal with over/underflow
         match mode {
             ValueMode::Position => base_address as Address,
             _ => base_address as Address + self.relative_base,
+        }
+    }
+}
+
+struct OutputIterator<'a, I: Iterator<Item = RegisterValue>> {
+    vm: &'a mut VM<I>,
+}
+
+impl<'a, I: Iterator<Item = RegisterValue>> Iterator for OutputIterator<'a, I> {
+    type Item = RegisterValue;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (op_type, _) = self.vm.step().unwrap();
+            match op_type {
+                OpType::Output => return self.vm.output,
+                OpType::Halt => return None,
+                _ => {}
+            }
         }
     }
 }
