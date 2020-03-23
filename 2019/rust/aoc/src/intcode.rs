@@ -175,6 +175,10 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
         &self.memory[..]
     }
 
+    pub fn last_output(&self) -> Option<RegisterValue> {
+        self.output
+    }
+
     fn get_op_type(&self) -> Result<OpType> {
         Ok(OpType::try_from(u8::try_from(self.memory[self.ip] % 100)?)?)
     }
