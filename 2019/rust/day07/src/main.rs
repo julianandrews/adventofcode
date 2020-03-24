@@ -65,11 +65,7 @@ fn main() -> Result<()> {
 
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
-    let program: Vec<RegisterValue> = input
-        .trim()
-        .split(',')
-        .map(|s| s.parse::<RegisterValue>())
-        .collect::<std::result::Result<Vec<_>, _>>()?;
+    let program = aoc::intcode::parse_program(&input)?;
 
     println!("Part 1: {}", part1(&program)?);
     println!("Part 2: {}", part2(&program)?);
