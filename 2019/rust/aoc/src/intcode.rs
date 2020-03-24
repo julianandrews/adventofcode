@@ -7,6 +7,14 @@ pub type RegisterValue = i64;
 type Address = usize;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
+pub fn parse_program(input: &str) -> Result<Vec<RegisterValue>> {
+    Ok((&input)
+        .trim()
+        .split(',')
+        .map(|s| s.parse::<RegisterValue>())
+        .collect::<std::result::Result<Vec<_>, _>>()?)
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
 enum ValueMode {
