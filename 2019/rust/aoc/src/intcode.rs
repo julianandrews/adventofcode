@@ -78,89 +78,21 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
         let op_type = self.get_op_type()?;
         let params = self.get_params(op_type.num_params());
         let modes = self.get_modes(op_type.num_params())?;
-        let mut ip_offset = 1 + op_type.num_params();
-
-        if params.len() != op_type.num_params() {
-            return Err(AOCError::new("Incorrect number of parameters"))?;
-        } else if modes.len() != op_type.num_params() {
-            return Err(AOCError::new("Incorrect number of modes"))?;
-        }
 
         log::trace!("Executing {:?} with {:?} and {:?}", op_type, params, modes);
 
         match op_type {
-            OpType::Add | OpType::Multiply | OpType::LessThan | OpType::Equals => {
-                if modes[2] == ValueMode::Immediate {
-                    return Err(AOCError::new(&format!(
-                        "Unexpected {:?} in {:?} at 0",
-                        modes[2], op_type
-                    )))?;
-                }
-                let a = self.get_value(params[0], modes[0])?;
-                let b = self.get_value(params[1], modes[1])?;
-                let address = self.get_address(params[2], modes[2])?;
-                match op_type {
-                    OpType::Add => {
-                        log::trace!("Storing {} + {} at {}", a, b, address);
-                        self.memory[address] = a + b;
-                    }
-                    OpType::Multiply => {
-                        log::trace!("Storing {} * {} at {}", a, b, address);
-                        self.memory[address] = a * b;
-                    }
-                    OpType::LessThan => {
-                        log::trace!("Storing {} < {} at {}", a, b, address);
-                        self.memory[address] = if a < b { 1 } else { 0 }
-                    }
-                    OpType::Equals => {
-                        log::trace!("Storing {} == {} at {}", a, b, address);
-                        self.memory[address] = if a == b { 1 } else { 0 }
-                    }
-                    _ => return Err(AOCError::new(&format!("Unexpected Op {:?}", op_type)))?,
-                }
-            }
-            OpType::Store => {
-                if modes[0] == ValueMode::Immediate {
-                    return Err(AOCError::new(&format!(
-                        "Unexpected {:?} in {:?} at 0",
-                        modes[0], op_type
-                    )))?;
-                }
-                let address = self.get_address(params[0], modes[0])?;
-                let value = self
-                    .inputs
-                    .next()
-                    .ok_or(AOCError::new("Failed to get input"))?;
-                log::trace!("Storing {} at {}", value, address);
-                self.memory[address] = value;
-            }
-            OpType::Output => {
-                let value = self.get_value(params[0], modes[0])?;
-                log::trace!("Outputting {:?}", value);
-                self.output = Some(value);
-            }
-            OpType::JumpIfTrue | OpType::JumpIfFalse => {
-                let value = self.get_value(params[0], modes[0])?;
-                let address = Address::try_from(self.get_value(params[1], modes[1])?)?;
-                log::trace!("value: {:?} address: {:?}", value, address);
-                let should_jump = (op_type == OpType::JumpIfTrue && value != 0)
-                    || (op_type == OpType::JumpIfFalse && value == 0);
-                if should_jump {
-                    log::trace!("Jumping to {:?}", address);
-                    self.ip = address;
-                    ip_offset = 0;
-                }
-            }
-            OpType::AdjustRelOffset => {
-                let value = self.get_value(params[0], modes[0])?;
-                log::trace!("Adjusting relative base by {:?}", value);
-                self.relative_base =
-                    Address::try_from(RegisterValue::try_from(self.relative_base)? + value)?;
-            }
-            OpType::Halt => log::trace!("Halting"),
+            OpType::Add => self.add(&params, &modes)?,
+            OpType::Multiply => self.multiply(&params, &modes)?,
+            OpType::LessThan => self.less_than(&params, &modes)?,
+            OpType::Equals => self.equals(&params, &modes)?,
+            OpType::Store => self.store(&params, &modes)?,
+            OpType::Output => self.output(&params, &modes)?,
+            OpType::JumpIfTrue => self.jump_if_true(&params, &modes)?,
+            OpType::JumpIfFalse => self.jump_if_false(&params, &modes)?,
+            OpType::AdjustRelOffset => self.adjust_rel_offset(&params, &modes)?,
+            OpType::Halt => self.halt(&params, &modes)?,
         }
-
-        self.ip += ip_offset;
 
         Ok((op_type, params))
     }
@@ -201,6 +133,139 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
             .map(|x| Ok(ValueMode::try_from(u8::try_from(x % 10)?)?))
             .take(n)
             .collect()
+    }
+
+    fn binary_operands(
+        &self,
+        params: &[RegisterValue],
+        modes: &[ValueMode],
+    ) -> Result<(RegisterValue, RegisterValue, Address)> {
+        if modes[2] == ValueMode::Immediate {
+            return Err(AOCError::new(&format!(
+                "Unexpected mode {:?} at 0 for binary operation",
+                modes[2]
+            )))?;
+        }
+        Ok((
+            self.get_value(params[0], modes[0])?,
+            self.get_value(params[1], modes[1])?,
+            self.get_address(params[2], modes[2])?,
+        ))
+    }
+
+    fn jump_operands(
+        &self,
+        params: &[RegisterValue],
+        modes: &[ValueMode],
+    ) -> Result<(RegisterValue, Address)> {
+        Ok((
+            self.get_value(params[0], modes[0])?,
+            Address::try_from(self.get_value(params[1], modes[1])?)?,
+        ))
+    }
+
+    fn add(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        log::trace!("Storing {} + {} at {}", a, b, address);
+        self.memory[address] = a + b;
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn multiply(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        log::trace!("Storing {} * {} at {}", a, b, address);
+        self.memory[address] = a * b;
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn less_than(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        log::trace!("Storing {} < {} at {}", a, b, address);
+        self.memory[address] = if a < b { 1 } else { 0 };
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn equals(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        log::trace!("Storing {} == {} at {}", a, b, address);
+        self.memory[address] = if a == b { 1 } else { 0 };
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn store(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        if modes[0] == ValueMode::Immediate {
+            return Err(AOCError::new(&format!(
+                "Unexpected mode {:?} at 0",
+                modes[0]
+            )))?;
+        }
+        let address = self.get_address(params[0], modes[0])?;
+        let value = self
+            .inputs
+            .next()
+            .ok_or(AOCError::new("Failed to get input"))?;
+        log::trace!("Storing {} at {}", value, address);
+        self.memory[address] = value;
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn output(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let value = self.get_value(params[0], modes[0])?;
+        log::trace!("Outputting {:?}", value);
+        self.output = Some(value);
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn jump_if_true(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (value, address) = self.jump_operands(&params, &modes)?;
+        if value != 0 {
+            log::trace!("Jumping to {:?}", address);
+            self.ip = address;
+        } else {
+            self.ip += params.len() + 1;
+        }
+
+        Ok(())
+    }
+
+    fn jump_if_false(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let (value, address) = self.jump_operands(&params, &modes)?;
+        if value == 0 {
+            log::trace!("Jumping to {:?}", address);
+            self.ip = address;
+        } else {
+            self.ip += params.len() + 1;
+        }
+
+        Ok(())
+    }
+
+    fn adjust_rel_offset(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+        let value = self.get_value(params[0], modes[0])?;
+        log::trace!("Adjusting relative base by {:?}", value);
+        self.relative_base =
+            Address::try_from(RegisterValue::try_from(self.relative_base)? + value)?;
+        self.ip += params.len() + 1;
+
+        Ok(())
+    }
+
+    fn halt(&mut self, _params: &[RegisterValue], _modes: &[ValueMode]) -> Result<()> {
+        log::trace!("Halting");
+
+        Ok(())
     }
 
     fn get_value(&self, value: RegisterValue, mode: ValueMode) -> Result<RegisterValue> {
