@@ -88,9 +88,9 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
                         modes[2], op_type
                     )))?;
                 }
-                let a = self.get_value(params[0], modes[0]);
-                let b = self.get_value(params[1], modes[1]);
-                let address = self.get_address(params[2], modes[2]);
+                let a = self.get_value(params[0], modes[0])?;
+                let b = self.get_value(params[1], modes[1])?;
+                let address = self.get_address(params[2], modes[2])?;
                 match op_type {
                     OpType::Add => {
                         log::trace!("Storing {} + {} at {}", a, b, address);
@@ -118,7 +118,7 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
                         modes[0], op_type
                     )))?;
                 }
-                let address = self.get_address(params[0], modes[0]);
+                let address = self.get_address(params[0], modes[0])?;
                 let value = self
                     .inputs
                     .next()
@@ -127,14 +127,13 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
                 self.memory[address] = value;
             }
             OpType::Output => {
-                let value = self.get_value(params[0], modes[0]);
+                let value = self.get_value(params[0], modes[0])?;
                 log::trace!("Outputting {:?}", value);
                 self.output = Some(value);
             }
             OpType::JumpIfTrue | OpType::JumpIfFalse => {
-                let value = self.get_value(params[0], modes[0]);
-                // TODO: Day 9, Deal with over/underflow
-                let address = self.get_value(params[1], modes[1]) as Address;
+                let value = self.get_value(params[0], modes[0])?;
+                let address = Address::try_from(self.get_value(params[1], modes[1])?)?;
                 log::trace!("value: {:?} address: {:?}", value, address);
                 let should_jump = (op_type == OpType::JumpIfTrue && value != 0)
                     || (op_type == OpType::JumpIfFalse && value == 0);
@@ -145,10 +144,10 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
                 }
             }
             OpType::AdjustRelOffset => {
-                let value = self.get_value(params[0], modes[0]);
+                let value = self.get_value(params[0], modes[0])?;
                 log::trace!("Adjusting relative base by {:?}", value);
-                // TODO: Day 9, Deal with over/underflow
-                self.relative_base = (self.relative_base as RegisterValue + value) as Address
+                self.relative_base =
+                    Address::try_from(RegisterValue::try_from(self.relative_base)? + value)?;
             }
             OpType::Halt => log::trace!("Halting"),
         }
@@ -196,20 +195,21 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
             .collect()
     }
 
-    fn get_value(&self, value: RegisterValue, mode: ValueMode) -> RegisterValue {
-        // TODO: Day 9, Deal with over/underflow
+    fn get_value(&self, value: RegisterValue, mode: ValueMode) -> Result<RegisterValue> {
         match mode {
-            ValueMode::Position => self.memory[value as Address],
-            ValueMode::Immediate => value,
-            ValueMode::Relative => self.memory[self.relative_base + (value as Address)],
+            ValueMode::Position => Ok(self.memory[Address::try_from(value)?]),
+            ValueMode::Immediate => Ok(value),
+            ValueMode::Relative => Ok(self.memory
+                [Address::try_from(RegisterValue::try_from(self.relative_base)? + value)?]),
         }
     }
 
-    fn get_address(&self, base_address: RegisterValue, mode: ValueMode) -> Address {
-        // TODO: Day 9, Deal with over/underflow
+    fn get_address(&self, base_address: RegisterValue, mode: ValueMode) -> Result<Address> {
         match mode {
-            ValueMode::Position => base_address as Address,
-            _ => base_address as Address + self.relative_base,
+            ValueMode::Position => Ok(Address::try_from(base_address)?),
+            _ => Ok(Address::try_from(
+                RegisterValue::try_from(self.relative_base)? + base_address,
+            )?),
         }
     }
 }
