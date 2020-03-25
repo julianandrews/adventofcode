@@ -1,3 +1,4 @@
+use aoc::utils::parse_fields;
 use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -23,10 +24,7 @@ fn part2(masses: &Vec<i64>) -> i64 {
 fn main() -> Result<()> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
-    let masses = input
-        .lines()
-        .map(|s| s.parse::<i64>())
-        .collect::<std::result::Result<Vec<i64>, _>>()?;
+    let masses = parse_fields(input.trim(), '\n')?;
 
     println!("Part 1: {}", part1(&masses));
     println!("Part 2: {}", part2(&masses));
