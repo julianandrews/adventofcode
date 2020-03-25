@@ -3,6 +3,7 @@ extern crate aoc;
 use aoc::aoc_error::AOCError;
 use aoc::direction::Direction;
 use aoc::point::Point2D;
+use aoc::utils::parse_fields;
 use std::collections::{HashMap, HashSet};
 use std::io::{self, Read};
 use std::str::FromStr;
@@ -87,10 +88,7 @@ fn part2(wire_1: &Wire, wire_2: &Wire) -> Result<u64> {
 fn main() -> Result<()> {
     let mut input = String::new();
     io::stdin().read_to_string(&mut input)?;
-    let mut wires = input
-        .lines()
-        .map(|line| line.parse::<Wire>())
-        .collect::<Result<Vec<Wire>>>()?;
+    let mut wires = parse_fields(input.trim(), '\n')?;
     if wires.len() != 2 {
         Err(AOCError::new("Invalid input"))?;
     }
