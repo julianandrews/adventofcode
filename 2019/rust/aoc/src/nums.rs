@@ -1,5 +1,14 @@
+use std::cmp::PartialEq;
 use std::error;
 use std::fmt;
+use std::ops::{Add, Div, Rem};
+
+pub fn ceiling_div<T>(x: T, y: T) -> T
+where
+    T: Copy + Add<Output = T> + Div<Output = T> + Rem<Output = T> + PartialEq + From<u8>,
+{
+    x / y + T::from(if x % y != T::from(0) { 1 } else { 0 })
+}
 
 pub fn digits(s: &str) -> std::result::Result<Vec<u32>, ToDigitsError> {
     s.chars()
