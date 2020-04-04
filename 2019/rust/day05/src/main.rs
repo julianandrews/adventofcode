@@ -8,7 +8,7 @@ use std::io::{self, Read};
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
 fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), std::iter::once(1));
+    let mut vm = VM::new(program.clone(), Some(Box::new(std::iter::once(1))));
     for output in vm.outputs() {
         if output != 0 {
             return Ok(output);
@@ -18,7 +18,7 @@ fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
 }
 
 fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), std::iter::once(5));
+    let mut vm = VM::new(program.clone(), Some(Box::new(std::iter::once(5))));
     for output in vm.outputs() {
         if output != 0 {
             return Ok(output);
@@ -47,14 +47,14 @@ mod tests {
         program: &Vec<RegisterValue>,
         input: RegisterValue,
     ) -> Option<RegisterValue> {
-        VM::new(program.clone(), std::iter::once(input))
+        VM::new(program.clone(), Some(Box::new(std::iter::once(input))))
             .outputs()
             .next()
     }
 
     #[test]
     fn test_simple_program() {
-        let mut vm = VM::new(vec![1002, 4, 3, 4, 33], std::iter::empty());
+        let mut vm: VM = VM::new(vec![1002, 4, 3, 4, 33], None);
         assert!(vm.step().is_ok());
         assert_eq!(vm.memory(), vec![1002, 4, 3, 4, 99].as_slice());
     }

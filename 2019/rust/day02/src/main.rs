@@ -11,8 +11,8 @@ fn run(
     program: Vec<RegisterValue>,
     noun: Option<RegisterValue>,
     verb: Option<RegisterValue>,
-) -> Result<VM<std::iter::Empty<RegisterValue>>> {
-    let mut vm = VM::new(program, std::iter::empty());
+) -> Result<VM> {
+    let mut vm = VM::new(program, None);
     if let Some(noun) = noun {
         vm.set_memory(1, noun)
     };

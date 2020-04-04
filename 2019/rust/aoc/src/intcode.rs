@@ -3,6 +3,7 @@ use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 
 pub type RegisterValue = i64;
+pub type InputIterator = Box<dyn Iterator<Item = RegisterValue>>;
 
 type Address = usize;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -55,16 +56,16 @@ impl OpType {
     }
 }
 
-pub struct VM<I: Iterator<Item = RegisterValue>> {
+pub struct VM {
     memory: VMMemory,
-    inputs: I,
+    inputs: Option<InputIterator>,
     ip: Address,
     relative_base: Address,
     output: Option<RegisterValue>,
 }
 
-impl<I: Iterator<Item = RegisterValue>> VM<I> {
-    pub fn new(program: Vec<RegisterValue>, inputs: I) -> VM<I> {
+impl VM {
+    pub fn new(program: Vec<RegisterValue>, inputs: Option<InputIterator>) -> VM {
         VM {
             memory: VMMemory { memory: program },
             inputs: inputs,
@@ -103,6 +104,10 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
 
     pub fn outputs<'a>(&'a mut self) -> impl Iterator<Item = RegisterValue> + 'a {
         OutputIterator { vm: self }
+    }
+
+    pub fn set_inputs(&mut self, inputs: Option<InputIterator>) {
+        self.inputs = inputs;
     }
 
     pub fn set_memory(&mut self, index: Address, value: RegisterValue) {
@@ -210,6 +215,8 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
         let address = self.get_address(params[0], modes[0])?;
         let value = self
             .inputs
+            .as_mut()
+            .ok_or(AOCError::new("Inputs not provided"))?
             .next()
             .ok_or(AOCError::new("Failed to get input"))?;
         log::trace!("Storing {} at {}", value, address);
@@ -287,11 +294,11 @@ impl<I: Iterator<Item = RegisterValue>> VM<I> {
     }
 }
 
-struct OutputIterator<'a, I: Iterator<Item = RegisterValue>> {
-    vm: &'a mut VM<I>,
+struct OutputIterator<'a> {
+    vm: &'a mut VM,
 }
 
-impl<'a, I: Iterator<Item = RegisterValue>> Iterator for OutputIterator<'a, I> {
+impl<'a> Iterator for OutputIterator<'a> {
     type Item = RegisterValue;
 
     fn next(&mut self) -> Option<Self::Item> {
