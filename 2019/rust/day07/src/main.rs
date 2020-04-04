@@ -7,6 +7,7 @@ use itertools::Itertools;
 use std::cell::RefCell;
 use std::io::{self, Read};
 use std::iter;
+use std::rc::Rc;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -15,7 +16,10 @@ fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
     for perm in (0..5).permutations(5) {
         let mut signal = 0;
         for phase in perm {
-            let mut vm = VM::new(program.clone(), iter::once(phase).chain(iter::once(signal)));
+            let mut vm = VM::new(
+                program.clone(),
+                Some(Box::new(iter::once(phase).chain(iter::once(signal)))),
+            );
             signal = vm
                 .outputs()
                 .next()
@@ -30,14 +34,13 @@ fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
 fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
     let mut best = 0;
     for perm in (5..10).permutations(5) {
-        let signal = RefCell::new(Some(0));
-        let mut vms: Vec<VM<_>> = perm
+        let signal = Rc::new(RefCell::new(Some(0)));
+        let mut vms: Vec<_> = perm
             .iter()
             .map(|&phase| {
-                VM::new(
-                    program.clone(),
-                    iter::once(phase).chain(iter::from_fn(|| *signal.borrow())),
-                )
+                let signal = signal.clone();
+                let inputs = iter::once(phase).chain(iter::from_fn(move || *signal.borrow()));
+                VM::new(program.clone(), Some(Box::new(inputs)))
             })
             .collect();
 
