@@ -99,12 +99,14 @@ impl FromStr for ReactionGraph {
     }
 }
 
-impl<'a> Graph<'a, String> for ReactionGraph {
-    fn nodes(&'a self) -> Box<dyn Iterator<Item = String> + 'a> {
+impl<'a> Graph<'a> for ReactionGraph {
+    type Item = String;
+
+    fn nodes(&'a self) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
         Box::new(self.reactions.keys().map(|s| s.to_string()))
     }
 
-    fn neighbors(&'a self, value: &String) -> Box<dyn Iterator<Item = String> + 'a> {
+    fn neighbors(&'a self, value: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
         let neighbors = self
             .reactions
             .get(value)

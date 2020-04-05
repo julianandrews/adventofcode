@@ -1,5 +1,7 @@
-pub trait Graph<'a, T> {
-    fn nodes(&'a self) -> Box<dyn Iterator<Item = T> + 'a>;
+pub trait Graph<'a> {
+    type Item;
 
-    fn neighbors(&'a self, value: &T) -> Box<dyn Iterator<Item = T> + 'a>;
+    fn nodes(&'a self) -> Box<dyn Iterator<Item = Self::Item> + 'a>;
+
+    fn neighbors(&'a self, value: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a>;
 }

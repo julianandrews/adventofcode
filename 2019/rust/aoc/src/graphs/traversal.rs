@@ -39,17 +39,17 @@ impl<T: Clone> Iterator for TraversalPathIterator<T> {
     }
 }
 
-pub struct BFSTraversal<'a, T, G: Graph<'a, T>> {
+pub struct BFSTraversal<'a, G: Graph<'a>> {
     index: u64,
     graph: &'a G,
-    queue: VecDeque<TraversalNode<T>>,
-    seen: HashSet<T>,
+    queue: VecDeque<TraversalNode<G::Item>>,
+    seen: HashSet<G::Item>,
 }
 
-pub fn bfs<'a, T: Eq + Hash + Clone, G: Graph<'a, T>>(
-    graph: &'a G,
-    start: T,
-) -> BFSTraversal<'a, T, G> {
+pub fn bfs<'a, G: Graph<'a>>(graph: &'a G, start: G::Item) -> BFSTraversal<'a, G>
+where
+    G::Item: Eq + Hash + Clone,
+{
     let mut seen = HashSet::new();
     seen.insert(start.clone());
     let mut queue = VecDeque::new();
@@ -68,8 +68,11 @@ pub fn bfs<'a, T: Eq + Hash + Clone, G: Graph<'a, T>>(
     }
 }
 
-impl<'a, T: Eq + Hash + Clone, G: Graph<'a, T>> Iterator for BFSTraversal<'a, T, G> {
-    type Item = Rc<TraversalNode<T>>;
+impl<'a, G: Graph<'a>> Iterator for BFSTraversal<'a, G>
+where
+    G::Item: Eq + Hash + Clone,
+{
+    type Item = Rc<TraversalNode<G::Item>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = match self.queue.pop_front() {
