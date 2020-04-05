@@ -2,7 +2,10 @@ use super::graph::Graph;
 use std::collections::{BinaryHeap, HashMap};
 use std::hash::Hash;
 
-pub fn toposort<'a, T: Eq + Hash + Ord + Clone, G: Graph<'a, T>>(graph: &'a G) -> Option<Vec<T>> {
+pub fn toposort<'a, G: Graph<'a>>(graph: &'a G) -> Option<Vec<G::Item>>
+where
+    G::Item: Eq + Hash + Ord + Clone,
+{
     let mut num_nodes = 0;
     let mut indegrees = HashMap::new();
     let mut queue = BinaryHeap::new();
