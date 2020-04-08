@@ -3,7 +3,7 @@ use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 
 pub type RegisterValue = i64;
-pub type InputIterator = Box<dyn Iterator<Item = RegisterValue>>;
+type InputIterator = Box<dyn Iterator<Item = RegisterValue>>;
 
 type Address = usize;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -343,5 +343,37 @@ impl std::ops::IndexMut<Address> for VMMemory {
             self.memory.resize(index + 1, 0);
         }
         &mut self.memory[index]
+    }
+}
+
+pub struct FakeVM {
+    outputs: std::vec::IntoIter<RegisterValue>,
+}
+
+impl FakeVM {
+    pub fn new(_program: Vec<RegisterValue>, _inputs: Option<InputIterator>) -> FakeVM {
+        FakeVM {
+            outputs: vec![].into_iter(),
+        }
+    }
+
+    // pub fn step(&mut self) -> Result<(OpType, Vec<RegisterValue>)> { }
+
+    // pub fn diagnostic_code(&self) -> RegisterValue { }
+
+    pub fn outputs<'a>(&'a mut self) -> impl Iterator<Item = RegisterValue> + 'a {
+        self.outputs.by_ref()
+    }
+
+    pub fn set_inputs(&mut self, _inputs: Option<InputIterator>) {}
+
+    // pub fn set_memory(&mut self, index: Address, value: RegisterValue) { }
+
+    // pub fn memory(&self) -> &[RegisterValue] { }
+
+    // pub fn last_output(&self) -> Option<RegisterValue>
+
+    pub fn set_outputs(&mut self, outputs: Vec<RegisterValue>) {
+        self.outputs = outputs.into_iter();
     }
 }
