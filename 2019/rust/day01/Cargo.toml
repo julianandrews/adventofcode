@@ -1,8 +1,0 @@
-[package]
-name = "aoc01"
-version = "0.1.0"
-authors = ["Julian Andrews <jandrews271@gmail.com>"]
-edition = "2018"
-
-[dependencies]
-aoc = { path = "../aoc" }
