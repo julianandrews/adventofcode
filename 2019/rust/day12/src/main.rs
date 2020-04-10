@@ -2,7 +2,7 @@ extern crate aoc;
 extern crate num_integer;
 
 use aoc::aoc_error::AOCError;
-use aoc::iterators::{cycle_detect, Cycle};
+use aoc::iterators::cycle_detect;
 use aoc::point::Point3D;
 use std::io::{self, Read};
 use std::iter;
@@ -26,15 +26,15 @@ impl Moon {
     }
 
     fn update_velocity(&mut self, other: &Moon) {
-        self.velocity.x += -(self.position.x.cmp(&other.position.x) as i64);
-        self.velocity.y += -(self.position.y.cmp(&other.position.y) as i64);
-        self.velocity.z += -(self.position.z.cmp(&other.position.z) as i64);
+        for i in 0..3 {
+            self.velocity[i] += -(self.position[i].cmp(&other.position[i]) as i64);
+        }
     }
 
     fn update_position(&mut self) {
-        self.position.x += self.velocity.x;
-        self.position.y += self.velocity.y;
-        self.position.z += self.velocity.z;
+        for i in 0..3 {
+            self.position[i] += self.velocity[i];
+        }
     }
 
     fn energy(&self) -> i64 {
@@ -80,6 +80,7 @@ impl FromStr for PlanetarySystem {
 
 impl PlanetarySystem {
     fn step(&mut self) {
+        // iterate over every pair of moons and update velocity.
         for i in 0..self.moons.len() {
             let (a, b) = self.moons.split_at_mut(i);
             let moon_b = &mut b[0];
@@ -98,35 +99,34 @@ impl PlanetarySystem {
     }
 
     fn states(&self) -> impl Iterator<Item = PlanetarySystem> {
-        iter::successors(Some(self.clone()), |s| {
-            let mut s = s.clone();
-            s.step();
-            Some(s)
+        iter::successors(Some(self.clone()), |system| {
+            let mut system = system.clone();
+            system.step();
+            Some(system)
         })
     }
 }
 
 fn cycle_length(system: &PlanetarySystem) -> Result<usize> {
     let cycles = (0..3)
-        .map(|i| {
-            cycle_detect(system.states().map(|s| {
-                s.moons
+        .filter_map(|i| {
+            cycle_detect(system.states().map(|system| {
+                system
+                    .moons
                     .iter()
-                    .map(|m| (m.position.coordinates()[i], m.velocity.coordinates()[i]))
+                    .map(|m| (m.position[i], m.velocity[i]))
                     .collect::<Vec<_>>()
             }))
         })
-        .filter_map(|x| x)
-        .collect::<Vec<Cycle>>();
+        .collect::<Vec<_>>();
     if cycles.len() != 3 {
-        return Err(AOCError::new("Expected to find more cycles"))?;
+        return Err(AOCError::new("Expected to find 3 cycles"))?;
     }
 
     let cycle_start = cycles.iter().map(|c| c.start).max().unwrap();
     let cycle_length = cycles
         .iter()
-        .map(|c| c.length)
-        .fold(1, |acc, x| num_integer::lcm(acc, x));
+        .fold(1, |lcm, cycle| num_integer::lcm(lcm, cycle.length));
 
     Ok(cycle_start + cycle_length)
 }
