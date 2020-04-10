@@ -367,7 +367,7 @@ impl FakeVM {
 
     pub fn set_inputs(&mut self, _inputs: Option<InputIterator>) {}
 
-    // pub fn set_memory(&mut self, index: Address, value: RegisterValue) { }
+    pub fn set_memory(&mut self, _index: Address, _value: RegisterValue) {}
 
     // pub fn memory(&self) -> &[RegisterValue] { }
 
