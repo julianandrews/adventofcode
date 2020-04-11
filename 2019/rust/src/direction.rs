@@ -1,6 +1,7 @@
+use self::Direction::*;
 use super::point::Point2D;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Direction {
     North,
     East,
@@ -11,37 +12,37 @@ pub enum Direction {
 impl Direction {
     pub fn reverse(&self) -> Direction {
         match self {
-            Direction::North => Direction::South,
-            Direction::East => Direction::West,
-            Direction::South => Direction::North,
-            Direction::West => Direction::East,
+            North => South,
+            East => West,
+            South => North,
+            West => East,
         }
     }
 
     pub fn right_turn(&self) -> Direction {
         match self {
-            Direction::North => Direction::East,
-            Direction::East => Direction::South,
-            Direction::South => Direction::West,
-            Direction::West => Direction::North,
+            North => East,
+            East => South,
+            South => West,
+            West => North,
         }
     }
 
     pub fn left_turn(&self) -> Direction {
         match self {
-            Direction::North => Direction::West,
-            Direction::East => Direction::North,
-            Direction::South => Direction::East,
-            Direction::West => Direction::South,
+            North => West,
+            East => North,
+            South => East,
+            West => South,
         }
     }
 
     pub fn offset(&self) -> Point2D<i8> {
         match self {
-            Direction::North => Point2D { x: 0, y: 1 },
-            Direction::East => Point2D { x: 1, y: 0 },
-            Direction::South => Point2D { x: 0, y: -1 },
-            Direction::West => Point2D { x: -1, y: 0 },
+            North => Point2D { x: 0, y: 1 },
+            East => Point2D { x: 1, y: 0 },
+            South => Point2D { x: 0, y: -1 },
+            West => Point2D { x: -1, y: 0 },
         }
     }
 
@@ -54,5 +55,8 @@ impl Direction {
             x: point.x + offset.x.into(),
             y: point.y + offset.y.into(),
         }
+    }
+    pub fn iterator() -> impl Iterator<Item = Direction> {
+        [North, South, East, West].iter().copied()
     }
 }
