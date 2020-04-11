@@ -6,6 +6,7 @@ use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::f64::consts::PI;
+use std::fmt;
 use std::io::{self, Read};
 use std::str::FromStr;
 
@@ -29,6 +30,15 @@ impl TryFrom<char> for MapTile {
     }
 }
 
+impl fmt::Display for MapTile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MapTile::Full => write!(f, "#"),
+            MapTile::Empty => write!(f, "."),
+        }
+    }
+}
+
 struct AsteroidField {
     grid: Vec<Vec<MapTile>>,
 }
@@ -47,6 +57,17 @@ impl FromStr for AsteroidField {
         }
 
         Ok(AsteroidField { grid: grid })
+    }
+}
+
+impl fmt::Display for AsteroidField {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let lines = self
+            .grid
+            .iter()
+            .map(|row| row.iter().map(MapTile::to_string).collect::<String>())
+            .collect::<Vec<_>>();
+        write!(f, "{}", lines.join(&"\n"))
     }
 }
 
@@ -181,6 +202,7 @@ fn main() -> Result<()> {
     io::stdin().read_to_string(&mut input)?;
     let mut asteroid_field = input.trim().parse()?;
 
+    println!("{}", asteroid_field);
     println!("Part 1: {}", part1(&asteroid_field)?);
     println!("Part 2: {}", part2(&mut asteroid_field)?);
     Ok(())
