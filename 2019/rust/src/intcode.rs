@@ -3,7 +3,6 @@ use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 
 pub type RegisterValue = i64;
-type InputIterator = Box<dyn Iterator<Item = RegisterValue>>;
 
 type Address = usize;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -56,16 +55,23 @@ impl OpType {
     }
 }
 
-pub struct VM {
+pub struct VM<'a> {
     memory: VMMemory,
-    inputs: Option<InputIterator>,
+    inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
     ip: Address,
     relative_base: Address,
     output: Option<RegisterValue>,
 }
 
-impl VM {
-    pub fn new(program: Vec<RegisterValue>, inputs: Option<InputIterator>) -> VM {
+// https://github.com/rust-lang/rust/issues/34511#issuecomment-373423999
+pub trait Captures<'a> {}
+impl<'a, T: ?Sized> Captures<'a> for T {}
+
+impl<'a> VM<'a> {
+    pub fn new(
+        program: Vec<RegisterValue>,
+        inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
+    ) -> VM {
         VM {
             memory: VMMemory { memory: program },
             inputs: inputs,
@@ -102,11 +108,11 @@ impl VM {
         self.memory[0]
     }
 
-    pub fn outputs<'a>(&'a mut self) -> impl Iterator<Item = RegisterValue> + 'a {
+    pub fn outputs<'b>(&'b mut self) -> impl Iterator<Item = RegisterValue> + Captures<'a> + 'b {
         OutputIterator { vm: self }
     }
 
-    pub fn set_inputs(&mut self, inputs: Option<InputIterator>) {
+    pub fn set_inputs(&mut self, inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>) {
         self.inputs = inputs;
     }
 
@@ -294,11 +300,11 @@ impl VM {
     }
 }
 
-struct OutputIterator<'a> {
-    vm: &'a mut VM,
+struct OutputIterator<'r, 'v> {
+    vm: &'r mut VM<'v>,
 }
 
-impl<'a> Iterator for OutputIterator<'a> {
+impl<'r, 'v> Iterator for OutputIterator<'r, 'v> {
     type Item = RegisterValue;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -346,14 +352,19 @@ impl std::ops::IndexMut<Address> for VMMemory {
     }
 }
 
-pub struct FakeVM {
+pub struct FakeVM<'a> {
     outputs: std::vec::IntoIter<RegisterValue>,
+    inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
 }
 
-impl FakeVM {
-    pub fn new(_program: Vec<RegisterValue>, _inputs: Option<InputIterator>) -> FakeVM {
+impl<'a> FakeVM<'a> {
+    pub fn new(
+        _program: Vec<RegisterValue>,
+        _inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
+    ) -> FakeVM {
         FakeVM {
             outputs: vec![].into_iter(),
+            inputs: None,
         }
     }
 
@@ -361,11 +372,13 @@ impl FakeVM {
 
     // pub fn diagnostic_code(&self) -> RegisterValue { }
 
-    pub fn outputs<'a>(&'a mut self) -> impl Iterator<Item = RegisterValue> + 'a {
+    pub fn outputs<'b>(&'b mut self) -> impl Iterator<Item = RegisterValue> + Captures<'a> + 'b {
         self.outputs.by_ref()
     }
 
-    pub fn set_inputs(&mut self, _inputs: Option<InputIterator>) {}
+    pub fn set_inputs(&mut self, inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>) {
+        self.inputs = inputs;
+    }
 
     pub fn set_memory(&mut self, _index: Address, _value: RegisterValue) {}
 

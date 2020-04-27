@@ -6,7 +6,6 @@ use itertools::Itertools;
 use std::cell::RefCell;
 use std::io::{self, Read};
 use std::iter;
-use std::rc::Rc;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -33,12 +32,11 @@ fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
 fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
     let mut best = 0;
     for perm in (5..10).permutations(5) {
-        let signal = Rc::new(RefCell::new(Some(0)));
+        let signal = RefCell::new(Some(0));
         let mut vms: Vec<_> = perm
             .iter()
             .map(|&phase| {
-                let signal = signal.clone();
-                let inputs = iter::once(phase).chain(iter::from_fn(move || *signal.borrow()));
+                let inputs = iter::once(phase).chain(iter::from_fn(|| *signal.borrow()));
                 VM::new(program.clone(), Some(Box::new(inputs)))
             })
             .collect();

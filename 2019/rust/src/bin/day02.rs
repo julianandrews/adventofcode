@@ -6,11 +6,11 @@ use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
-fn run(
+fn run<'a>(
     program: Vec<RegisterValue>,
     noun: Option<RegisterValue>,
     verb: Option<RegisterValue>,
-) -> Result<VM> {
+) -> Result<VM<'a>> {
     let mut vm = VM::new(program, None);
     if let Some(noun) = noun {
         vm.set_memory(1, noun)
