@@ -20,14 +20,14 @@ struct RobotInstruction {
     paint_white: bool,
 }
 
-struct Robot {
-    vm: VM,
+struct Robot<'a> {
+    vm: VM<'a>,
     position: Rc<RefCell<Point>>,
     direction: Direction,
     painted_panels: Rc<RefCell<HashSet<Point>>>,
 }
 
-impl Robot {
+impl<'a> Robot<'a> {
     fn new(vm: VM) -> Robot {
         let position = Rc::new(RefCell::new(Point { x: 0, y: 0 }));
         let painted_panels = Rc::new(RefCell::new(HashSet::new()));
@@ -47,7 +47,7 @@ impl Robot {
         robot
     }
 
-    fn instructions<'a>(&'a mut self) -> RobotInstructionIterator<'a> {
+    fn instructions<'b>(&'b mut self) -> RobotInstructionIterator<'b, 'a> {
         RobotInstructionIterator { robot: self }
     }
 
@@ -103,11 +103,11 @@ impl Iterator for RobotInputIterator {
     }
 }
 
-struct RobotInstructionIterator<'a> {
-    robot: &'a mut Robot,
+struct RobotInstructionIterator<'a, 'b> {
+    robot: &'a mut Robot<'b>,
 }
 
-impl<'a> Iterator for RobotInstructionIterator<'a> {
+impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
     type Item = RobotInstruction;
 
     fn next(&mut self) -> Option<Self::Item> {

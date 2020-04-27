@@ -119,14 +119,14 @@ impl ShipMap {
     }
 }
 
-struct ShipExplorer {
-    vm: VM,
+struct ShipExplorer<'a> {
+    vm: VM<'a>,
     ship_map: ShipMap,
     route: Vec<Direction>,
     next_input: Rc<RefCell<RegisterValue>>,
 }
 
-impl ShipExplorer {
+impl<'a> ShipExplorer<'a> {
     fn new(mut vm: VM) -> ShipExplorer {
         let next_input = Rc::new(RefCell::new(0));
         let next_input_cloned = next_input.clone();

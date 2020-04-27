@@ -39,15 +39,15 @@ impl fmt::Display for Tile {
     }
 }
 
-struct ArcadeMachine {
-    vm: VM,
+struct ArcadeMachine<'a> {
+    vm: VM<'a>,
     grid: HashMap<Point, Tile>,
     score: RegisterValue,
     last_ball_location: Rc<RefCell<Option<RegisterValue>>>,
     last_paddle_location: Rc<RefCell<Option<RegisterValue>>>,
 }
 
-impl fmt::Display for ArcadeMachine {
+impl<'a> fmt::Display for ArcadeMachine<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.grid.len() == 0 {
             return write!(f, "");
@@ -73,7 +73,7 @@ impl fmt::Display for ArcadeMachine {
     }
 }
 
-impl ArcadeMachine {
+impl<'a> ArcadeMachine<'a> {
     fn new(vm: VM) -> ArcadeMachine {
         let last_ball_location = Rc::new(RefCell::new(None));
         let last_paddle_location = Rc::new(RefCell::new(None));
