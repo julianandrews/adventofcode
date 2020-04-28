@@ -1,7 +1,7 @@
 use self::Direction::*;
 use super::point::Point2D;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
     East,
