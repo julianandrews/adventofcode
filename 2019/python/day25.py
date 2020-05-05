@@ -262,7 +262,7 @@ class InteractiveRunner(MazeRunner):
 
 
 if __name__ == "__main__":
-    data = read_data(25)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
 
     runner = AutomaticRunner(program, print_output=False)

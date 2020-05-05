@@ -139,7 +139,7 @@ def p2(program):
 if __name__ == "__main__":
     print("No tests run")
 
-    data = read_data(17)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
     print("Part 1: {}".format(p1(program)))
     print("Part 2: {}".format(p2(program)))

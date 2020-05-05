@@ -107,7 +107,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(12)
+    data = read_data()
     system = PlanetarySystem([Moon(parse_position(line)) for line in get_lines(data)])
     print("Part 1: {}".format(p1(system)))
     print("Part 2: {}".format(p2(system)))

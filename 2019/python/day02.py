@@ -39,7 +39,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = utils.read_data(2)
+    data = utils.read_data()
     program = [int(x) for x in data.strip().split(',')]
     print("Part 1: %d" % p1(program))
     print("Part 2: %d" % p2(program))

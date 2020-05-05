@@ -158,7 +158,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(14)
+    data = read_data()
     reactions = parse_reactions(data)
     print("Part 1: {}".format(p1(reactions)))
     print("Part 2: {}".format(p2(reactions)))

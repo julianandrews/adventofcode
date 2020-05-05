@@ -4,6 +4,6 @@ for f in day*.py
 do
   d=${f:3:-3}
   echo "Day ${d}:"
-  python3 "$f"
+  python3 "$f" "../inputs/day${d}/input.txt"
   echo
 done

@@ -72,7 +72,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(16)
+    data = read_data()
     input_list = [int(c) for c in data.strip()]
     print("Part 1: {}".format(p1(input_list)))
     print("Part 2: {}".format(p2(input_list)))

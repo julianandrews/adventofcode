@@ -37,7 +37,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = utils.read_data(1)
+    data = utils.read_data()
     masses = [int(s.strip()) for s in utils.get_lines(data)]
     print("Part 1: %d" % p1(masses))
     print("Part 2: %d" % p2(masses))

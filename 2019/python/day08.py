@@ -58,7 +58,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(8)
+    data = read_data()
     image = Image([int(c) for c in data.strip()], 25, 6)
 
     print("Part 1: {}".format(p1(image)))

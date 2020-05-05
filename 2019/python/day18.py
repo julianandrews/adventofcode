@@ -210,6 +210,6 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(18)
+    data = read_data()
     print("Part 1: {}".format(p1(data)))
     print("Part 2: {}".format(p2(data)))

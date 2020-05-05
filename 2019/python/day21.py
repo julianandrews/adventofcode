@@ -55,7 +55,7 @@ def run_tests():
 if __name__ == "__main__":
     run_tests()
 
-    data = read_data(21)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
     print("Part 1: {}".format(p1(program)))
     print("Part 2: {}".format(p2(program)))
