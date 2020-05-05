@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"julianandrews/adventofcode/aoc/intcode"
 	"os"
 	"strconv"
 	"strings"
@@ -45,4 +46,12 @@ func GetInts() ([]int, error) {
 	}
 
 	return ints, nil
+}
+
+func GetIntcodeProgram() ([]int64, error) {
+	data, err := GetInput()
+	if err != nil {
+        return nil, err
+	}
+	return intcode.ParseProgram(strings.TrimSpace(data))
 }

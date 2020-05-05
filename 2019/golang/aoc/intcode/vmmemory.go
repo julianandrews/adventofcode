@@ -15,12 +15,12 @@ func (memory *VMMemory) resize(size Address) {
 }
 
 func (memory *VMMemory) Get(address Address) int64 {
-	memory.resize(address)
+	memory.resize(address + 1)
 	return memory.memory[address]
 }
 
 func (memory *VMMemory) Set(address Address, value int64) {
-	memory.resize(address)
+	memory.resize(address + 1)
 	memory.memory[address] = value
 }
 
