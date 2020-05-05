@@ -10,9 +10,8 @@ import (
 func TestTimes3Immediate(t *testing.T) {
 	program := []int64{1002, 4, 3, 4, 33}
 	vm := intcode.New(program)
-	_, _, err := vm.Step()
-	assert.Nil(t, err)
-	assert.Equal(t, []int64{1002, 4, 3, 4, 99}, vm.Memory.CopySlice(0, 5))
+    vm.Run()
+	assert.Equal(t, []int64{1002, 4, 3, 4, 99}, vm.Snapshot())
 }
 
 func TestEquals8(t *testing.T) {
