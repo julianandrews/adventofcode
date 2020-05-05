@@ -59,7 +59,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(6)
+    data = read_data()
     neighbors = parse_orbits(data)
 
     print("Part 1: {}".format(p1(neighbors)))

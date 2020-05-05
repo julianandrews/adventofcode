@@ -64,7 +64,7 @@ def run_tests(program):
     assert tractor_beam.is_active(9, 14) == 0
 
 if __name__ == "__main__":
-    data = read_data(19)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
     run_tests(program)
     print("All tests passed")

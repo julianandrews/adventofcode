@@ -166,7 +166,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(22)
+    data = read_data()
     moves = data.strip().split("\n")
 
     print("Part 1: {}".format(p1(moves)))

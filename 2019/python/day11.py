@@ -95,7 +95,7 @@ if __name__ == "__main__":
     run_tests()
     print("All tests passed")
 
-    data = read_data(11)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
     print("Part 1: {}".format(p1(program)))
     print("Part 2: {}".format("\n" + p2(program)))

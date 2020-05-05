@@ -127,7 +127,7 @@ def p2(ship_map):
 if __name__ == "__main__":
     print("No tests run")
 
-    data = read_data(15)
+    data = read_data()
     program = [int(x) for x in data.strip().split(',')]
     vm = VM(program[:])
     ship_explorer = ShipExplorer(vm)
