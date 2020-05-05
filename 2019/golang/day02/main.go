@@ -1,12 +1,11 @@
 package main
 
 import (
-    "errors"
+	"errors"
 	"fmt"
 	"julianandrews/adventofcode/aoc"
 	"julianandrews/adventofcode/aoc/intcode"
 	"os"
-	"strings"
 )
 
 func runWithInputs(program []int64, noun int64, verb int64) (intcode.VM, error) {
@@ -51,12 +50,7 @@ func part2(program []int64) (int, error) {
 }
 
 func main() {
-	data, err := aoc.GetInput()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
-	program, err := intcode.ParseProgram(strings.TrimSpace(data))
+	program, err := aoc.GetIntcodeProgram()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
