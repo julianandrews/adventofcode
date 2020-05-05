@@ -6,7 +6,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_compile_options("$<$<CONFIG:RELEASE>:-W;-Wall;-O3;-pedantic>")
 add_compile_options("$<$<CONFIG:DEBUG>:-W;-Wall;-O0;-g;-pedantic>")
 
-file(GLOB executable_sources RELATIVE ${CMAKE_SOURCE_DIR} "src/d*.cc")
+file(GLOB executable_sources RELATIVE ${CMAKE_SOURCE_DIR} "src/day*.cc")
 
 foreach(file_path ${executable_sources})
         get_filename_component(target_name ${file_path} NAME_WE)
