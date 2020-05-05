@@ -1,7 +1,6 @@
 use num_enum::TryFromPrimitive;
 use std::convert::TryFrom;
 use std::fmt;
-use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -92,8 +91,7 @@ fn part1(image: &Image) -> Result<usize> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let image = Image::from_data(input.trim(), 25, 6)?;
 
     println!("Part 1: {}", part1(&image)?);

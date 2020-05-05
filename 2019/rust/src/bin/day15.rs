@@ -10,7 +10,6 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
-use std::io::{self, Read};
 use std::rc::Rc;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -230,8 +229,7 @@ fn part2(ship_map: &ShipMap) -> Result<u64> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let program = aoc::intcode::parse_program(&input)?;
     let vm = VM::new(program.clone(), None);
     let mut explorer = ShipExplorer::new(vm);

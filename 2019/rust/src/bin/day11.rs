@@ -3,7 +3,6 @@ use aoc::intcode::RegisterValue;
 use aoc::point::Point2D;
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::io::{self, Read};
 use std::rc::Rc;
 
 #[cfg(test)]
@@ -166,8 +165,7 @@ fn part2(program: &Vec<RegisterValue>) -> String {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let program = aoc::intcode::parse_program(&input)?;
 
     println!("Part 1: {}", part1(&program));

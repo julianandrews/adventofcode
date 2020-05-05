@@ -1,7 +1,6 @@
 extern crate aoc;
 
 use aoc::aoc_error::AOCError;
-use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -220,8 +219,7 @@ fn part2(moves: &str) -> Result<u64> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
 
     println!("Part 1: {}", part1(&input)?);
     println!("Part 2: {}", part2(&input)?);

@@ -4,7 +4,6 @@ use aoc::aoc_error::AOCError;
 use aoc::intcode::{RegisterValue, VM};
 use itertools::Itertools;
 use std::cell::RefCell;
-use std::io::{self, Read};
 use std::iter;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -63,8 +62,7 @@ fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
 fn main() -> Result<()> {
     env_logger::init();
 
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let program = aoc::intcode::parse_program(&input)?;
 
     println!("Part 1: {}", part1(&program)?);
