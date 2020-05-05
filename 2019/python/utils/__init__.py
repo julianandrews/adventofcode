@@ -1,5 +1,5 @@
 def read_data(n):
-    with open('../inputs/d{:02d}/input.txt'.format(n)) as f:
+    with open('../inputs/day{:02d}/input.txt'.format(n)) as f:
         return f.read()
 
 

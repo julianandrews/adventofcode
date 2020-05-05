@@ -4,5 +4,5 @@ for b in src/bin/day*
 do
   bin=$(basename "$b" ".rs")
   echo "Running $bin"
-  cat ../inputs/d${bin:3:2}/input.txt | cargo run --bin "$bin" "$@" | sed 's/^/  /'
+  cat ../inputs/day${bin:3:2}/input.txt | cargo run --bin "$bin" "$@" | sed 's/^/  /'
 done
