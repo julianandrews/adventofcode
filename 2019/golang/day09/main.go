@@ -8,21 +8,21 @@ import (
 )
 
 func part1(program []int64) int64 {
-    vm := intcode.New(append([]int64(nil), program...))
-    go vm.Run()
-    vm.Inputs() <- 1
-    output := <- vm.Outputs()
+	vm := intcode.New(append([]int64(nil), program...))
+	go vm.Run()
+	vm.Inputs() <- 1
+	output := <-vm.Outputs()
 
-    return output
+	return output
 }
 
 func part2(program []int64) int64 {
-    vm := intcode.New(append([]int64(nil), program...))
-    go vm.Run()
-    vm.Inputs() <- 2
-    output := <- vm.Outputs()
+	vm := intcode.New(append([]int64(nil), program...))
+	go vm.Run()
+	vm.Inputs() <- 2
+	output := <-vm.Outputs()
 
-    return output
+	return output
 }
 
 func main() {

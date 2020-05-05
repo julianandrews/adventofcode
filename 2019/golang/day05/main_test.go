@@ -10,7 +10,7 @@ import (
 func TestTimes3Immediate(t *testing.T) {
 	program := []int64{1002, 4, 3, 4, 33}
 	vm := intcode.New(program)
-    vm.Run()
+	vm.Run()
 	assert.Equal(t, []int64{1002, 4, 3, 4, 99}, vm.Snapshot())
 }
 
@@ -23,7 +23,7 @@ func TestEquals8(t *testing.T) {
 	output := <-vm.Outputs()
 	assert.Equal(t, output, int64(1))
 
-    vm2 := intcode.New(append([]int64(nil), program...))
+	vm2 := intcode.New(append([]int64(nil), program...))
 	go vm2.Run()
 	vm2.Inputs() <- 7
 	output = <-vm2.Outputs()
@@ -39,7 +39,7 @@ func TestLessThan8(t *testing.T) {
 	output := <-vm.Outputs()
 	assert.Equal(t, output, int64(1))
 
-    vm2 := intcode.New(append([]int64(nil), program...))
+	vm2 := intcode.New(append([]int64(nil), program...))
 	go vm2.Run()
 	vm2.Inputs() <- 8
 	output = <-vm2.Outputs()
@@ -55,7 +55,7 @@ func TestEquals8Immediate(t *testing.T) {
 	output := <-vm.Outputs()
 	assert.Equal(t, output, int64(1))
 
-    vm2 := intcode.New(append([]int64(nil), program...))
+	vm2 := intcode.New(append([]int64(nil), program...))
 	go vm2.Run()
 	vm2.Inputs() <- 10
 	output = <-vm2.Outputs()
@@ -71,7 +71,7 @@ func TestLessThan8Immediate(t *testing.T) {
 	output := <-vm.Outputs()
 	assert.Equal(t, output, int64(1))
 
-    vm2 := intcode.New(append([]int64(nil), program...))
+	vm2 := intcode.New(append([]int64(nil), program...))
 	go vm2.Run()
 	vm2.Inputs() <- 10
 	output = <-vm2.Outputs()
@@ -86,18 +86,18 @@ func TestMoreComplexCase(t *testing.T) {
 	vm1 := intcode.New(append([]int64(nil), program...))
 	go vm1.Run()
 	vm1.Inputs() <- 7
-    output := <-vm1.Outputs()
+	output := <-vm1.Outputs()
 	assert.Equal(t, output, int64(999))
 
-    vm2 := intcode.New(append([]int64(nil), program...))
+	vm2 := intcode.New(append([]int64(nil), program...))
 	go vm2.Run()
 	vm2.Inputs() <- 8
-    output = <-vm2.Outputs()
+	output = <-vm2.Outputs()
 	assert.Equal(t, output, int64(1000))
 
-    vm3 := intcode.New(append([]int64(nil), program...))
+	vm3 := intcode.New(append([]int64(nil), program...))
 	go vm3.Run()
 	vm3.Inputs() <- 10
-    output = <-vm3.Outputs()
+	output = <-vm3.Outputs()
 	assert.Equal(t, output, int64(1001))
 }

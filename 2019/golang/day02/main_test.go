@@ -21,22 +21,22 @@ func TestCase2(t *testing.T) {
 }
 
 func TestCase3(t *testing.T) {
-    program := []int64{2, 3, 0, 3, 99}
-    vm, err := runWithInputs(program, 3, 0)
+	program := []int64{2, 3, 0, 3, 99}
+	vm, err := runWithInputs(program, 3, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, []int64{2, 3, 0, 6, 99}, vm.Snapshot())
 }
 
 func TestCase4(t *testing.T) {
-    program := []int64{2, 4, 4, 5, 99, 0}
-    vm, err := runWithInputs(program, 4, 4)
+	program := []int64{2, 4, 4, 5, 99, 0}
+	vm, err := runWithInputs(program, 4, 4)
 	assert.Nil(t, err)
 	assert.Equal(t, []int64{2, 4, 4, 5, 99, 9801}, vm.Snapshot())
 }
 
 func TestCase5(t *testing.T) {
-    program := []int64{1, 1, 1, 4, 99, 5, 6, 0, 99}
-    vm, err := runWithInputs(program, 1, 1)
+	program := []int64{1, 1, 1, 4, 99, 5, 6, 0, 99}
+	vm, err := runWithInputs(program, 1, 1)
 	assert.Nil(t, err)
 	assert.Equal(t, []int64{30, 1, 1, 4, 2, 5, 6, 0, 99}, vm.Snapshot())
 }

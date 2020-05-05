@@ -60,7 +60,7 @@ func part1(program []int64) int64 {
 func part2(program []int64) int64 {
 	best := int64(0)
 
-    sendInput := func(vm *intcode.VM, output int64) { vm.Inputs() <- output }
+	sendInput := func(vm *intcode.VM, output int64) { vm.Inputs() <- output }
 
 	forwardOutputs := func(
 		wg *sync.WaitGroup, source *intcode.VM, dest *intcode.VM, trackBest bool,
@@ -68,7 +68,9 @@ func part2(program []int64) int64 {
 		defer wg.Done()
 		for output := range source.Outputs() {
 			go sendInput(dest, output)
-			if trackBest && output > best { best = output }
+			if trackBest && output > best {
+				best = output
+			}
 		}
 	}
 
@@ -78,13 +80,13 @@ func part2(program []int64) int64 {
 			vms[i] = intcode.New(append([]int64(nil), program...))
 			go vms[i].Run()
 			sendInput(&vms[i], phase)
-        }
+		}
 		vms[0].Inputs() <- 0
 
 		var wg sync.WaitGroup
-        for i := range vms {
+		for i := range vms {
 			wg.Add(1)
-			go forwardOutputs(&wg, &vms[i], &vms[(i+1)%len(vms)], i == len(vms) - 1)
+			go forwardOutputs(&wg, &vms[i], &vms[(i+1)%len(vms)], i == len(vms)-1)
 		}
 		wg.Wait()
 	}

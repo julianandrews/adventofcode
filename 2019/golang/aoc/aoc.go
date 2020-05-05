@@ -51,7 +51,7 @@ func GetInts() ([]int, error) {
 func GetIntcodeProgram() ([]int64, error) {
 	data, err := GetInput()
 	if err != nil {
-        return nil, err
+		return nil, err
 	}
 	return intcode.ParseProgram(strings.TrimSpace(data))
 }
