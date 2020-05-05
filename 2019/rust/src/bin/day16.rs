@@ -3,7 +3,6 @@ extern crate aoc;
 use aoc::aoc_error::AOCError;
 use aoc::nums::digits;
 use std::convert::TryFrom;
-use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -79,8 +78,7 @@ fn part2(input_list: &Vec<u8>) -> Result<String> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let input_list = parse_digits(input.trim())?;
 
     println!("Part 1: {}", part1(&input_list));

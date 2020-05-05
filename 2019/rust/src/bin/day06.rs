@@ -1,7 +1,6 @@
 use aoc::aoc_error::AOCError;
 use aoc::graphs::{bfs, Graph};
 use std::collections::{HashMap, HashSet};
-use std::io::{self, Read};
 use std::str::FromStr;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -71,8 +70,7 @@ fn part2(orbit_graph: &OrbitGraph) -> Result<u64> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let orbit_graph = input.parse()?;
 
     println!("Part 1: {}", part1(&orbit_graph)?);

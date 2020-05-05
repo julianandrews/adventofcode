@@ -3,7 +3,6 @@ extern crate num_integer;
 use aoc::aoc_error::AOCError;
 use aoc::iterators::cycle_detect;
 use aoc::point::Point3D;
-use std::io::{self, Read};
 use std::iter;
 use std::str::FromStr;
 
@@ -143,8 +142,7 @@ fn part2(system: &PlanetarySystem) -> Result<usize> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let system: PlanetarySystem = input.parse()?;
 
     println!("Part 1: {}", part1(system.clone()));

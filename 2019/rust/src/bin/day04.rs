@@ -1,6 +1,5 @@
 use aoc::aoc_error::AOCError;
 use aoc::utils::parse_fields;
-use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
@@ -50,8 +49,7 @@ fn part2(start: u64, end: u64) -> Result<usize> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
 
     let nums = parse_fields(input.trim(), '-')?;
     if nums.len() != 2 {

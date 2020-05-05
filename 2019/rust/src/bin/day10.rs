@@ -7,7 +7,6 @@ use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::f64::consts::PI;
 use std::fmt;
-use std::io::{self, Read};
 use std::str::FromStr;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -198,8 +197,7 @@ fn part2(asteroid_field: &mut AsteroidField) -> Result<i64> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let mut asteroid_field = input.trim().parse()?;
 
     println!("{}", asteroid_field);

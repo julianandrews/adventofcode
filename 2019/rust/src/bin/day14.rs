@@ -1,7 +1,6 @@
 use aoc::aoc_error::AOCError;
 use aoc::graphs::{toposort, Graph};
 use std::collections::HashMap;
-use std::io::{self, Read};
 use std::str::FromStr;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
@@ -173,8 +172,7 @@ fn part2(reaction_graph: &ReactionGraph) -> Result<usize> {
 }
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = aoc::utils::get_input()?;
     let reaction_graph: ReactionGraph = input.parse()?;
 
     println!("Part 1: {}", part1(&reaction_graph)?);
