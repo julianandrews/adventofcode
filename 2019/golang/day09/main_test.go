@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/stretchr/testify/assert"
 	"julianandrews/adventofcode/aoc/intcode"
-    "strconv"
+	"strconv"
 	"testing"
 )
 
@@ -29,7 +29,7 @@ func TestBigOutput(t *testing.T) {
 }
 
 func TestOutputsMiddle(t *testing.T) {
-	program := []int64{104,1125899906842624,99}
+	program := []int64{104, 1125899906842624, 99}
 	vm := intcode.New(append([]int64(nil), program...))
 	go vm.Run()
 	output := <-vm.Outputs()
