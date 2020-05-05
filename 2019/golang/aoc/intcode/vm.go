@@ -2,20 +2,19 @@ package intcode
 
 import (
 	"errors"
-	"fmt"
 )
 
 type VM struct {
-	Memory        VMMemory
-	inputs        chan int64
-	outputs       chan int64
-	ip            Address
-	relative_base int64
+	memory       vmMemory
+	inputs       chan int64
+	outputs      chan int64
+	ip           vmAddress
+	relativeBase int64
 }
 
 func New(program []int64) VM {
 	var vm VM
-	vm.Memory.memory = program
+	vm.memory.memory = program
 	vm.inputs = make(chan int64)
 	vm.outputs = make(chan int64)
 
@@ -23,137 +22,141 @@ func New(program []int64) VM {
 }
 
 func (vm *VM) Inputs() chan<- int64 {
-    return vm.inputs
+	return vm.inputs
 }
 
 func (vm *VM) Outputs() <-chan int64 {
-    return vm.outputs
+	return vm.outputs
+}
+
+func (vm *VM) DiagnosticCode() int64 {
+	return vm.memory.get(0)
+}
+
+func (vm *VM) Snapshot() []int64 {
+	return append([]int64(nil), vm.memory.memory...)
 }
 
 func (vm *VM) Run() error {
 	for {
-		opType, _, err := vm.Step()
+		running, err := vm.step()
 		if err != nil {
 			return err
-		} else if opType == OP_HALT {
+		} else if !running {
 			return nil
 		}
 	}
 }
 
-func (vm *VM) Step() (OpType, []int64, error) {
+func (vm *VM) step() (bool, error) {
 	opType := vm.getOpType()
 	numParams, err := opType.numParams()
 	if err != nil {
-		return 0, nil, err
+		return false, err
 	}
 	params := vm.getParams(numParams)
 	modes, err := vm.getModes(numParams)
 	if err != nil {
-		return 0, nil, err
+		return false, err
 	}
 
 	switch opType {
-	case OP_ADD:
+	case opTypeAdd:
 		vm.add(params, modes)
-	case OP_MULTIPLY:
+	case opTypeMultiply:
 		vm.multiply(params, modes)
-	case OP_STORE:
+	case opTypeStore:
 		vm.store(params, modes)
-	case OP_OUTPUT:
+	case opTypeOutput:
 		vm.output(params, modes)
-	case OP_JUMP_IF_TRUE:
+	case opTypeJumpIfTrue:
 		vm.jumpIfTrue(params, modes)
-	case OP_JUMP_IF_FALSE:
+	case opTypeJumpIfFalse:
 		vm.jumpIfFalse(params, modes)
-	case OP_LESS_THAN:
+	case opTypeLessThan:
 		vm.lessThan(params, modes)
-	case OP_EQUALS:
+	case opTypeEquals:
 		vm.equals(params, modes)
-	case OP_ADJUST_REL_OFFSET:
+	case opTypeAdjustRelOffset:
 		vm.adjustRelOffset(params, modes)
-	case OP_HALT:
-        close(vm.outputs)
-		break
+	case opTypeHalt:
+		close(vm.outputs)
+		return false, nil
 	default:
-		return 0, nil, errors.New("Unrecognized operation")
+		return false, errors.New("Unrecognized operation")
 	}
 
-	return opType, params, nil
+	return true, nil
 }
 
-func (vm *VM) getOpType() OpType {
-	return OpType(vm.Memory.Get(vm.ip) % 100)
+func (vm *VM) getOpType() opType {
+	return opType(vm.memory.get(vm.ip) % 100)
 }
 
 func (vm *VM) getParams(numParams int) []int64 {
-	return vm.Memory.CopySlice(vm.ip+Address(1), vm.ip+Address(1+numParams))
+	return append([]int64(nil), vm.memory.memory[vm.ip+vmAddress(1):vm.ip+vmAddress(1+numParams)]...)
 }
 
-func (vm *VM) getModes(numParams int) ([]ValueMode, error) {
-	modes := make([]ValueMode, numParams)
-	x := vm.Memory.Get(vm.ip) / 100
+func (vm *VM) getModes(numParams int) ([]valueMode, error) {
+	modes := make([]valueMode, numParams)
+	x := vm.memory.get(vm.ip) / 100
 	for i := range modes {
 		mode := x % 10
-		if mode > 2 {
-			return nil, errors.New("Unrecognized mode")
+		switch mode {
+		case valueModeImmediate, valueModePosition, valueModeRelative:
+			modes[i] = valueMode(mode)
+		default:
+			return nil, errors.New("Unrecognized valueMode")
 		}
-		modes[i] = ValueMode(mode)
 		x = x / 10
 	}
 	return modes, nil
 }
 
-func (vm *VM) getAddress(baseAddress int64, mode ValueMode) (Address, error) {
+func (vm *VM) getAddress(baseAddress int64, mode valueMode) (vmAddress, error) {
 	switch mode {
-	case VALUEMODE_POSITION:
+	case valueModePosition:
 		if baseAddress < 0 {
-			return 0, errors.New("Negative address not allowed")
+			return 0, errors.New("Invalid address")
 		}
-		return Address(baseAddress), nil
-	case VALUEMODE_IMMEDIATE, VALUEMODE_RELATIVE:
-		address := vm.relative_base + baseAddress
+		return vmAddress(baseAddress), nil
+	case valueModeImmediate, valueModeRelative:
+		address := vm.relativeBase + baseAddress
 		if address < 0 {
-			return 0, errors.New("Negative address not allowed")
+			return 0, errors.New("Invalid address")
 		}
-		return Address(address), nil
+		return vmAddress(address), nil
 	default:
 		return 0, errors.New("Unrecognized value mode")
 	}
 }
 
-func (vm *VM) getValue(value int64, mode ValueMode) (int64, error) {
+func (vm *VM) getValue(value int64, mode valueMode) (int64, error) {
 	switch mode {
-	case VALUEMODE_POSITION:
+	case valueModePosition:
 		if value < 0 {
-			return 0, errors.New("Negative address not allowed")
+			return 0, errors.New("Invalid address")
 		}
-		return vm.Memory.Get(Address(value)), nil
-	case VALUEMODE_IMMEDIATE:
+		return vm.memory.get(vmAddress(value)), nil
+	case valueModeImmediate:
 		return value, nil
-	case VALUEMODE_RELATIVE:
-		address := vm.relative_base + value
+	case valueModeRelative:
+		address := vm.relativeBase + value
 		if address < 0 {
-			return 0, errors.New("Negative address not allowed")
+			return 0, errors.New("Invalid address")
 		}
-		return vm.Memory.Get(Address(address)), nil
+		return vm.memory.get(vmAddress(address)), nil
 	default:
 		return 0, errors.New("Unrecognized value mode")
 	}
 }
 
-func (vm *VM) binary_operands(params []int64, modes []ValueMode) (int64, int64, Address, error) {
-	if len(params) != 3 {
-		mess := fmt.Sprintf("Unexpected number of params %v for binary operation", len(params))
-		return 0, 0, 0, errors.New(mess)
+func (vm *VM) binaryOperands(params []int64, modes []valueMode) (int64, int64, vmAddress, error) {
+	if len(params) != 3 || len(modes) != 3 {
+		return 0, 0, 0, errors.New("Incorrect number of parameters or modes")
 	}
-	if len(modes) != 3 {
-		mess := fmt.Sprintf("Unexpected number of modes %v for binary operation", len(modes))
-		return 0, 0, 0, errors.New(mess)
-	}
-	if modes[2] == VALUEMODE_IMMEDIATE {
-		mess := fmt.Sprintf("Unexpected mode %v for binary operation", modes[2])
-		return 0, 0, 0, errors.New(mess)
+	if modes[2] == valueModeImmediate {
+		return 0, 0, 0, errors.New("Unexpected valueModeImmediate for binary operation")
 	}
 	a, err := vm.getValue(params[0], modes[0])
 	if err != nil {
@@ -170,14 +173,9 @@ func (vm *VM) binary_operands(params []int64, modes []ValueMode) (int64, int64, 
 	return a, b, address, nil
 }
 
-func (vm *VM) jump_operands(params []int64, modes []ValueMode) (int64, Address, error) {
-	if len(params) != 2 {
-		mess := fmt.Sprintf("Unexpected number of params %v for jump operation", len(params))
-		return 0, 0, errors.New(mess)
-	}
-	if len(modes) != 2 {
-		mess := fmt.Sprintf("Unexpected number of modes %v for jump operation", len(modes))
-		return 0, 0, errors.New(mess)
+func (vm *VM) jumpOperands(params []int64, modes []valueMode) (int64, vmAddress, error) {
+	if len(params) != 2 || len(modes) != 2 {
+		return 0, 0, errors.New("Incorrect number of parameters or modes")
 	}
 	a, err := vm.getValue(params[0], modes[0])
 	if err != nil {
@@ -188,49 +186,49 @@ func (vm *VM) jump_operands(params []int64, modes []ValueMode) (int64, Address, 
 		return 0, 0, err
 	}
 	if b < 0 {
-		return 0, 0, errors.New("Invalid negative address")
+		return 0, 0, errors.New("Invalid address")
 	}
-	return a, Address(b), nil
+	return a, vmAddress(b), nil
 }
 
-func (vm *VM) add(params []int64, modes []ValueMode) error {
-	a, b, address, err := vm.binary_operands(params, modes)
+func (vm *VM) add(params []int64, modes []valueMode) error {
+	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
 	}
-	vm.Memory.Set(address, a+b)
-	vm.ip += Address(len(params) + 1)
+	vm.memory.set(address, a+b)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) multiply(params []int64, modes []ValueMode) error {
-	a, b, address, err := vm.binary_operands(params, modes)
+func (vm *VM) multiply(params []int64, modes []valueMode) error {
+	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
 	}
-	vm.Memory.Set(address, a*b)
-	vm.ip += Address(len(params) + 1)
+	vm.memory.set(address, a*b)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) store(params []int64, modes []ValueMode) error {
+func (vm *VM) store(params []int64, modes []valueMode) error {
 	if len(params) != 1 || len(modes) != 1 {
 		return errors.New("Incorrect number of parameters or modes")
 	}
-	if modes[0] == VALUEMODE_IMMEDIATE {
-		return errors.New("Unexpected VALUEMODE_IMMEDIATE for store")
+	if modes[0] == valueModeImmediate {
+		return errors.New("Unexpected valueModeImmediate for opTypeStore")
 	}
 	address, err := vm.getAddress((params)[0], modes[0])
 	if err != nil {
 		return err
 	}
 	value := <-vm.inputs
-	vm.Memory.Set(address, value)
-	vm.ip += Address(len(params) + 1)
+	vm.memory.set(address, value)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) output(params []int64, modes []ValueMode) error {
+func (vm *VM) output(params []int64, modes []valueMode) error {
 	if len(params) != 1 || len(modes) != 1 {
 		return errors.New("Incorrect number of parameters or modes")
 	}
@@ -239,67 +237,76 @@ func (vm *VM) output(params []int64, modes []ValueMode) error {
 		return err
 	}
 	vm.outputs <- value
-	vm.ip += Address(len(params) + 1)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) jumpIfTrue(params []int64, modes []ValueMode) error {
-	a, address, err := vm.jump_operands(params, modes)
+func (vm *VM) jumpIfTrue(params []int64, modes []valueMode) error {
+	a, address, err := vm.jumpOperands(params, modes)
 	if err != nil {
 		return err
 	}
 	if a != 0 {
 		vm.ip = address
 	} else {
-		vm.ip += Address(len(params) + 1)
+		vm.ip += vmAddress(len(params) + 1)
 	}
 
 	return nil
 }
 
-func (vm *VM) jumpIfFalse(params []int64, modes []ValueMode) error {
-	a, address, err := vm.jump_operands(params, modes)
+func (vm *VM) jumpIfFalse(params []int64, modes []valueMode) error {
+	a, address, err := vm.jumpOperands(params, modes)
 	if err != nil {
 		return err
 	}
 	if a == 0 {
 		vm.ip = address
 	} else {
-		vm.ip += Address(len(params) + 1)
+		vm.ip += vmAddress(len(params) + 1)
 	}
 
 	return nil
 }
 
-func (vm *VM) lessThan(params []int64, modes []ValueMode) error {
-	a, b, address, err := vm.binary_operands(params, modes)
+func (vm *VM) lessThan(params []int64, modes []valueMode) error {
+	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
 	}
 	if a < b {
-		vm.Memory.Set(address, 1)
+		vm.memory.set(address, 1)
 	} else {
-		vm.Memory.Set(address, 0)
+		vm.memory.set(address, 0)
 	}
-	vm.ip += Address(len(params) + 1)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) equals(params []int64, modes []ValueMode) error {
-	a, b, address, err := vm.binary_operands(params, modes)
+func (vm *VM) equals(params []int64, modes []valueMode) error {
+	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
 	}
 	if a == b {
-		vm.Memory.Set(address, 1)
+		vm.memory.set(address, 1)
 	} else {
-		vm.Memory.Set(address, 0)
+		vm.memory.set(address, 0)
 	}
-	vm.ip += Address(len(params) + 1)
+	vm.ip += vmAddress(len(params) + 1)
 	return nil
 }
 
-func (vm *VM) adjustRelOffset(params []int64, modes []ValueMode) error {
-	// TODO
-	return errors.New("Unimplemented")
+func (vm *VM) adjustRelOffset(params []int64, modes []valueMode) error {
+	if len(params) != 1 || len(modes) != 1 {
+		return errors.New("Incorrect number of parameters or modes")
+	}
+	value, err := vm.getValue(params[0], modes[0])
+	if err != nil {
+		return err
+	}
+	vm.relativeBase = vm.relativeBase + value
+	vm.ip += vmAddress(len(params) + 1)
+
+	return nil
 }

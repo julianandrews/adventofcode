@@ -8,10 +8,10 @@ import (
 	"os"
 )
 
-func part1(program []int64) (int64, error) {
+func getDiagnosticCode(program []int64, input int64) (int64, error) {
 	vm := intcode.New(append([]int64(nil), program...))
     go vm.Run()
-    vm.Inputs() <- 1
+    vm.Inputs() <- input
     for output := range vm.Outputs() {
         if output != 0 {
             return output, nil
@@ -20,16 +20,12 @@ func part1(program []int64) (int64, error) {
     return 0, errors.New("No diagnostic code found")
 }
 
+func part1(program []int64) (int64, error) {
+    return getDiagnosticCode(program, 1)
+}
+
 func part2(program []int64) (int64, error) {
-	vm := intcode.New(append([]int64(nil), program...))
-    go vm.Run()
-    vm.Inputs() <- 5
-    for output := range vm.Outputs() {
-        if output != 0 {
-            return output, nil
-        }
-    }
-    return 0, errors.New("No diagnostic code found")
+    return getDiagnosticCode(program, 5)
 }
 
 func main() {

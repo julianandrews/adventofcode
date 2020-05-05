@@ -1,10 +1,10 @@
 package intcode
 
 import (
-    "errors"
-    "fmt"
-    "strings"
-    "strconv"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
 )
 
 func ParseProgram(input string) ([]int64, error) {

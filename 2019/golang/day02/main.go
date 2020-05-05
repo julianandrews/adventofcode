@@ -10,20 +10,12 @@ import (
 
 func runWithInputs(program []int64, noun int64, verb int64) (intcode.VM, error) {
     programCopy := append([]int64(nil), program...)
+    programCopy[1] = noun
+    programCopy[2] = verb
 	vm := intcode.New(programCopy)
-	vm.Memory.Set(1, noun)
-	vm.Memory.Set(2, verb)
-	for {
-		op, _, err := vm.Step()
-		if err != nil {
-			return vm, err
-		}
-		if op == intcode.OP_HALT {
-			break
-		}
-	}
+    err := vm.Run()
 
-	return vm, nil
+	return vm, err
 }
 
 func part1(program []int64) (int64, error) {
@@ -31,7 +23,7 @@ func part1(program []int64) (int64, error) {
     if err != nil {
         return 0, err
     }
-	return vm.Memory.Get(0), nil
+	return vm.DiagnosticCode(), nil
 }
 
 func part2(program []int64) (int, error) {
@@ -41,7 +33,7 @@ func part2(program []int64) (int, error) {
             if err != nil {
                 return 0, err
             }
-			if vm.Memory.Get(0) == 19690720 {
+			if vm.DiagnosticCode() == 19690720 {
 				return 100*a + b, nil
 			}
 		}
