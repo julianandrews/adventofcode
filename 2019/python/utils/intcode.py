@@ -8,7 +8,7 @@ class ValueMode(enum.Enum):
     RELATIVE = 2
 
 
-class Op(enum.Enum):
+class OpType(enum.Enum):
     ADD = 1
     MULTIPLY = 2
     STORE = 3
@@ -21,157 +21,182 @@ class Op(enum.Enum):
     HALT = 99
 
     @property
-    def num_parameters(self):
-        if self.is_binary_op:
+    def num_params(self):
+        if self in {OpType.ADD, OpType.MULTIPLY, OpType.LESS_THAN, OpType.EQUALS}:
             return 3
-        elif self.is_unary:
-            return 1
-        elif self.is_jump:
+        elif self in {OpType.JUMP_IF_TRUE, OpType.JUMP_IF_FALSE}:
             return 2
-        elif self == Op.HALT:
+        elif self in {OpType.STORE, OpType.OUTPUT, OpType.ADJUST_REL_OFFSET}:
+            return 1
+        elif self == OpType.HALT:
             return 0
         else:
             raise RuntimeError(f"Unexpected Operation {self}")
-
-    @property
-    def is_binary_op(self):
-        return self in {Op.ADD, Op.MULTIPLY, Op.LESS_THAN, Op.EQUALS}
-
-    @property
-    def is_unary(self):
-        return self in {Op.STORE, Op.OUTPUT, Op.ADJUST_REL_OFFSET}
-
-    @property
-    def is_jump(self):
-        return self in {Op.JUMP_IF_TRUE, Op.JUMP_IF_FALSE}
-
-    def should_jump(self, value):
-        return self == Op.JUMP_IF_TRUE and value or self == Op.JUMP_IF_FALSE and not value
 
 
 class VM:
     logger = logging.getLogger(__name__)
 
-    def __init__(self, memory, noun=None, verb=None, inputs=None):
+    def __init__(self, memory, inputs=None):
         self.logger.debug(f"Initializing VM")
-        self.memory = VM.VMMemory(memory)
-        self.ip = 0
-        self.relative_base = 0
-        if noun is not None:
-            self.noun = noun
-        if verb is not None:
-            self.verb = verb
-
-        self.output = None
-        self.inputs = inputs
+        self.inputs = inputs if inputs is not None else iter([])
+        self._memory = VM.VMMemory(memory)
+        self._ip = 0
+        self._relative_base = 0
 
     def outputs(self):
-        op = None
-        while op != Op.HALT:
+        while True:
             try:
-                op, _ = self.step()
-                if op == Op.OUTPUT:
-                    yield self.output
+                output = self._step()
+            except StopIteration:
+                break
+            if output is not None:
+                yield output
+
+    def run(self):
+        while True:
+            try:
+                self._step()
             except StopIteration:
                 break
 
-    def step(self):
-        op = Op(self.memory[self.ip] % 100)
-        params = self.memory[self.ip + 1:self.ip + op.num_parameters + 1]
-        mode_str = (str(self.memory[self.ip] // 100) or '').zfill(len(params))
-        modes = [ValueMode(int(c)) for c in reversed(mode_str)]
-        ip_offset = op.num_parameters + 1
+    @property
+    def memory(self):
+        return tuple(self._memory[:])
 
-        self.logger.debug(f"Executing {op} with {params} and {modes}")
+    def _step(self):
+        op_type = self._get_op_type()
+        params = self._get_params()
+        modes = self._get_modes()
 
-        if op.is_binary_op:
-            a = self.get_value(params[0], modes[0])
-            b = self.get_value(params[1], modes[1])
-            if modes[2] == ValueMode.IMMEDIATE:
-                raise RuntimeError(f"Unexpected {modes[2]} in {op} at 2")
-            address = self.get_address(params[2], modes[2])
-            if op == Op.ADD:
-                self.logger.debug(f"Storing {a} + {b} at {address}")
-                self.memory[address] = a + b
-            elif op == Op.MULTIPLY:
-                self.logger.debug(f"Storing {a} * {b} at {address}")
-                self.memory[address] = a * b
-            elif op == Op.LESS_THAN:
-                self.logger.debug(f"Storing {a} < {b} at {address}")
-                self.memory[address] = 1 if a < b else 0
-            elif op == Op.EQUALS:
-                self.logger.debug(f"Storing {a} == {b} at {address}")
-                self.memory[address] = 1 if a == b else 0
-        elif op == Op.STORE:
-            if modes[0] == ValueMode.IMMEDIATE:
-                raise RuntimeError(f"Unexpected {modes[0]} in {op} at 0")
-            address = self.get_address(params[0], modes[0])
-            value = next(self.inputs)
-            self.logger.debug(f"Storing {value} at {address}")
-            self.memory[address] = value
-        elif op == Op.OUTPUT:
-            value = self.get_value(params[0], modes[0])
-            self.logger.debug(f"Outputting {value}")
-            self.output = value
-        elif op.is_jump:
-            value = self.get_value(params[0], modes[0])
-            address = self.get_value(params[1], modes[1])
-            if op.should_jump(value):
-                self.logger.debug(f"Jumping to {address}")
-                self.ip = address
-                ip_offset = 0
-        elif op == Op.HALT:
-            pass
-        elif op == Op.ADJUST_REL_OFFSET:
-            value = self.get_value(params[0], modes[0])
-            self.logger.debug(f"Adjusting relative base by {value}")
-            self.relative_base += value
+        self.logger.debug(f"Executing {op_type} with {params} and {modes}")
+
+        if op_type == OpType.ADD:
+            self._add(params, modes)
+        elif op_type == OpType.MULTIPLY:
+            self._multiply(params, modes)
+        elif op_type == OpType.LESS_THAN:
+            self._less_than(params, modes)
+        elif op_type == OpType.EQUALS:
+            self._equals(params, modes)
+        elif op_type == OpType.STORE:
+            self._store(params, modes)  # raises StopIteration if inputs exhausted
+        elif op_type == OpType.OUTPUT:
+            return self._output(params, modes)
+        elif op_type == OpType.JUMP_IF_TRUE:
+            self._jump_if_true(params, modes)
+        elif op_type == OpType.JUMP_IF_FALSE:
+            self._jump_if_false(params, modes)
+        elif op_type == OpType.ADJUST_REL_OFFSET:
+            self._adjust_rel_offset(params, modes)
+        elif op_type == OpType.HALT:
+            raise StopIteration
         else:
-            raise RuntimeError("Unexpected Operation {op}")
+            raise RuntimeError("Unexpected Operation {op_type}")
 
-        self.ip += ip_offset
-        return op, params
+        return None
 
-    def get_value(self, value, mode):
+    def _get_op_type(self):
+        return OpType(self._memory[self._ip] % 100)
+
+    def _get_params(self):
+        op_type = self._get_op_type()
+        return self._memory[self._ip + 1:self._ip + op_type.num_params + 1]
+
+    def _get_modes(self):
+        op_type = self._get_op_type()
+        mode_str = (str(self._memory[self._ip] // 100) or '').zfill(op_type.num_params)
+        return [ValueMode(int(c)) for c in reversed(mode_str)]
+
+    def _get_binary_operands(self, params, modes):
+        a = self._get_value(params[0], modes[0])
+        b = self._get_value(params[1], modes[1])
+        if modes[2] == ValueMode.IMMEDIATE:
+            raise RuntimeError(f"Invalid {modes[2]} for address in binary op")
+        address = self._get_address(params[2], modes[2])
+        return a, b, address
+
+    def _get_jump_operands(self, params, modes):
+        value = self._get_value(params[0], modes[0])
+        address = self._get_value(params[1], modes[1])
+        return value, address
+
+    def _add(self, params, modes):
+        a, b, address = self._get_binary_operands(params, modes)
+        self.logger.debug(f"Storing {a} + {b} at {address}")
+        self._memory[address] = a + b
+        self._ip += len(params) + 1
+
+    def _multiply(self, params, modes):
+        a, b, address = self._get_binary_operands(params, modes)
+        self.logger.debug(f"Storing {a} * {b} at {address}")
+        self._memory[address] = a * b
+        self._ip += len(params) + 1
+
+    def _less_than(self, params, modes):
+        a, b, address = self._get_binary_operands(params, modes)
+        self.logger.debug(f"Storing {a} < {b} at {address}")
+        self._memory[address] = 1 if a < b else 0
+        self._ip += len(params) + 1
+
+    def _equals(self, params, modes):
+        a, b, address = self._get_binary_operands(params, modes)
+        self.logger.debug(f"Storing {a} == {b} at {address}")
+        self._memory[address] = 1 if a == b else 0
+        self._ip += len(params) + 1
+
+    def _store(self, params, modes):
+        if modes[0] == ValueMode.IMMEDIATE:
+            raise RuntimeError(f"Invalid {modes[0]} for address in store")
+        address = self._get_address(params[0], modes[0])
+        value = next(self.inputs)
+        self.logger.debug(f"Storing {value} at {address}")
+        self._memory[address] = value
+        self._ip += len(params) + 1
+
+    def _output(self, params, modes):
+        value = self._get_value(params[0], modes[0])
+        self.logger.debug(f"Outputting {value}")
+        self._ip += len(params) + 1
+        return value
+
+    def _adjust_rel_offset(self, params, modes):
+        value = self._get_value(params[0], modes[0])
+        self.logger.debug(f"Adjusting relative base by {value}")
+        self._relative_base += value
+        self._ip += len(params) + 1
+
+    def _jump_if_true(self, params, modes):
+        value, address = self._get_jump_operands(params, modes)
+        if value:
+            self.logger.debug(f"Jumping to {address}")
+            self._ip = address
+        else:
+            self._ip += len(params) + 1
+
+    def _jump_if_false(self, params, modes):
+        value, address = self._get_jump_operands(params, modes)
+        if not value:
+            self.logger.debug(f"Jumping to {address}")
+            self._ip = address
+        else:
+            self._ip += len(params) + 1
+
+    def _get_value(self, value, mode):
         if mode == ValueMode.POSITION:
-            return self.memory[value]
+            return self._memory[value]
         elif mode == ValueMode.IMMEDIATE:
             return value
         elif mode == ValueMode.RELATIVE:
-            return self.memory[self.relative_base + value]
+            return self._memory[self._relative_base + value]
         else:
             raise RuntimeError("Unrecognized ValueMode {mode}")
 
-    def get_address(self, base_address, mode):
+    def _get_address(self, base_address, mode):
         if mode == ValueMode.POSITION:
             return base_address
         else:
-            return base_address + self.relative_base
-
-    def set_memory(self, index, value):
-        self.memory[index] = value
-
-    @property
-    def noun(self):
-        return self.memory[1]
-
-    @noun.setter
-    def noun(self, value):
-        self.logger.debug(f"Setting noun to {value}")
-        self.memory[1] = value
-
-    @property
-    def verb(self):
-        return self.memory[2]
-
-    @verb.setter
-    def verb(self, value):
-        self.logger.debug(f"Setting verb to {value}")
-        self.memory[2] = value
-
-    @property
-    def diagnostic_code(self):
-        self.output
+            return base_address + self._relative_base
 
     class VMMemory:
         def __init__(self, memory):

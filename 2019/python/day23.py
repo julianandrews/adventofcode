@@ -32,9 +32,9 @@ class NetworkedVM:
 
     def run(self):
         self.running = True
-        outputs = self.vm.outputs()
         while self.running:
             try:
+                outputs = self.vm.outputs()
                 destination = next(outputs)
                 x = next(outputs)
                 y = next(outputs)

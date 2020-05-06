@@ -18,8 +18,8 @@ def p2(program):
 
 def run_tests():
     vm = VM([1002, 4, 3, 4, 33])
-    vm.step()
-    assert vm.memory[:] == [1002, 4, 3, 4, 99]
+    vm.run()
+    assert vm.memory == (1002, 4, 3, 4, 99)
     equals8 = [3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]
     assert next(VM(equals8[:], inputs=iter((8, ))).outputs()) == 1
     assert next(VM(equals8[:], inputs=iter((7, ))).outputs()) == 0

@@ -1,5 +1,5 @@
 from utils import read_data
-from utils.intcode import VM, Op
+from utils.intcode import VM
 
 
 def p1(program):
