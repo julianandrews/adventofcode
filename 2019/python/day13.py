@@ -82,8 +82,9 @@ def p1(program):
 
 
 def p2(program):
+    program = program[:]
+    program[0] = 2
     vm = VM(program)
-    vm.set_memory(0, 2)
     machine = ArcadeMachine(vm)
     machine.run()
 

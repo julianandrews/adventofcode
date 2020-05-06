@@ -1,6 +1,6 @@
 import itertools
 from utils import read_data
-from utils.intcode import VM, Op
+from utils.intcode import VM
 
 
 def p1(program):
@@ -33,11 +33,12 @@ def p2(program):
 
         vms = [VM(program[:], inputs=inputs(phase)) for phase in perm]
 
-        for vm in itertools.cycle(vms):
+        for i, vm in enumerate(itertools.cycle(vms)):
             try:
                 signal = next(vm.outputs())
+                if i % len(vms) == len(vms) - 1:
+                    best = max(best, signal)
             except StopIteration:
-                best = max(best, vms[-1].output)
                 break
 
     return best
