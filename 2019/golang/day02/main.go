@@ -8,14 +8,14 @@ import (
 	"os"
 )
 
-func runWithInputs(program []int64, noun int64, verb int64) (intcode.VM, error) {
+func runWithInputs(program []int64, noun int64, verb int64) (intcode.VMMemoryAccesor, error) {
 	programCopy := append([]int64(nil), program...)
 	programCopy[1] = noun
 	programCopy[2] = verb
-	vm := intcode.New(programCopy)
+	vm := intcode.NewVM(programCopy)
 	err := vm.Run()
 
-	return vm, err
+	return &vm, err
 }
 
 func part1(program []int64) (int64, error) {
@@ -23,7 +23,7 @@ func part1(program []int64) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return vm.DiagnosticCode(), nil
+	return vm.Memory()[0], nil
 }
 
 func part2(program []int64) (int, error) {
@@ -33,7 +33,7 @@ func part2(program []int64) (int, error) {
 			if err != nil {
 				return 0, err
 			}
-			if vm.DiagnosticCode() == 19690720 {
+			if vm.Memory()[0] == 19690720 {
 				return 100*a + b, nil
 			}
 		}
