@@ -44,7 +44,7 @@ func part1(program []int64) int64 {
 	for perm := range generatePermutations([]int64{0, 1, 2, 3, 4}) {
 		signal := int64(0)
 		for _, phase := range perm {
-			vm := intcode.New(append([]int64(nil), program...))
+			vm := intcode.NewVM(append([]int64(nil), program...))
 			go vm.Run()
 			vm.Inputs() <- phase
 			vm.Inputs() <- signal
@@ -60,10 +60,10 @@ func part1(program []int64) int64 {
 func part2(program []int64) int64 {
 	best := int64(0)
 
-	sendInput := func(vm *intcode.VM, output int64) { vm.Inputs() <- output }
+	sendInput := func(vm intcode.VM, output int64) { vm.Inputs() <- output }
 
 	forwardOutputs := func(
-		wg *sync.WaitGroup, source *intcode.VM, dest *intcode.VM, trackBest bool,
+		wg *sync.WaitGroup, source intcode.VM, dest intcode.VM, trackBest bool,
 	) {
 		defer wg.Done()
 		for output := range source.Outputs() {
@@ -77,16 +77,17 @@ func part2(program []int64) int64 {
 	for perm := range generatePermutations([]int64{5, 6, 7, 8, 9}) {
 		vms := make([]intcode.VM, len(perm))
 		for i, phase := range perm {
-			vms[i] = intcode.New(append([]int64(nil), program...))
+            vm := intcode.NewVM(append([]int64(nil), program...))
+			vms[i] = &vm
 			go vms[i].Run()
-			sendInput(&vms[i], phase)
+			sendInput(vms[i], phase)
 		}
 		vms[0].Inputs() <- 0
 
 		var wg sync.WaitGroup
 		for i := range vms {
 			wg.Add(1)
-			go forwardOutputs(&wg, &vms[i], &vms[(i+1)%len(vms)], i == len(vms)-1)
+			go forwardOutputs(&wg, vms[i], vms[(i+1)%len(vms)], i == len(vms)-1)
 		}
 		wg.Wait()
 	}

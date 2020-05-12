@@ -9,7 +9,7 @@ import (
 )
 
 func getDiagnosticCode(program []int64, input int64) (int64, error) {
-	vm := intcode.New(append([]int64(nil), program...))
+	vm := intcode.NewVM(append([]int64(nil), program...))
 	go vm.Run()
 	vm.Inputs() <- input
 	for output := range vm.Outputs() {

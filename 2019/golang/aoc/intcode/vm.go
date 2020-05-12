@@ -4,7 +4,17 @@ import (
 	"errors"
 )
 
-type VM struct {
+type VM interface {
+	Inputs() chan<- int64
+	Outputs() <-chan int64
+	Run() error
+}
+
+type VMMemoryAccesor interface {
+	Memory() []int64
+}
+
+type vm struct {
 	memory       vmMemory
 	inputs       chan int64
 	outputs      chan int64
@@ -12,32 +22,29 @@ type VM struct {
 	relativeBase int64
 }
 
-func New(program []int64) VM {
-	var vm VM
-	vm.memory.memory = program
-	vm.inputs = make(chan int64)
-	vm.outputs = make(chan int64)
-
-	return vm
+func NewVM(program []int64) vm {
+	return vm{
+		memory:       vmMemory{memory: program},
+		inputs:       make(chan int64),
+		outputs:      make(chan int64),
+		ip:           0,
+		relativeBase: 0,
+	}
 }
 
-func (vm *VM) Inputs() chan<- int64 {
+func (vm *vm) Inputs() chan<- int64 {
 	return vm.inputs
 }
 
-func (vm *VM) Outputs() <-chan int64 {
+func (vm *vm) Outputs() <-chan int64 {
 	return vm.outputs
 }
 
-func (vm *VM) DiagnosticCode() int64 {
-	return vm.memory.get(0)
+func (vm *vm) Memory() []int64 {
+	return vm.memory.memory
 }
 
-func (vm *VM) Snapshot() []int64 {
-	return append([]int64(nil), vm.memory.memory...)
-}
-
-func (vm *VM) Run() error {
+func (vm *vm) Run() error {
 	for {
 		running, err := vm.step()
 		if err != nil {
@@ -48,7 +55,7 @@ func (vm *VM) Run() error {
 	}
 }
 
-func (vm *VM) step() (bool, error) {
+func (vm *vm) step() (bool, error) {
 	opType := vm.getOpType()
 	numParams, err := opType.numParams()
 	if err != nil {
@@ -89,15 +96,15 @@ func (vm *VM) step() (bool, error) {
 	return true, nil
 }
 
-func (vm *VM) getOpType() opType {
+func (vm *vm) getOpType() opType {
 	return opType(vm.memory.get(vm.ip) % 100)
 }
 
-func (vm *VM) getParams(numParams int) []int64 {
+func (vm *vm) getParams(numParams int) []int64 {
 	return append([]int64(nil), vm.memory.memory[vm.ip+vmAddress(1):vm.ip+vmAddress(1+numParams)]...)
 }
 
-func (vm *VM) getModes(numParams int) ([]valueMode, error) {
+func (vm *vm) getModes(numParams int) ([]valueMode, error) {
 	modes := make([]valueMode, numParams)
 	x := vm.memory.get(vm.ip) / 100
 	for i := range modes {
@@ -113,7 +120,7 @@ func (vm *VM) getModes(numParams int) ([]valueMode, error) {
 	return modes, nil
 }
 
-func (vm *VM) getAddress(baseAddress int64, mode valueMode) (vmAddress, error) {
+func (vm *vm) getAddress(baseAddress int64, mode valueMode) (vmAddress, error) {
 	switch mode {
 	case valueModePosition:
 		if baseAddress < 0 {
@@ -131,7 +138,7 @@ func (vm *VM) getAddress(baseAddress int64, mode valueMode) (vmAddress, error) {
 	}
 }
 
-func (vm *VM) getValue(value int64, mode valueMode) (int64, error) {
+func (vm *vm) getValue(value int64, mode valueMode) (int64, error) {
 	switch mode {
 	case valueModePosition:
 		if value < 0 {
@@ -151,7 +158,7 @@ func (vm *VM) getValue(value int64, mode valueMode) (int64, error) {
 	}
 }
 
-func (vm *VM) binaryOperands(params []int64, modes []valueMode) (int64, int64, vmAddress, error) {
+func (vm *vm) binaryOperands(params []int64, modes []valueMode) (int64, int64, vmAddress, error) {
 	if len(params) != 3 || len(modes) != 3 {
 		return 0, 0, 0, errors.New("Incorrect number of parameters or modes")
 	}
@@ -173,7 +180,7 @@ func (vm *VM) binaryOperands(params []int64, modes []valueMode) (int64, int64, v
 	return a, b, address, nil
 }
 
-func (vm *VM) jumpOperands(params []int64, modes []valueMode) (int64, vmAddress, error) {
+func (vm *vm) jumpOperands(params []int64, modes []valueMode) (int64, vmAddress, error) {
 	if len(params) != 2 || len(modes) != 2 {
 		return 0, 0, errors.New("Incorrect number of parameters or modes")
 	}
@@ -191,7 +198,7 @@ func (vm *VM) jumpOperands(params []int64, modes []valueMode) (int64, vmAddress,
 	return a, vmAddress(b), nil
 }
 
-func (vm *VM) add(params []int64, modes []valueMode) error {
+func (vm *vm) add(params []int64, modes []valueMode) error {
 	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
@@ -201,7 +208,7 @@ func (vm *VM) add(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) multiply(params []int64, modes []valueMode) error {
+func (vm *vm) multiply(params []int64, modes []valueMode) error {
 	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
@@ -211,7 +218,7 @@ func (vm *VM) multiply(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) store(params []int64, modes []valueMode) error {
+func (vm *vm) store(params []int64, modes []valueMode) error {
 	if len(params) != 1 || len(modes) != 1 {
 		return errors.New("Incorrect number of parameters or modes")
 	}
@@ -228,7 +235,7 @@ func (vm *VM) store(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) output(params []int64, modes []valueMode) error {
+func (vm *vm) output(params []int64, modes []valueMode) error {
 	if len(params) != 1 || len(modes) != 1 {
 		return errors.New("Incorrect number of parameters or modes")
 	}
@@ -241,7 +248,7 @@ func (vm *VM) output(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) jumpIfTrue(params []int64, modes []valueMode) error {
+func (vm *vm) jumpIfTrue(params []int64, modes []valueMode) error {
 	a, address, err := vm.jumpOperands(params, modes)
 	if err != nil {
 		return err
@@ -255,7 +262,7 @@ func (vm *VM) jumpIfTrue(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) jumpIfFalse(params []int64, modes []valueMode) error {
+func (vm *vm) jumpIfFalse(params []int64, modes []valueMode) error {
 	a, address, err := vm.jumpOperands(params, modes)
 	if err != nil {
 		return err
@@ -269,7 +276,7 @@ func (vm *VM) jumpIfFalse(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) lessThan(params []int64, modes []valueMode) error {
+func (vm *vm) lessThan(params []int64, modes []valueMode) error {
 	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
@@ -283,7 +290,7 @@ func (vm *VM) lessThan(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) equals(params []int64, modes []valueMode) error {
+func (vm *vm) equals(params []int64, modes []valueMode) error {
 	a, b, address, err := vm.binaryOperands(params, modes)
 	if err != nil {
 		return err
@@ -297,7 +304,7 @@ func (vm *VM) equals(params []int64, modes []valueMode) error {
 	return nil
 }
 
-func (vm *VM) adjustRelOffset(params []int64, modes []valueMode) error {
+func (vm *vm) adjustRelOffset(params []int64, modes []valueMode) error {
 	if len(params) != 1 || len(modes) != 1 {
 		return errors.New("Incorrect number of parameters or modes")
 	}
