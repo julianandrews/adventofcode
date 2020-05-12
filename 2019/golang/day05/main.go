@@ -8,8 +8,7 @@ import (
 	"os"
 )
 
-func getDiagnosticCode(program []int64, input int64) (int64, error) {
-	vm := intcode.NewVM(append([]int64(nil), program...))
+func getDiagnosticCode(vm intcode.VM, input int64) (int64, error) {
 	go vm.Run()
 	vm.Inputs() <- input
 	for output := range vm.Outputs() {
@@ -21,11 +20,13 @@ func getDiagnosticCode(program []int64, input int64) (int64, error) {
 }
 
 func part1(program []int64) (int64, error) {
-	return getDiagnosticCode(program, 1)
+	vm := intcode.NewVM(append([]int64(nil), program...))
+	return getDiagnosticCode(&vm, 1)
 }
 
 func part2(program []int64) (int64, error) {
-	return getDiagnosticCode(program, 5)
+	vm := intcode.NewVM(append([]int64(nil), program...))
+	return getDiagnosticCode(&vm, 5)
 }
 
 func main() {

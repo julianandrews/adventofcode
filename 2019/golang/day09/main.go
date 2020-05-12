@@ -7,22 +7,20 @@ import (
 	"os"
 )
 
+func runWithInput(vm intcode.VM, input int64) int64 {
+	go vm.Run()
+	vm.Inputs() <- input
+	return <-vm.Outputs()
+}
+
 func part1(program []int64) int64 {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	go vm.Run()
-	vm.Inputs() <- 1
-	output := <-vm.Outputs()
-
-	return output
+    return runWithInput(&vm, 1)
 }
 
 func part2(program []int64) int64 {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	go vm.Run()
-	vm.Inputs() <- 2
-	output := <-vm.Outputs()
-
-	return output
+    return runWithInput(&vm, 2)
 }
 
 func main() {
