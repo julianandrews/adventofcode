@@ -17,8 +17,8 @@ type graphTraversal struct {
 func BFTraversal(start interface{}, neighbors func(interface{}) []interface{}) graphTraversal {
 	seen := make(map[interface{}]bool)
 	seen[start] = true
-    var queue nodeFIFOQueue
-    queue.push(TraversalNode{Value: start, Depth: 0, Index: 0, Parent: nil})
+	var queue nodeFIFOQueue
+	queue.push(TraversalNode{Value: start, Depth: 0, Index: 0, Parent: nil})
 	return graphTraversal{
 		neighbors: neighbors,
 		index:     0,
@@ -30,8 +30,8 @@ func BFTraversal(start interface{}, neighbors func(interface{}) []interface{}) g
 func DFTraversal(start interface{}, neighbors func(interface{}) []interface{}) graphTraversal {
 	seen := make(map[interface{}]bool)
 	seen[start] = true
-    var queue nodeLIFOQueue
-    queue.push(TraversalNode{Value: start, Depth: 0, Index: 0, Parent: nil})
+	var queue nodeLIFOQueue
+	queue.push(TraversalNode{Value: start, Depth: 0, Index: 0, Parent: nil})
 	return graphTraversal{
 		neighbors: neighbors,
 		index:     0,
@@ -41,9 +41,9 @@ func DFTraversal(start interface{}, neighbors func(interface{}) []interface{}) g
 }
 
 func (traversal *graphTraversal) Next() *TraversalNode {
-    if traversal.queue.isEmpty() {
-        return nil
-    }
+	if traversal.queue.isEmpty() {
+		return nil
+	}
 	node := traversal.queue.pop()
 	for _, neighbor := range traversal.neighbors(node.Value) {
 		traversal.index++
