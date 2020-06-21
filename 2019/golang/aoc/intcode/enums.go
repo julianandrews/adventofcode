@@ -2,6 +2,7 @@ package intcode
 
 import (
 	"errors"
+    "fmt"
 )
 
 type opType int64
@@ -37,6 +38,6 @@ func (opType opType) numParams() (int, error) {
 	case opTypeHalt:
 		return 0, nil
 	default:
-		return 0, errors.New("Unrecognized operation")
+        return 0, errors.New(fmt.Sprintf("Unrecognized operation: '%d'", opType))
 	}
 }

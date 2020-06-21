@@ -1,6 +1,6 @@
 package intcode
 
-type vmAddress uint
+type vmAddress uint64
 
 type vmMemory struct {
 	memory []int64

@@ -148,7 +148,7 @@ func part1(program []int64) int {
 	panel := make(Panel)
 	everPainted := make(Panel)
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	for step := range paintPanel(&vm, &panel) {
+	for step := range paintPanel(vm, &panel) {
 		if step.paintWhite {
 			everPainted[step.paintLocation] = true
 		}
@@ -161,7 +161,7 @@ func part2(program []int64) string {
 	panel := make(Panel)
 	panel[Point{x: 0, y: 0}] = true
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	for range paintPanel(&vm, &panel) {
+	for range paintPanel(vm, &panel) {
 	}
 	return panel.String()
 }
