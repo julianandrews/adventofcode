@@ -78,7 +78,7 @@ func part2(program []int64) int64 {
 		vms := make([]intcode.VM, len(perm))
 		for i, phase := range perm {
             vm := intcode.NewVM(append([]int64(nil), program...))
-			vms[i] = &vm
+			vms[i] = vm
 			go vms[i].Run()
 			sendInput(vms[i], phase)
 		}

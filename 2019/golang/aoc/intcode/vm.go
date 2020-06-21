@@ -2,6 +2,9 @@ package intcode
 
 import (
 	"errors"
+	"fmt"
+	"log"
+	"runtime"
 )
 
 type VM interface {
@@ -20,15 +23,27 @@ type vm struct {
 	outputs      chan int64
 	ip           vmAddress
 	relativeBase int64
+	logger       *log.Logger
 }
 
-func NewVM(program []int64) vm {
-	return vm{
+type VMOptions struct {
+	InputBufferSize  int
+	OutputBufferSize int
+	Logger           *log.Logger
+}
+
+func NewVM(program []int64) *vm {
+	return NewVMWithOptions(program, VMOptions{})
+}
+
+func NewVMWithOptions(program []int64, options VMOptions) *vm {
+	return &vm{
 		memory:       vmMemory{memory: program},
-		inputs:       make(chan int64),
-		outputs:      make(chan int64),
+		inputs:       make(chan int64, options.InputBufferSize),
+		outputs:      make(chan int64, options.OutputBufferSize),
 		ip:           0,
 		relativeBase: 0,
+		logger:       options.Logger,
 	}
 }
 
@@ -52,6 +67,13 @@ func (vm *vm) Run() error {
 		} else if !running {
 			return nil
 		}
+		runtime.Gosched()
+	}
+}
+
+func (vm *vm) log(format string, args ...interface{}) {
+	if vm.logger != nil {
+		vm.logger.Printf(format, args...)
 	}
 }
 
@@ -90,7 +112,7 @@ func (vm *vm) step() (bool, error) {
 		close(vm.outputs)
 		return false, nil
 	default:
-		return false, errors.New("Unrecognized operation")
+		return false, errors.New(fmt.Sprintf("Unrecognized operation: '%d'", opType))
 	}
 
 	return true, nil
@@ -113,7 +135,7 @@ func (vm *vm) getModes(numParams int) ([]valueMode, error) {
 		case valueModeImmediate, valueModePosition, valueModeRelative:
 			modes[i] = valueMode(mode)
 		default:
-			return nil, errors.New("Unrecognized valueMode")
+			return nil, errors.New(fmt.Sprintf("Unrecognized valueMode: '%d'", mode))
 		}
 		x = x / 10
 	}
@@ -134,7 +156,7 @@ func (vm *vm) getAddress(baseAddress int64, mode valueMode) (vmAddress, error) {
 		}
 		return vmAddress(address), nil
 	default:
-		return 0, errors.New("Unrecognized value mode")
+		return 0, errors.New(fmt.Sprintf("Unrecognized valueMode: '%d'", mode))
 	}
 }
 
@@ -154,7 +176,7 @@ func (vm *vm) getValue(value int64, mode valueMode) (int64, error) {
 		}
 		return vm.memory.get(vmAddress(address)), nil
 	default:
-		return 0, errors.New("Unrecognized value mode")
+		return 0, errors.New(fmt.Sprintf("Unrecognized valueMode: '%d'", mode))
 	}
 }
 
@@ -203,6 +225,7 @@ func (vm *vm) add(params []int64, modes []valueMode) error {
 	if err != nil {
 		return err
 	}
+	vm.log("Store %d + %d to %d\n", a, b, address)
 	vm.memory.set(address, a+b)
 	vm.ip += vmAddress(len(params) + 1)
 	return nil
@@ -213,6 +236,7 @@ func (vm *vm) multiply(params []int64, modes []valueMode) error {
 	if err != nil {
 		return err
 	}
+	vm.log("Store %d * %d to %d\n", a, b, address)
 	vm.memory.set(address, a*b)
 	vm.ip += vmAddress(len(params) + 1)
 	return nil
@@ -230,6 +254,7 @@ func (vm *vm) store(params []int64, modes []valueMode) error {
 		return err
 	}
 	value := <-vm.inputs
+	vm.log("Store %d to %d\n", value, address)
 	vm.memory.set(address, value)
 	vm.ip += vmAddress(len(params) + 1)
 	return nil
@@ -243,6 +268,7 @@ func (vm *vm) output(params []int64, modes []valueMode) error {
 	if err != nil {
 		return err
 	}
+	vm.log("Output %d\n", value)
 	vm.outputs <- value
 	vm.ip += vmAddress(len(params) + 1)
 	return nil
@@ -254,6 +280,7 @@ func (vm *vm) jumpIfTrue(params []int64, modes []valueMode) error {
 		return err
 	}
 	if a != 0 {
+		vm.log("Jump to %d\n", address)
 		vm.ip = address
 	} else {
 		vm.ip += vmAddress(len(params) + 1)
@@ -268,6 +295,7 @@ func (vm *vm) jumpIfFalse(params []int64, modes []valueMode) error {
 		return err
 	}
 	if a == 0 {
+		vm.log("Jump to %d\n", address)
 		vm.ip = address
 	} else {
 		vm.ip += vmAddress(len(params) + 1)
@@ -282,8 +310,10 @@ func (vm *vm) lessThan(params []int64, modes []valueMode) error {
 		return err
 	}
 	if a < b {
+		vm.log("Set %d to 1\n", address)
 		vm.memory.set(address, 1)
 	} else {
+		vm.log("Set %d to 0\n", address)
 		vm.memory.set(address, 0)
 	}
 	vm.ip += vmAddress(len(params) + 1)
@@ -296,8 +326,10 @@ func (vm *vm) equals(params []int64, modes []valueMode) error {
 		return err
 	}
 	if a == b {
+		vm.log("Set %d to 1\n", address)
 		vm.memory.set(address, 1)
 	} else {
+		vm.log("Set %d to 0\n", address)
 		vm.memory.set(address, 0)
 	}
 	vm.ip += vmAddress(len(params) + 1)

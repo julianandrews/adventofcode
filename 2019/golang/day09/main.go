@@ -15,12 +15,12 @@ func runWithInput(vm intcode.VM, input int64) int64 {
 
 func part1(program []int64) int64 {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-    return runWithInput(&vm, 1)
+    return runWithInput(vm, 1)
 }
 
 func part2(program []int64) int64 {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-    return runWithInput(&vm, 2)
+    return runWithInput(vm, 2)
 }
 
 func main() {

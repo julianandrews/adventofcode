@@ -21,12 +21,12 @@ func getDiagnosticCode(vm intcode.VM, input int64) (int64, error) {
 
 func part1(program []int64) (int64, error) {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	return getDiagnosticCode(&vm, 1)
+	return getDiagnosticCode(vm, 1)
 }
 
 func part2(program []int64) (int64, error) {
 	vm := intcode.NewVM(append([]int64(nil), program...))
-	return getDiagnosticCode(&vm, 5)
+	return getDiagnosticCode(vm, 5)
 }
 
 func main() {

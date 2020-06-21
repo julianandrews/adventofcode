@@ -15,7 +15,7 @@ func runWithInputs(program []int64, noun int64, verb int64) (intcode.VMMemoryAcc
 	vm := intcode.NewVM(programCopy)
 	err := vm.Run()
 
-	return &vm, err
+	return vm, err
 }
 
 func part1(program []int64) (int64, error) {
