@@ -67,7 +67,7 @@ impl PasswordPolicy {
     fn validate(&self, password: &str) -> bool {
         let count = password.chars().filter(|&c| c == self.letter).count();
 
-        count >= self.start && count <= self.end
+        (self.start..=self.end).contains(&count)
     }
 
     fn really_validate(&self, password: &str) -> bool {
