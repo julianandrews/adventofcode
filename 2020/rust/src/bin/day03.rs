@@ -34,7 +34,7 @@ impl TreeMap {
     fn has_tree_at(&self, x: usize, y: usize) -> bool {
         self.rows
             .get(y)
-            .map(|row| *row.get(x % row.len()).unwrap())
+            .map(|row| *row.get(x % row.len()).unwrap_or(&false))
             .unwrap_or(false)
     }
 
@@ -52,15 +52,15 @@ impl FromStr for TreeMap {
 
     fn from_str(s: &str) -> Result<Self> {
         if s.chars().any(|c| c != '.' && c != '#' && c != '\n') {
-            return Err(AOCError::new("Invalid map"))?;
+            return Err(AOCError::new("Invalid characters in map"))?;
         }
         let rows: Vec<Vec<bool>> = s
             .lines()
             .map(|line| line.as_bytes().iter().map(|&b| b == b'#').collect())
             .collect();
         let row_length = rows.get(0).map(|row| row.len()).unwrap_or(0);
-        if !rows.iter().all(|row| row.len() == row_length) {
-            return Err(AOCError::new("Invalid map"))?;
+        if rows.iter().any(|row| row.len() != row_length) {
+            return Err(AOCError::new("Inconsistent row lengths in map"))?;
         }
 
         Ok(TreeMap { rows })
