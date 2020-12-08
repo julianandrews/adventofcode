@@ -167,7 +167,6 @@ mod tests {
                                 \nhgt:179cm"
             .parse()
             .unwrap();
-        println!("{:?}", passport.data);
         assert!(passport.is_valid());
     }
 
