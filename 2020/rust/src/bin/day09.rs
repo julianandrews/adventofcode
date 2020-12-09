@@ -73,7 +73,7 @@ impl Decoder {
                 sum -= self.numbers[start];
                 start += 1;
             }
-            if sum == target {
+            if sum == target && end != start {
                 let smallest = self.numbers[start..=end].iter().min().unwrap();
                 let largest = self.numbers[start..=end].iter().max().unwrap();
                 return Some(smallest + largest);
