@@ -13,7 +13,7 @@ function runday {
   day=$(printf "%02d" "$1")
   shift
   echo "Running day${day}"
-  cat ../inputs/day${day}/input.txt | cargo run --bin "day${day}" "$@" 2>/dev/null | sed 's/^/  /'
+  cat ../inputs/day${day}/input.txt | cargo run --bin "day${day}" "$@" | sed 's/^/  /'
 }
 
 if [ -z "$1" ]; then
