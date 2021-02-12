@@ -1,13 +1,11 @@
 #![feature(str_split_once)]
 
-use std::collections::HashSet;
-
 use aoc::aoc_error::AOCError;
-use aoc::math::mod_mul;
 use aoc::utils::get_input;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+// Modulus to use for keys. Code below assumes MODULUS ** 2 < std::u64::max.
 static MODULUS: u64 = 20201227;
 
 fn main() -> Result<()> {
@@ -16,8 +14,8 @@ fn main() -> Result<()> {
         .trim()
         .split_once('\n')
         .ok_or(AOCError::new("Invalid input"))?;
-    let card_pubkey: u64 = a.parse()?;
-    let door_pubkey: u64 = b.parse()?;
+    let card_pubkey: u64 = a.parse::<u64>()?;
+    let door_pubkey: u64 = b.parse::<u64>()?;
 
     println!("Part 1: {}", part1(card_pubkey, door_pubkey)?);
 
@@ -30,20 +28,21 @@ fn part1(card_pubkey: u64, door_pubkey: u64) -> Result<u64> {
 }
 
 fn transform(subject_number: u64, loop_size: u64) -> u64 {
-    (0..loop_size).fold(1, |value, _| mod_mul(value, subject_number, MODULUS))
+    // Protect against multiplication overflow.
+    let subject_number = subject_number % MODULUS;
+    let loop_size = loop_size % MODULUS;
+    (0..loop_size).fold(1, |value, _| value * subject_number % MODULUS)
 }
 
 fn find_loop_size(pubkey: u64) -> Option<u64> {
-    let mut seen: HashSet<u64> = HashSet::new();
     let mut value = 1;
-    for loop_size in 0.. {
+    // If a value ever repeats, there will be a cycle, so if we don't find
+    // our key after MODULUS checks, we never will.
+    for loop_size in 0..MODULUS {
         if value == pubkey {
             return Some(loop_size);
-        } else if seen.contains(&value) {
-            break;
         }
-        seen.insert(value);
-        value = mod_mul(value, 7, MODULUS);
+        value = value * 7 % MODULUS;
     }
     None
 }
