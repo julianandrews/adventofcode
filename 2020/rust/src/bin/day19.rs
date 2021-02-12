@@ -22,14 +22,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1(ruleset: &mut RuleSet, messages: &[&str]) -> usize {
+fn part1<'a>(ruleset: &mut RuleSet<'a>, messages: &[&'a str]) -> usize {
     messages
         .iter()
         .filter(|message| ruleset.matches(0, message))
         .count()
 }
 
-fn part2(ruleset: &mut RuleSet, messages: &[&str]) -> usize {
+fn part2<'a>(ruleset: &mut RuleSet<'a>, messages: &[&'a str]) -> usize {
     ruleset.fix();
 
     messages
@@ -39,24 +39,24 @@ fn part2(ruleset: &mut RuleSet, messages: &[&str]) -> usize {
 }
 
 #[derive(Debug, Clone)]
-struct RuleSet {
+struct RuleSet<'a> {
     rules: HashMap<usize, Rule>,
-    memo: HashMap<usize, HashMap<String, bool>>,
+    memo: HashMap<(usize, &'a str), bool>,
 }
 
-impl RuleSet {
-    fn matches(&mut self, id: usize, s: &str) -> bool {
-        if self.memo.get(&id).map(|x| x.get(s)).flatten().is_none() {
-            let result = self.matches_helper(id, s);
-            self.memo
-                .entry(id)
-                .or_insert_with(HashMap::new)
-                .insert(s.to_string(), result);
+impl<'a> RuleSet<'a> {
+    fn matches(&mut self, id: usize, s: &'a str) -> bool {
+        match self.memo.get(&(id, s)) {
+            Some(value) => *value,
+            None => {
+                let result = self.matches_helper(id, s);
+                self.memo.insert((id, s), result);
+                result
+            }
         }
-        *self.memo.get(&id).unwrap().get(s).unwrap()
     }
 
-    fn matches_helper(&mut self, id: usize, s: &str) -> bool {
+    fn matches_helper(&mut self, id: usize, s: &'a str) -> bool {
         let rule = match self.rules.get(&id) {
             Some(rule) => rule.clone(),
             None => return false,
@@ -70,7 +70,7 @@ impl RuleSet {
         }
     }
 
-    fn matches_production_rule(&mut self, production_rule: &ProductionRule, s: &str) -> bool {
+    fn matches_production_rule(&mut self, production_rule: &ProductionRule, s: &'a str) -> bool {
         match production_rule {
             ProductionRule::Unit(a) => self.matches(*a, s),
             ProductionRule::Pair(a, b) => {
@@ -99,7 +99,7 @@ impl RuleSet {
     }
 }
 
-impl std::str::FromStr for RuleSet {
+impl<'a> std::str::FromStr for RuleSet<'a> {
     type Err = Box<dyn std::error::Error>;
 
     fn from_str(s: &str) -> Result<Self> {
