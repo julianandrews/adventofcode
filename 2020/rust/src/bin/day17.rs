@@ -1,5 +1,3 @@
-#![feature(min_const_generics)]
-
 use itertools::Itertools;
 use std::collections::HashSet;
 
