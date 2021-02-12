@@ -20,7 +20,7 @@ fn part2(numbers: &[usize]) -> usize {
 }
 
 fn nth_number(numbers: &[usize], n: usize) -> usize {
-    NumberIterator::new(numbers.to_vec())
+    NumberIterator::new(numbers.to_vec(), n)
         .nth(n - 1)
         .expect("Iterator ended unexpectedly")
 }
@@ -33,12 +33,13 @@ struct NumberIterator {
 }
 
 impl NumberIterator {
-    fn new(starting_numbers: Vec<usize>) -> Self {
+    // Using ceiling lets us perform just a single allocation, which saves a ton of time.
+    fn new(starting_numbers: Vec<usize>, ceiling: usize) -> Self {
         NumberIterator {
             starting_numbers,
             i: 0,
             last_number: 0,
-            last_seen: Vec::with_capacity(10_000),
+            last_seen: vec![None; ceiling],
         }
     }
 }
@@ -49,14 +50,12 @@ impl Iterator for NumberIterator {
     fn next(&mut self) -> Option<usize> {
         let n = match self.starting_numbers.get(self.i) {
             Some(n) => *n,
-            None => match self.last_seen[self.last_number] {
-                Some(x) => self.i - 1 - x,
-                None => 0,
+            None => match self.last_seen.get(self.last_number) {
+                Some(&Some(x)) => self.i - 1 - x,
+                Some(None) => 0,
+                None => return None,
             },
         };
-        if n >= self.last_seen.len() {
-            self.last_seen.resize(n * 2, None);
-        }
         if self.i > 0 {
             self.last_seen[self.last_number] = Some(self.i - 1);
         }
@@ -72,7 +71,7 @@ mod tests {
 
     #[test]
     fn number_iterator() {
-        let mut iterator = NumberIterator::new(vec![0, 3, 6]);
+        let mut iterator = NumberIterator::new(vec![0, 3, 6], 10);
         assert_eq!(iterator.next(), Some(0));
         assert_eq!(iterator.next(), Some(3));
         assert_eq!(iterator.next(), Some(6));
