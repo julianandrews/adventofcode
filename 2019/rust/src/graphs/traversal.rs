@@ -11,16 +11,12 @@ pub struct TraversalNode<T> {
     pub parent: Option<Rc<TraversalNode<T>>>,
 }
 
-impl<T> TraversalNode<T> {
-    pub fn path(self) -> TraversalPathIterator<T> {
-        TraversalPathIterator {
-            node: Some(Rc::new(self)),
-        }
-    }
-}
-
 pub struct TraversalPathIterator<T> {
     node: Option<Rc<TraversalNode<T>>>,
+}
+
+pub fn traversal_path<T: Clone>(node: Rc<TraversalNode<T>>) -> impl Iterator<Item = T> {
+    TraversalPathIterator { node: Some(node) }
 }
 
 impl<T: Clone> Iterator for TraversalPathIterator<T> {
