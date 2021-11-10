@@ -11,12 +11,12 @@ fn main() -> Result<()> {
     let input = get_input()?;
     let program: Program = input.parse()?;
 
-    println!("Part 1: {}", part1(program.clone()));
+    println!("Part 1: {}", part1(&program));
     println!("Part 2: {}", part2(program)?);
     Ok(())
 }
 
-fn part1(program: Program) -> i64 {
+fn part1(program: &Program) -> i64 {
     let mut vm = VirtualMachine::new(program);
     vm.run_until_repeat_or_done();
     vm.accumulator
@@ -24,7 +24,7 @@ fn part1(program: Program) -> i64 {
 
 fn part2(mut program: Program) -> Result<i64> {
     program.fix()?;
-    let mut vm = VirtualMachine::new(program);
+    let mut vm = VirtualMachine::new(&program);
     match vm.run_until_repeat_or_done() {
         ProgramState::Running => Err(AOCError::new("Fixed program did not terminate"))?,
         ProgramState::Complete => Ok(vm.accumulator),
@@ -85,13 +85,13 @@ impl Program {
         let mut terminating = BTreeSet::new();
         let mut unchecked: BTreeSet<usize> = (0..self.0.len()).collect();
         while let Some(mut i) = unchecked.iter().next().copied() {
-            let mut current = BTreeSet::new();
+            let mut current = vec![];
             while unchecked.contains(&i) {
                 unchecked.remove(&i);
-                current.insert(i);
+                current.push(i);
                 let next = self.op(i).and_then(|op| self.next_index(i, op.offset()));
                 if next.is_none() || terminating.contains(&next.unwrap()) {
-                    terminating.append(&mut current);
+                    terminating.extend(current.into_iter());
                     break;
                 }
                 i = next.unwrap();
@@ -118,14 +118,14 @@ impl FromStr for Program {
 }
 
 #[derive(Debug)]
-struct VirtualMachine {
-    program: Program,
+struct VirtualMachine<'a> {
+    program: &'a Program,
     accumulator: i64,
     ip: usize,
 }
 
-impl VirtualMachine {
-    pub fn new(program: Program) -> Self {
+impl<'a> VirtualMachine<'a> {
+    pub fn new(program: &'a Program) -> Self {
         VirtualMachine {
             program,
             accumulator: 0,
@@ -215,7 +215,8 @@ mod tests {
 
     #[test]
     fn step() {
-        let mut vm = VirtualMachine::new(TEST_INPUT.parse().unwrap());
+        let program = TEST_INPUT.parse().unwrap();
+        let mut vm = VirtualMachine::new(&program);
         vm.step();
         assert_eq!((vm.ip, vm.accumulator), (1, 0));
         vm.step();
@@ -234,7 +235,8 @@ mod tests {
 
     #[test]
     fn run_until_repeat() {
-        let mut vm = VirtualMachine::new(TEST_INPUT.parse().unwrap());
+        let program = TEST_INPUT.parse().unwrap();
+        let mut vm = VirtualMachine::new(&program);
         let result = vm.run_until_repeat_or_done();
         assert_eq!(result, ProgramState::Running);
         assert_eq!((vm.ip, vm.accumulator), (1, 5));
@@ -244,7 +246,7 @@ mod tests {
     fn fix_and_run() {
         let mut program: Program = TEST_INPUT.parse().unwrap();
         program.fix().unwrap();
-        let mut vm = VirtualMachine::new(program);
+        let mut vm = VirtualMachine::new(&program);
         let result = vm.run_until_repeat_or_done();
         assert_eq!(result, ProgramState::Complete);
         assert_eq!(vm.accumulator, 8);
