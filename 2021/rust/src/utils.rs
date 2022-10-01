@@ -1,10 +1,9 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
-use std::result::Result;
 use std::str::FromStr;
 
-pub fn get_input() -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_input() -> std::io::Result<String> {
     let args: Vec<String> = env::args().collect();
     let filename = if args.len() == 2 && args[1] != "-" {
         Some(args[1].clone())
