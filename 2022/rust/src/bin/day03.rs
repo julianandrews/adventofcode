@@ -112,7 +112,6 @@ mod tests {
     #[test]
     fn misplaced() {
         let packs: Vec<Pack> = TEST_DATA.iter().map(|s| s.parse().unwrap()).collect();
-        println!("{:?}", packs);
         let priorities: Vec<u32> = packs
             .iter()
             .map(|pack| misplaced_item(pack).unwrap())
