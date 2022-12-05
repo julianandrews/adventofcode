@@ -25,10 +25,7 @@ fn part2(calories: &[Vec<u32>]) -> u32 {
 }
 
 fn max_calories<T: AsRef<[u32]>>(calories: &[T], n: usize) -> u32 {
-    let mut calories: Vec<_> = calories
-        .into_iter()
-        .map(|x| x.as_ref().into_iter().sum())
-        .collect();
+    let mut calories: Vec<_> = calories.iter().map(|x| x.as_ref().iter().sum()).collect();
     calories.sort();
     calories.iter().rev().take(n).sum()
 }

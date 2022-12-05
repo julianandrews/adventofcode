@@ -5,14 +5,10 @@ use std::str::FromStr;
 
 pub fn get_input() -> std::io::Result<String> {
     let args: Vec<String> = env::args().collect();
-    let filename = if args.len() == 2 && args[1] != "-" {
-        Some(args[1].clone())
+    let mut reader: Box<dyn io::Read> = if args.len() == 2 && args[1] != "-" {
+        Box::new(io::BufReader::new(File::open(&args[1])?))
     } else {
-        None
-    };
-    let mut reader: Box<dyn io::Read> = match &filename {
-        Some(filename) => Box::new(io::BufReader::new(File::open(&filename)?)),
-        None => Box::new(io::stdin()),
+        Box::new(io::stdin())
     };
 
     let mut input = String::new();

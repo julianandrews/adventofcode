@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use aoc::utils::{get_input, parse_fields};
 
@@ -37,7 +37,7 @@ impl std::str::FromStr for AssignmentPair {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (left, right) = s.split_once(',').ok_or(anyhow::anyhow!("Invalid pair"))?;
+        let (left, right) = s.split_once(',').ok_or_else(|| anyhow!("Invalid pair"))?;
         Ok(Self(left.parse()?, right.parse()?))
     }
 }
@@ -59,7 +59,7 @@ impl std::str::FromStr for Assignment {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (left, right) = s.split_once('-').ok_or(anyhow::anyhow!("Invalid range"))?;
+        let (left, right) = s.split_once('-').ok_or_else(|| anyhow!("Invalid range"))?;
         Ok(Self(left.parse()?, right.parse()?))
     }
 }
