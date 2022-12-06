@@ -1,48 +1,34 @@
-use std::collections::BTreeMap;
-
 use anyhow::{anyhow, Result};
 
 use aoc::utils::get_input;
 
 fn main() -> Result<()> {
-    let input = get_input()?;
-    let data = input.trim().as_bytes();
+    let data = get_input()?;
 
-    println!("Part 1: {}", part1(data)?);
-    println!("Part 2: {}", part2(data)?);
+    println!("Part 1: {}", part1(&data)?);
+    println!("Part 2: {}", part2(&data)?);
 
     Ok(())
 }
 
-fn part1(data: &[u8]) -> Result<usize> {
+fn part1(data: &str) -> Result<usize> {
     find_marker(data, 4).ok_or_else(|| anyhow!("Marker not found"))
 }
 
-fn part2(data: &[u8]) -> Result<usize> {
+fn part2(data: &str) -> Result<usize> {
     find_marker(data, 14).ok_or_else(|| anyhow!("Marker not found"))
 }
 
-fn find_marker(data: &[u8], n: usize) -> Option<usize> {
-    let mut counts = BTreeMap::new();
-
-    // Add the first n-1 characters
-    for b in data.get(0..n - 1)? {
-        *counts.entry(b).or_insert(0) += 1
-    }
-    for (i, window) in data.windows(n).enumerate() {
-        // Add the new character
-        *counts.entry(window.last()?).or_insert(0) += 1;
-
-        // Check if we've got n distinct characters
-        if counts.len() == n {
-            return Some(i + n);
+fn find_marker(data: &str, n: usize) -> Option<usize> {
+    let masks: Vec<_> = data.trim().bytes().map(|b| 1u32 << (b - b'a')).collect();
+    let mut seen = 0u32;
+    for (i, mask) in masks.iter().enumerate() {
+        seen ^= mask;
+        if i >= n {
+            seen ^= masks[i - n];
         }
-
-        // Remove the old character
-        let old_byte = &window.first()?;
-        let old_count = counts.remove(old_byte).expect("Old byte not found");
-        if old_count > 1 {
-            counts.insert(old_byte, old_count - 1);
+        if seen.count_ones() as usize == n {
+            return Some(i + 1);
         }
     }
     None
@@ -54,97 +40,97 @@ mod tests {
 
     #[test]
     fn packet_marker_1() {
-        let data = b"mjqjpqmgbljsphdztnvjfqwrcgsmlb";
+        let data = "mjqjpqmgbljsphdztnvjfqwrcgsmlb";
         assert_eq!(find_marker(data, 4).unwrap(), 7);
     }
 
     #[test]
     fn packet_marker_2() {
-        let data = b"bvwbjplbgvbhsrlpgdmjqwftvncz";
+        let data = "bvwbjplbgvbhsrlpgdmjqwftvncz";
         assert_eq!(find_marker(data, 4).unwrap(), 5);
     }
 
     #[test]
     fn packet_marker_3() {
-        let data = b"nppdvjthqldpwncqszvftbrmjlhg";
+        let data = "nppdvjthqldpwncqszvftbrmjlhg";
         assert_eq!(find_marker(data, 4).unwrap(), 6);
     }
 
     #[test]
     fn packet_marker_4() {
-        let data = b"nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
+        let data = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
         assert_eq!(find_marker(data, 4).unwrap(), 10);
     }
 
     #[test]
     fn packet_marker_5() {
-        let data = b"zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
+        let data = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
         assert_eq!(find_marker(data, 4).unwrap(), 11);
     }
 
     #[test]
     fn message_marker_1() {
-        let data = b"mjqjpqmgbljsphdztnvjfqwrcgsmlb";
+        let data = "mjqjpqmgbljsphdztnvjfqwrcgsmlb";
         assert_eq!(find_marker(data, 14).unwrap(), 19);
     }
 
     #[test]
     fn message_marker_2() {
-        let data = b"bvwbjplbgvbhsrlpgdmjqwftvncz";
+        let data = "bvwbjplbgvbhsrlpgdmjqwftvncz";
         assert_eq!(find_marker(data, 14).unwrap(), 23);
     }
 
     #[test]
     fn message_marker_3() {
-        let data = b"nppdvjthqldpwncqszvftbrmjlhg";
+        let data = "nppdvjthqldpwncqszvftbrmjlhg";
         assert_eq!(find_marker(data, 14).unwrap(), 23);
     }
 
     #[test]
     fn message_marker_4() {
-        let data = b"nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
+        let data = "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg";
         assert_eq!(find_marker(data, 14).unwrap(), 29);
     }
 
     #[test]
     fn message_marker_5() {
-        let data = b"zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
+        let data = "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw";
         assert_eq!(find_marker(data, 14).unwrap(), 26);
     }
 
     #[test]
     fn short_input() {
-        let data = b"mjq";
+        let data = "mjq";
         assert_eq!(find_marker(data, 4), None);
     }
 
     #[test]
     fn input_equals_len_no_match() {
-        let data = b"mjqj";
+        let data = "mjqj";
         assert_eq!(find_marker(data, 4), None);
     }
 
     #[test]
     fn input_equals_len_match() {
-        let data = b"mjqx";
+        let data = "mjqx";
         assert_eq!(find_marker(data, 4).unwrap(), 4);
     }
 
     #[test]
     fn match_at_end() {
-        let data = b"mjmjqx";
+        let data = "mjmjqx";
         assert_eq!(find_marker(data, 4).unwrap(), 6);
     }
 
     #[test]
     fn n_zero() {
-        let data = b"mjmj";
+        let data = "mjmj";
         assert_eq!(find_marker(data, 4), None);
     }
 
     #[test]
     fn n_one() {
-        let data = b"mjmj";
+        let data = "mjmj";
         assert_eq!(find_marker(data, 1).unwrap(), 1);
     }
 }
