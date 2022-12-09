@@ -1,34 +1,39 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Result};
 
 use aoc::utils::get_input;
 
+type Cache<'a> = HashMap<&'a PathBuf, u32>;
+
 fn main() -> Result<()> {
     let input = get_input()?;
     let filesystem = input.trim().parse()?;
+    let mut cache: Cache = HashMap::new();
 
-    println!("Part 1: {}", part1(&filesystem));
-    println!("Part 2: {}", part2(&filesystem));
+    println!("Part 1: {}", part1(&filesystem, &mut cache));
+    println!("Part 2: {}", part2(&filesystem, &mut cache));
 
     Ok(())
 }
 
-fn part1(filesystem: &FileSystem) -> u32 {
+fn part1<'fs: 'cache, 'cache>(filesystem: &'fs FileSystem, cache: &mut Cache<'cache>) -> u32 {
     filesystem
         .directories()
-        .map(|path| filesystem.size(path))
+        .map(|path| filesystem.size(path, cache))
         .filter(|&size| size <= 100000)
         .sum()
 }
 
-fn part2(filesystem: &FileSystem) -> u32 {
+fn part2<'fs: 'cache, 'cache>(filesystem: &'fs FileSystem, cache: &mut Cache<'cache>) -> u32 {
     static MAX_FILESYSTEM_SIZE: u32 = 40000000;
-    let to_free = filesystem.size("/").saturating_sub(MAX_FILESYSTEM_SIZE);
+    let to_free = filesystem
+        .size("/", cache)
+        .saturating_sub(MAX_FILESYSTEM_SIZE);
     let mut dir_sizes: Vec<u32> = filesystem
         .directories()
-        .map(|path| filesystem.size(path))
+        .map(|path| filesystem.size(path, cache))
         .filter(|&size| size >= to_free)
         .collect();
     dir_sizes.sort_unstable();
@@ -36,19 +41,28 @@ fn part2(filesystem: &FileSystem) -> u32 {
 }
 
 #[derive(Debug, Clone)]
-struct FileSystem(BTreeMap<PathBuf, Node>);
+struct FileSystem(HashMap<PathBuf, Node>);
 
 impl FileSystem {
-    fn size<P: AsRef<Path>>(&self, path: P) -> u32 {
+    fn size<'cache, 'fs: 'cache, P: AsRef<Path>>(
+        &'fs self,
+        path: P,
+        cache: &mut Cache<'cache>,
+    ) -> u32 {
         let path = path.as_ref();
-        let node = match self.0.get(path) {
-            Some(node) => node,
+        let (path, node) = match self.0.get_key_value(path) {
+            Some((path, node)) => (path, node),
             None => return 0,
         };
-        match node {
-            Node::Directory(paths) => paths.iter().map(|p| self.size(path.join(p))).sum(),
-            Node::File(size) => *size,
+        if let Some(&value) = cache.get(path) {
+            return value;
         }
+        let value = match node {
+            Node::Directory(paths) => paths.iter().map(|p| self.size(path.join(p), cache)).sum(),
+            Node::File(size) => *size,
+        };
+        cache.insert(path, value);
+        value
     }
 
     fn directories(&self) -> impl Iterator<Item = &Path> {
@@ -63,7 +77,7 @@ impl std::str::FromStr for FileSystem {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut filesystem = BTreeMap::new();
+        let mut filesystem = HashMap::new();
         let mut pwd = PathBuf::new();
         let mut lines = s.lines().peekable();
         while let Some(line) = lines.next() {
@@ -139,36 +153,36 @@ mod tests {
     #[test]
     fn size_1() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/a/e"), 584);
+        assert_eq!(filesystem.size("/a/e", &mut HashMap::new()), 584);
     }
 
     #[test]
     fn size_2() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/a"), 94853);
+        assert_eq!(filesystem.size("/a", &mut HashMap::new()), 94853);
     }
 
     #[test]
     fn size_3() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/d"), 24933642);
+        assert_eq!(filesystem.size("/d", &mut HashMap::new()), 24933642);
     }
 
     #[test]
     fn size_4() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/"), 48381165);
+        assert_eq!(filesystem.size("/", &mut HashMap::new()), 48381165);
     }
 
     #[test]
     fn sum_small() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(part1(&filesystem), 95437);
+        assert_eq!(part1(&filesystem, &mut HashMap::new()), 95437);
     }
 
     #[test]
     fn to_delete() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(part2(&filesystem), 24933642);
+        assert_eq!(part2(&filesystem, &mut HashMap::new()), 24933642);
     }
 }
