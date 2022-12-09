@@ -71,6 +71,12 @@ impl TryFrom<char> for Height {
     }
 }
 
+impl From<&Height> for char {
+    fn from(h: &Height) -> Self {
+        char::from_digit(h.0, 10).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

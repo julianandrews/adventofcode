@@ -46,6 +46,21 @@ impl<T: TryFrom<char>> std::str::FromStr for TileMap<T> {
     }
 }
 
+impl<T> std::fmt::Display for TileMap<T>
+where
+    char: for<'a> From<&'a T>,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let lines: Vec<String> = self
+            .rows
+            .iter()
+            .map(|row| row.iter().map(|t| char::from(t)).collect())
+            .collect();
+
+        write!(f, "{}", lines.join("\n"))
+    }
+}
+
 struct DirIterator<'a, T> {
     map: &'a TileMap<T>,
     x: usize,
