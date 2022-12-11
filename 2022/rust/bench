@@ -3,4 +3,5 @@
 set -eu
 
 day="$(printf "%02d" "$1")"
-hyperfine -N --setup "cargo build --release --bin day$day" "target/release/day$day ../inputs/day$day/input.txt"
+shift
+hyperfine -N --setup "cargo build --release --bin day$day" "target/release/day$day ../inputs/day$day/input.txt" "$@"
