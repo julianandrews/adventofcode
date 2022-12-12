@@ -18,13 +18,13 @@ fn main() -> Result<()> {
 fn part1(map: &TileMap<Height>) -> Result<u32> {
     FromStartMap(map)
         .path_length()
-        .ok_or(anyhow!("Failed to find route"))
+        .ok_or_else(|| anyhow!("Failed to find route"))
 }
 
 fn part2(map: &TileMap<Height>) -> Result<u32> {
     FromEndMap(map)
         .path_length()
-        .ok_or(anyhow!("Failed to find route"))
+        .ok_or_else(|| anyhow!("Failed to find route"))
 }
 
 struct FromStartMap<'a>(&'a TileMap<Height>);
@@ -37,7 +37,7 @@ impl<'a> PathMap for FromStartMap<'a> {
     }
 
     fn map(&self) -> &TileMap<Height> {
-        &self.0
+        self.0
     }
 
     fn can_move(&self, from: u8, to: u8) -> bool {
@@ -59,7 +59,7 @@ impl<'a> PathMap for FromEndMap<'a> {
     }
 
     fn map(&self) -> &TileMap<Height> {
-        &self.0
+        self.0
     }
 
     fn can_move(&self, from: u8, to: u8) -> bool {

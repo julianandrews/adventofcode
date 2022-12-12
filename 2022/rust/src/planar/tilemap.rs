@@ -70,7 +70,7 @@ where
         let lines: Vec<String> = self
             .rows
             .iter()
-            .map(|row| row.iter().map(|t| char::from(t)).collect())
+            .map(|row| row.iter().map(char::from).collect())
             .collect();
 
         write!(f, "{}", lines.join("\n"))

@@ -66,8 +66,8 @@ impl std::str::FromStr for Instruction {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "noop" {
             Ok(Self::Noop)
-        } else if s.starts_with("addx ") {
-            Ok(Self::AddX(s[5..].parse()?))
+        } else if let Some(value) = s.strip_prefix("addx ") {
+            Ok(Self::AddX(value.parse()?))
         } else {
             bail!("Invalid instruction: {}", s)
         }

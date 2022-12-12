@@ -49,7 +49,7 @@ impl MonkeyCircle {
             // Take the modulo to prevent worry overflow
             for monkey_items in self.items.iter_mut() {
                 for item in monkey_items.iter_mut() {
-                    *item = *item % modulo;
+                    *item %= modulo;
                 }
             }
         }
