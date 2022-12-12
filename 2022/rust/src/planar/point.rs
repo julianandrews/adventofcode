@@ -13,6 +13,17 @@ impl std::ops::AddAssign for Point {
     }
 }
 
+impl std::ops::Add<Self> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
 impl std::ops::Sub<Self> for Point {
     type Output = Self;
 

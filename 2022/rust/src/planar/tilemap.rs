@@ -1,4 +1,4 @@
-use super::Direction;
+use super::{Direction, Point};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TileMap<T> {
@@ -17,6 +17,22 @@ impl<T> TileMap<T> {
 
     pub fn width(&self) -> usize {
         self.width
+    }
+
+    pub fn manhattan_neighbors(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize, &T)> {
+        let p = Point {
+            x: x as i64,
+            y: y as i64,
+        };
+        Direction::iterator().filter_map(move |d| {
+            let Point { x, y } = p + d.unit_vector();
+            let (x, y) = (usize::try_from(x).ok()?, usize::try_from(y).ok()?);
+            Some((x, y, self.get(x, y)?))
+        })
     }
 
     pub fn iter_coords(&'_ self) -> impl Iterator<Item = (usize, usize)> + '_ {
