@@ -9,7 +9,7 @@ fn main() -> Result<()> {
     let packets = parse_packets(&input)?;
 
     println!("Part 1: {}", part1(&packets)?);
-    println!("Part 2: {}", part2(packets));
+    println!("Part 2: {}", part2(&packets));
 
     Ok(())
 }
@@ -26,15 +26,11 @@ fn part1(packets: &[Packet]) -> Result<usize> {
         .sum())
 }
 
-fn part2(mut packets: Vec<Packet>) -> usize {
-    let divs = [
-        "[[2]]".parse().expect("Parse failed"),
-        "[[6]]".parse().expect("Parse failed"),
-    ];
-    packets.extend(divs.iter().cloned());
-    packets.sort_unstable();
-    let left = packets.iter().position(|p| p == &divs[0]).expect("No div") + 1;
-    let right = packets.iter().rposition(|p| p == &divs[1]).expect("No div") + 1;
+fn part2(packets: &[Packet]) -> usize {
+    let left_div: Packet = "[[2]]".parse().expect("Parse failed");
+    let left = packets.iter().filter(|&p| p < &left_div).count() + 1;
+    let right_div = "[[6]]".parse().expect("Parse failed");
+    let right = packets.iter().filter(|&p| p < &right_div).count() + 2;
     left * right
 }
 
@@ -72,7 +68,7 @@ impl std::str::FromStr for Packet {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.chars().next() != Some('[') || s.chars().last() != Some(']') {
+        if !(s.starts_with('[') && s.ends_with(']')) {
             bail!("Invalid root packet");
         }
         let mut packet = Packet::List(vec![]);
@@ -138,7 +134,7 @@ impl<'a> Iterator for Lexer<'a> {
             '0'..='9' => {
                 let end = self.text[self.cursor..]
                     .chars()
-                    .position(|c| !c.is_digit(10))
+                    .position(|c| !c.is_ascii_digit())
                     .unwrap_or(self.text.len() - self.cursor)
                     + self.cursor;
                 let n = self.text[self.cursor..end]
@@ -164,8 +160,8 @@ enum Token {
 
 fn parse_packets(s: &str) -> Result<Vec<Packet>> {
     s.trim()
-        .split("\n")
-        .filter(|&line| line != "")
+        .split('\n')
+        .filter(|&line| !line.is_empty())
         .map(|line| line.parse())
         .collect()
 }
@@ -252,6 +248,6 @@ mod tests {
     #[test]
     fn decoder_key() {
         let packets = parse_packets(TEST_DATA).unwrap();
-        assert_eq!(part2(packets), 140);
+        assert_eq!(part2(&packets), 140);
     }
 }
