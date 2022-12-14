@@ -4,6 +4,12 @@ pub struct Point {
     pub y: i64,
 }
 
+impl Point {
+    pub const fn new(x: i64, y: i64) -> Self {
+        Self { x, y }
+    }
+}
+
 impl std::ops::AddAssign for Point {
     fn add_assign(&mut self, other: Self) {
         *self = Self {
@@ -42,6 +48,17 @@ impl std::ops::Mul<i64> for Point {
         Point {
             x: self.x * rhs,
             y: self.y * rhs,
+        }
+    }
+}
+
+impl std::ops::Div<i64> for Point {
+    type Output = Self;
+
+    fn div(self, rhs: i64) -> Self::Output {
+        Point {
+            x: self.x / rhs,
+            y: self.y / rhs,
         }
     }
 }
