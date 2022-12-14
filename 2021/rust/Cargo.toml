@@ -5,5 +5,6 @@ authors = ["Julian Andrews <jandrews271@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+anyhow = "1.0.66"
 bitvec = "1"
 regex = "1"
