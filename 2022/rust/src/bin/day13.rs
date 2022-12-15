@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{bail, Result};
 
 use aoc::utils::get_input;
 
@@ -68,94 +68,32 @@ impl std::str::FromStr for Packet {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if !(s.starts_with('[') && s.ends_with(']')) {
-            bail!("Invalid root packet");
-        }
-        let mut packet = Packet::List(vec![]);
-        let ptr: *mut Vec<_> = match &mut packet {
-            Packet::List(v) => &mut *v,
-            _ => unreachable!(),
-        };
-        let mut ptrs: Vec<*mut Vec<Packet>> = vec![ptr];
-        let text = &s[1..s.len() - 1];
-        let lexer = Lexer { text, cursor: 0 };
-        for token in lexer {
-            let v = match ptrs.iter().last() {
-                Some(ptr) => unsafe { ptr.as_mut() }.expect("Null pointer!"),
-                None => bail!("Invalid packet: too many closing brackets"),
-            };
-            match token? {
-                Token::ListStart => {
-                    v.push(Packet::List(vec![]));
-                    let i = v.len() - 1;
-                    let ptr: *mut Vec<_> = match &mut v[i] {
-                        Packet::List(v) => &mut *v,
-                        _ => unreachable!(),
-                    };
-                    ptrs.push(ptr);
-                }
-                Token::ListEnd => {
-                    ptrs.pop();
-                }
-                Token::Integer(n) => v.push(Packet::Integer(n)),
-            }
+        let (packet, rem) = parse_packet(s)?;
+        if !rem.is_empty() {
+            bail!("Failed to parse whole input");
         }
         Ok(packet)
     }
 }
 
-struct Lexer<'a> {
-    text: &'a str,
-    cursor: usize,
-}
-
-impl<'a> Lexer<'a> {
-    fn peek_char(&self) -> Option<char> {
-        self.text[self.cursor..].chars().next()
-    }
-}
-
-impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self.peek_char()? {
-            '[' => {
-                self.cursor += 1;
-                Some(Ok(Token::ListStart))
-            }
-            ']' => {
-                self.cursor += 1;
-                if self.peek_char() == Some(',') {
-                    self.cursor += 1;
+fn parse_packet(s: &str) -> Result<(Packet, &str)> {
+    if let Some(mut rem) = s.strip_prefix('[') {
+        let mut packets = vec![];
+        loop {
+            match rem.chars().next() {
+                Some(',') => rem = &rem[1..],
+                Some(']') => return Ok((Packet::List(packets), &rem[1..])),
+                _ => {
+                    let value;
+                    (value, rem) = parse_packet(rem)?;
+                    packets.push(value);
                 }
-                Some(Ok(Token::ListEnd))
             }
-            '0'..='9' => {
-                let end = self.text[self.cursor..]
-                    .chars()
-                    .position(|c| !c.is_ascii_digit())
-                    .unwrap_or(self.text.len() - self.cursor)
-                    + self.cursor;
-                let n = self.text[self.cursor..end]
-                    .parse()
-                    .expect("Failed to parse digits as number");
-                self.cursor = end;
-                if self.peek_char() == Some(',') {
-                    self.cursor += 1;
-                }
-                Some(Ok(Token::Integer(n)))
-            }
-            _ => Some(Err(anyhow!("Unexpected character"))),
         }
+    } else {
+        let digits: String = s.chars().take_while(|c| c.is_ascii_digit()).collect();
+        Ok((Packet::Integer(digits.parse()?), &s[digits.len()..]))
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum Token {
-    ListStart,
-    ListEnd,
-    Integer(u32),
 }
 
 fn parse_packets(s: &str) -> Result<Vec<Packet>> {
@@ -194,26 +132,6 @@ mod tests {
 
 [1,[2,[3,[4,[5,6,7]]]],8,9]
 [1,[2,[3,[4,[5,6,0]]]],8,9]";
-
-    #[test]
-    fn lexer() {
-        let text = "[[3,[1,8],0]]";
-        let lexer = Lexer { text, cursor: 0 };
-        let tokens: Vec<_> = lexer.collect::<Result<_>>().unwrap();
-        let expected = vec![
-            Token::ListStart,
-            Token::ListStart,
-            Token::Integer(3),
-            Token::ListStart,
-            Token::Integer(1),
-            Token::Integer(8),
-            Token::ListEnd,
-            Token::Integer(0),
-            Token::ListEnd,
-            Token::ListEnd,
-        ];
-        assert_eq!(tokens, expected);
-    }
 
     #[test]
     fn ordering() {
