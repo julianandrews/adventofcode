@@ -18,9 +18,9 @@ pub fn get_input() -> std::io::Result<String> {
 }
 
 // TODO: See if I can use `std::str::Pattern` instead of `char`
-pub fn parse_fields<T: FromStr>(
+pub fn parse_fields<T: FromStr, C: FromIterator<T>>(
     data: &str,
     delimiter: char,
-) -> Result<Vec<T>, <T as FromStr>::Err> {
+) -> Result<C, <T as FromStr>::Err> {
     data.split(delimiter).map(&str::parse).collect()
 }

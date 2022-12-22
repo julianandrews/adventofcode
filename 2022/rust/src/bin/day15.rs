@@ -7,7 +7,7 @@ use aoc::utils::{get_input, parse_fields};
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let sensors = parse_fields(input.trim(), '\n')?;
+    let sensors: Vec<_> = parse_fields(input.trim(), '\n')?;
 
     println!("Part 1: {}", part1(&sensors));
     println!("Part 2: {}", part2(&sensors)?);
