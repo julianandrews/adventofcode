@@ -50,7 +50,7 @@ fn part2(map: &ValveMap) -> Pressure {
     let mut best = 0;
     for (i, (my_pressure, my_valves)) in pressures.iter().enumerate() {
         for (elephant_pressure, elephant_valves) in &pressures[i + 1..] {
-            if my_valves.overlaps(&elephant_valves) {
+            if my_valves.overlaps(elephant_valves) {
                 continue;
             }
             let new_pressure = my_pressure + elephant_pressure;
@@ -154,6 +154,8 @@ impl std::str::FromStr for ValveMap {
         for (from, to) in edges {
             distances[room_indices[from]][room_indices[to]] = 1;
         }
+        // Clippy's suggested fix is just god-awful ugly here.
+        #[allow(clippy::needless_range_loop)]
         for i in 0..rooms.len() {
             distances[i][i] = 0;
         }

@@ -147,7 +147,7 @@ impl std::fmt::Display for RockFall {
                 };
                 write!(f, "{}", c)?;
             }
-            write!(f, "|\n")?;
+            writeln!(f, "|")?;
         }
         write!(f, "+-------+")
     }
