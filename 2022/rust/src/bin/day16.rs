@@ -29,13 +29,12 @@ fn part2(map: &ValveMap) -> Pressure {
     let mut pressures: Vec<_> = pressures.into_iter().collect();
     pressures.sort_unstable_by_key(|&(_, pressure)| std::cmp::Reverse(pressure));
     let mut best = 0;
-    for (i, &(my_valves, my_pressure)) in pressures.iter().enumerate() {
-        for &(elephant_valves, elephant_pressure) in &pressures[i + 1..] {
-            if my_valves.overlaps(&elephant_valves) {
-                continue;
+    for (i, (my_valves, my_pressure)) in pressures.iter().enumerate() {
+        for (elephant_valves, elephant_pressure) in &pressures[i + 1..] {
+            if !my_valves.overlaps(elephant_valves) {
+                best = best.max(my_pressure + elephant_pressure);
+                break;
             }
-            best = best.max(my_pressure + elephant_pressure);
-            break;
         }
     }
     best
