@@ -26,17 +26,19 @@ fn part1(map: &ValveMap) -> Pressure {
 fn part2(map: &ValveMap) -> Pressure {
     let pressures = map.best_pressures(26);
 
-    // Consider all pairs of (valve_set, pressure) entries.
-    let pairs = pressures
-        .iter()
-        .flat_map(|a| pressures.iter().map(move |b| (a, b)));
-
-    // Take the max sum of pressures with no overlap
-    pairs
-        .filter(|((valves1, _), (valves2, _))| !valves1.overlaps(valves2))
-        .map(|((_, pressure1), (_, pressure2))| pressure1 + pressure2)
-        .max()
-        .unwrap_or(0)
+    let mut pressures: Vec<_> = pressures.into_iter().collect();
+    pressures.sort_unstable_by_key(|&(_, pressure)| std::cmp::Reverse(pressure));
+    let mut best = 0;
+    for (i, &(my_valves, my_pressure)) in pressures.iter().enumerate() {
+        for &(elephant_valves, elephant_pressure) in &pressures[i + 1..] {
+            if my_valves.overlaps(&elephant_valves) {
+                continue;
+            }
+            best = best.max(my_pressure + elephant_pressure);
+            break;
+        }
+    }
+    best
 }
 
 #[derive(Debug, Clone)]
