@@ -7,7 +7,6 @@ use aoc::utils::get_input;
 type Pressure = u32;
 type Time = u32;
 type Distance = u32;
-type Cache = HashMap<Node, (Pressure, Valves)>;
 
 fn main() -> Result<()> {
     let input = get_input()?;
@@ -20,91 +19,24 @@ fn main() -> Result<()> {
 }
 
 fn part1(map: &ValveMap) -> Pressure {
-    let mut cache: Cache = HashMap::new();
-    let starting_node = Node {
-        location: map.starting_index,
-        time: 30,
-        valves: Valves(0),
-    };
-    max_pressure(map, starting_node, &mut cache).0
+    let pressures = map.best_pressures(30);
+    *pressures.values().max().unwrap_or(&0)
 }
 
 fn part2(map: &ValveMap) -> Pressure {
-    let mut cache: Cache = HashMap::new();
-    for valves in 0..1 << map.flow_rates.len() {
-        let starting_node = Node {
-            location: map.starting_index,
-            time: 26,
-            valves: Valves(valves),
-        };
-        max_pressure(map, starting_node, &mut cache);
-    }
+    let pressures = map.best_pressures(26);
 
-    let mut pressures: Vec<_> = cache
+    // Consider all pairs of (valve_set, pressure) entries.
+    let pairs = pressures
         .iter()
-        .filter(|(n, _)| n.time == 26)
-        .map(|(_, v)| v)
-        .collect();
-    pressures.sort_unstable_by_key(|(p, _)| std::cmp::Reverse(*p));
+        .flat_map(|a| pressures.iter().map(move |b| (a, b)));
 
-    let mut best = 0;
-    for (i, (my_pressure, my_valves)) in pressures.iter().enumerate() {
-        for (elephant_pressure, elephant_valves) in &pressures[i + 1..] {
-            if my_valves.overlaps(elephant_valves) {
-                continue;
-            }
-            let new_pressure = my_pressure + elephant_pressure;
-            if new_pressure > best {
-                best = new_pressure;
-            } else {
-                break;
-            }
-        }
-    }
-
-    best
-}
-
-fn max_pressure(map: &ValveMap, node: Node, cache: &mut Cache) -> (Pressure, Valves) {
-    if let Some(&(pressure, valves)) = cache.get(&node) {
-        return (pressure, valves);
-    }
-    let mut pressure = 0;
-    let mut valves = Valves(0);
-    for neighbor in map.neighbors(&node) {
-        let (new_pressure, new_valves) = max_pressure(map, neighbor, cache);
-        if new_pressure > pressure {
-            pressure = new_pressure;
-            valves = new_valves.insert(neighbor.location);
-        }
-    }
-    pressure += node.time * map.flow_rates[node.location];
-    cache.insert(node, (pressure, valves));
-    (pressure, valves)
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Node {
-    location: usize,
-    time: Time,
-    valves: Valves,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct Valves(u64);
-
-impl Valves {
-    fn contains(&self, i: usize) -> bool {
-        self.0 & (1 << i) != 0
-    }
-
-    fn insert(&self, i: usize) -> Self {
-        Self(self.0 | (1 << i))
-    }
-
-    fn overlaps(&self, other: &Valves) -> bool {
-        self.0 & other.0 != 0
-    }
+    // Take the max sum of pressures with no overlap
+    pairs
+        .filter(|((valves1, _), (valves2, _))| !valves1.overlaps(valves2))
+        .map(|((_, pressure1), (_, pressure2))| pressure1 + pressure2)
+        .max()
+        .unwrap_or(0)
 }
 
 #[derive(Debug, Clone)]
@@ -115,130 +47,168 @@ struct ValveMap {
 }
 
 impl ValveMap {
-    fn neighbors<'a: 'c, 'b: 'c, 'c>(&'a self, node: &'b Node) -> impl Iterator<Item = Node> + 'c {
-        (0..self.flow_rates.len())
-            .filter(|&i| !node.valves.contains(i))
-            .filter_map(|i| {
-                let distance = self.distances[node.location][i];
-                if distance + 1 > node.time {
-                    return None;
-                }
-                Some(Node {
-                    location: i,
-                    time: node.time - distance - 1,
-                    valves: node.valves.insert(i),
-                })
-            })
+    /// Returns a map of valves opened to best possible pressure for opening those valves.
+    fn best_pressures(&self, time: Time) -> HashMap<ValveSet, Pressure> {
+        let mut pressures = HashMap::new();
+        self.best_pressure_helper(&mut pressures, self.starting_index, time, ValveSet(0), 0);
+        pressures
+    }
+
+    fn best_pressure_helper(
+        &self,
+        pressures: &mut HashMap<ValveSet, Pressure>,
+        i: usize,
+        time: Time,
+        valves: ValveSet,
+        pressure: Pressure,
+    ) {
+        let value: &mut Pressure = pressures.entry(valves).or_insert(0);
+        *value = (*value).max(pressure);
+
+        for j in 0..self.flow_rates.len() {
+            let rate = self.flow_rates[j];
+            let new_time = time.saturating_sub(self.distances[i][j] + 1);
+            if valves.contains(j) || new_time == 0 {
+                continue;
+            }
+            self.best_pressure_helper(
+                pressures,
+                j,
+                new_time,
+                valves.add(j),
+                pressure + new_time * rate,
+            );
+        }
     }
 }
 
-impl std::str::FromStr for ValveMap {
-    type Err = anyhow::Error;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct ValveSet(u64);
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let rooms: Vec<Room> = s.lines().map(str::parse).collect::<Result<_>>()?;
-        let room_indices: HashMap<&str, usize> = rooms
-            .iter()
-            .enumerate()
-            .map(|(i, r)| (r.name.as_str(), i))
-            .collect();
+impl ValveSet {
+    fn contains(&self, i: usize) -> bool {
+        self.0 & (1 << i) != 0
+    }
 
-        // Floyd-Warshall algorithm
-        let v = rooms.len();
-        let mut distances = vec![vec![v as Distance; v]; v];
-        let edges = rooms.iter().flat_map(|room| {
-            room.tunnels
+    fn add(&self, i: usize) -> Self {
+        Self(self.0 | (1 << i))
+    }
+
+    fn overlaps(&self, other: &ValveSet) -> bool {
+        self.0 & other.0 != 0
+    }
+}
+
+/// I really over-engineered the parsing logic. Hide the details in a module!
+mod parsing {
+    use super::*;
+
+    impl std::str::FromStr for ValveMap {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let rooms: Vec<Room> = s.lines().map(str::parse).collect::<Result<_>>()?;
+            let room_indices: HashMap<&str, usize> = rooms
                 .iter()
-                .map(|t| (room.name.as_str(), t.as_str()))
-        });
-        for (from, to) in edges {
-            distances[room_indices[from]][room_indices[to]] = 1;
-        }
-        // Clippy's suggested fix is just god-awful ugly here.
-        #[allow(clippy::needless_range_loop)]
-        for i in 0..rooms.len() {
-            distances[i][i] = 0;
-        }
-        for k in 0..v {
-            for i in 0..v {
-                for j in 0..v {
-                    if distances[i][j] > distances[i][k] + distances[k][j] {
-                        distances[i][j] = distances[i][k] + distances[k][j];
+                .enumerate()
+                .map(|(i, r)| (r.name.as_str(), i))
+                .collect();
+
+            // Floyd-Warshall algorithm
+            let v = rooms.len();
+            let mut distances = vec![vec![v as Distance; v]; v];
+            let edges = rooms.iter().flat_map(|room| {
+                room.tunnels
+                    .iter()
+                    .map(|t| (room.name.as_str(), t.as_str()))
+            });
+            for (from, to) in edges {
+                distances[room_indices[from]][room_indices[to]] = 1;
+            }
+            // Clippy's suggested fix is just god-awful ugly here.
+            #[allow(clippy::needless_range_loop)]
+            for i in 0..rooms.len() {
+                distances[i][i] = 0;
+            }
+            for k in 0..v {
+                for i in 0..v {
+                    for j in 0..v {
+                        distances[i][j] = distances[i][j].min(distances[i][k] + distances[k][j]);
                     }
                 }
             }
-        }
 
-        let starting_index = rooms
-            .iter()
-            .filter(|r| r.name == "AA" || r.flow_rate > 0)
-            .position(|r| r.name == "AA")
-            .ok_or_else(|| anyhow!("Failed to find starting room"))?;
-        let flow_rates: Vec<Pressure> = rooms
-            .iter()
-            .filter(|r| r.name == "AA" || r.flow_rate > 0)
-            .map(|r| r.flow_rate)
-            .collect();
-        let distances: Vec<Vec<Distance>> = rooms
-            .iter()
-            .zip(distances.into_iter())
-            .filter(|(r, _)| r.name == "AA" || r.flow_rate > 0)
-            .map(|(_, v)| {
-                rooms
-                    .iter()
-                    .zip(v.into_iter())
-                    .filter(|(r, _)| r.name == "AA" || r.flow_rate > 0)
-                    .map(|(_, v)| v)
-                    .collect()
+            let starting_index = rooms
+                .iter()
+                .filter(|r| r.name == "AA" || r.flow_rate > 0)
+                .position(|r| r.name == "AA")
+                .ok_or_else(|| anyhow!("Failed to find starting room"))?;
+            let flow_rates: Vec<Pressure> = rooms
+                .iter()
+                .filter(|r| r.name == "AA" || r.flow_rate > 0)
+                .map(|r| r.flow_rate)
+                .collect();
+            let distances: Vec<Vec<Distance>> = rooms
+                .iter()
+                .zip(distances.into_iter())
+                .filter(|(r, _)| r.name == "AA" || r.flow_rate > 0)
+                .map(|(_, v)| {
+                    rooms
+                        .iter()
+                        .zip(v.into_iter())
+                        .filter(|(r, _)| r.name == "AA" || r.flow_rate > 0)
+                        .map(|(_, v)| v)
+                        .collect()
+                })
+                .collect();
+            if flow_rates.len() > 64 {
+                bail!("Too many functioning valves! Only 64 rooms supported");
+            }
+
+            Ok(Self {
+                starting_index,
+                flow_rates,
+                distances,
             })
-            .collect();
-        if flow_rates.len() > 64 {
-            bail!("Too many functioning valves! Only 64 rooms supported");
         }
-
-        Ok(Self {
-            starting_index,
-            flow_rates,
-            distances,
-        })
     }
-}
 
-#[derive(Debug, Clone)]
-struct Room {
-    name: String,
-    flow_rate: Pressure,
-    tunnels: Vec<String>,
-}
+    #[derive(Debug, Clone)]
+    struct Room {
+        name: String,
+        flow_rate: Pressure,
+        tunnels: Vec<String>,
+    }
 
-impl std::str::FromStr for Room {
-    type Err = anyhow::Error;
+    impl std::str::FromStr for Room {
+        type Err = anyhow::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (valve_part, tunnels_part) = s
-            .split_once("; ")
-            .ok_or_else(|| anyhow!("Invalid valve {}", s))?;
-        let (name_part, rate_part) = valve_part
-            .split_once(" has flow rate=")
-            .ok_or_else(|| anyhow!("Invalid valve part {}", valve_part))?;
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let (valve_part, tunnels_part) = s
+                .split_once("; ")
+                .ok_or_else(|| anyhow!("Invalid valve {}", s))?;
+            let (name_part, rate_part) = valve_part
+                .split_once(" has flow rate=")
+                .ok_or_else(|| anyhow!("Invalid valve part {}", valve_part))?;
 
-        let name = name_part
-            .strip_prefix("Valve ")
-            .ok_or_else(|| anyhow!("Invalid name part {}", name_part))?
-            .to_string();
-        let flow_rate: Pressure = rate_part.parse()?;
-        let tunnels: Vec<_> = tunnels_part
-            .strip_prefix("tunnels lead to valves ")
-            .or_else(|| tunnels_part.strip_prefix("tunnel leads to valve "))
-            .ok_or_else(|| anyhow!("Invalid tunnel part {}", tunnels_part))?
-            .split(", ")
-            .map(str::to_owned)
-            .collect();
-        Ok(Self {
-            name,
-            flow_rate,
-            tunnels,
-        })
+            let name = name_part
+                .strip_prefix("Valve ")
+                .ok_or_else(|| anyhow!("Invalid name part {}", name_part))?
+                .to_string();
+            let flow_rate: Pressure = rate_part.parse()?;
+            let tunnels: Vec<_> = tunnels_part
+                .strip_prefix("tunnels lead to valves ")
+                .or_else(|| tunnels_part.strip_prefix("tunnel leads to valve "))
+                .ok_or_else(|| anyhow!("Invalid tunnel part {}", tunnels_part))?
+                .split(", ")
+                .map(str::to_owned)
+                .collect();
+            Ok(Self {
+                name,
+                flow_rate,
+                tunnels,
+            })
+        }
     }
 }
 
@@ -260,13 +230,13 @@ mod tests {
 
     #[test]
     fn max_pressure_release() {
-        let map: ValveMap = TEST_DATA.parse().unwrap();
-        assert_eq!(part1(&map), 1651);
+        let mut map: ValveMap = TEST_DATA.parse().unwrap();
+        assert_eq!(part1(&mut map), 1651);
     }
 
     #[test]
     fn elephant_help() {
-        let map: ValveMap = TEST_DATA.parse().unwrap();
-        assert_eq!(part2(&map), 1707);
+        let mut map: ValveMap = TEST_DATA.parse().unwrap();
+        assert_eq!(part2(&mut map), 1707);
     }
 }
