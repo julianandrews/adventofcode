@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::utils::{get_input, parse_fields};
 
-type Cache = HashMap<State, u8>;
+type Cache = FxHashMap<State, u8>;
 
 fn main() -> Result<()> {
     let input = get_input()?;
@@ -32,7 +31,6 @@ fn part2(blueprints: &[Blueprint]) -> u32 {
 struct Blueprint {
     id: u8,
     costs: [[u8; 4]; 4],
-    max_robots: [u8; 4],
 }
 
 impl Blueprint {
@@ -41,49 +39,62 @@ impl Blueprint {
     }
 
     fn geodes(&self, time: u8) -> u8 {
-        let mut cache: Cache = HashMap::new();
+        let mut cache: Cache = FxHashMap::default();
         let state = State::new(time);
-        let mut best = 0;
-        self.geodes_helper(&state, &mut cache, &mut best)
+        self.geodes_helper(&state, &mut cache, &mut 0)
     }
 
     fn geodes_helper(&self, state: &State, cache: &mut Cache, best: &mut u8) -> u8 {
         if state.time == 0 {
             return state.resources[Resource::Geodes.index()];
-        } else if let Some(&value) = cache.get(state) {
-            return value;
         } else if *best > state.best_possible() {
             return 0;
+        } else if let Some(&value) = cache.get(state) {
+            return value;
         }
 
-        let mut new_best = 0;
-        for neighbor in self.neighbors(state) {
-            new_best = new_best.max(self.geodes_helper(&neighbor, cache, best));
-            if new_best > *best {
-                *best = new_best;
-            }
-        }
-        cache.insert(state.clone(), new_best);
-        new_best
+        let branch_best = self
+            .neighbors(state)
+            .map(|n| self.geodes_helper(&n, cache, best))
+            .max()
+            .unwrap_or(0);
+
+        cache.insert(*state, branch_best);
+        *best = branch_best.max(*best);
+
+        branch_best
     }
 
     fn neighbors<'a: 'iter, 'b: 'iter, 'iter>(
         &'a self,
         state: &'b State,
     ) -> impl Iterator<Item = State> + 'iter {
-        Resource::iter()
-            .map(Some)
-            .chain(std::iter::once(None))
+        let resources = Resource::iter().filter(|&resource| !self.should_prune(state, resource));
+        std::iter::once(None)
+            .chain(resources.map(Some))
             .filter_map(|resource| self.buy_robot(state, resource))
+    }
+
+    /// Returns true if buying a given robot type isn't worth considering
+    fn should_prune(&self, state: &State, resource: Resource) -> bool {
+        if matches!(resource, Resource::Geodes) {
+            return state.time <= 1;
+        };
+        // Stop buying robots once we have enough resources to buy until the end of time.
+        let max_cost = self
+            .costs
+            .iter()
+            .map(|c| c[resource.index()])
+            .max()
+            .unwrap_or(0);
+        let max_robots = max_cost.saturating_sub(state.resources[resource.index()] / max_cost);
+        state.robots[resource.index()] >= max_robots
     }
 
     /// Returns the new state after waiting for and buying the given robot type, or None if we
     /// can never afford it.
     fn buy_robot(&self, state: &State, resource: Option<Resource>) -> Option<State> {
         let time = if let Some(resource) = resource {
-            if state.robots[resource.index()] >= self.max_robots[resource.index()] {
-                return None;
-            }
             let mut time = 0;
             let costs = self.costs[resource.index()];
             for (i, (resource_count, robot_count)) in
@@ -109,7 +120,7 @@ impl Blueprint {
             state.time
         };
 
-        let mut state = state.clone();
+        let mut state = *state;
         state.time -= time;
         for (resources, robot_count) in state.resources.iter_mut().zip(state.robots) {
             *resources = resources.saturating_add(time.saturating_mul(robot_count));
@@ -142,10 +153,10 @@ impl State {
 
     fn best_possible(&self) -> u8 {
         let time = u32::from(self.time);
-        let value = u32::from(self.resources[3])
-            + time * (time + 1) * u32::from(self.robots[3]) / 2
-            + time * (time - 1) / 2;
-        value.min(u8::MAX as u32) as u8
+        let geodes = u32::from(self.resources[3]);
+        let max_current_robot_geodes = time * (time + 1) * u32::from(self.robots[3]) / 2;
+        let max_new_robot_geodes = time * (time - 1) / 2;
+        (geodes + max_current_robot_geodes + max_new_robot_geodes).min(u8::MAX as u32) as u8
     }
 }
 
@@ -209,16 +220,10 @@ impl std::str::FromStr for Blueprint {
                 }
             }
         }
-        let mut max_robots = [0; 4];
-        for i in 0..3 {
-            max_robots[i] = costs.iter().map(|c| c[i]).max().unwrap_or(0);
-        }
-        max_robots[3] = u8::MAX;
 
         Ok(Self {
             id: id_part.parse()?,
             costs,
-            max_robots,
         })
     }
 }
