@@ -23,9 +23,7 @@ fn part1(monkey_riddle: &MonkeyRiddle) -> Result<i64> {
 
 fn part2(monkey_riddle: &mut MonkeyRiddle) -> Result<i64> {
     monkey_riddle.fix();
-    monkey_riddle
-        .find_human_number()
-        .ok_or_else(|| anyhow!("Failed to find number"))
+    monkey_riddle.find_human_number()
 }
 
 #[derive(Debug, Clone)]
@@ -53,11 +51,15 @@ impl MonkeyRiddle {
         self.monkeys.insert("humn".to_owned(), Op::Human);
     }
 
-    fn find_human_number(&self) -> Option<i64> {
-        let (lhs, rhs) = self.monkeys.get(&"root".to_owned())?.operands()?;
-        let lhs = self.evaluate(lhs).unwrap();
-        let rhs = self.evaluate(rhs).unwrap();
-        Some((rhs.a * lhs.c - lhs.a * rhs.c) / (lhs.b * rhs.c - rhs.b * lhs.c))
+    fn find_human_number(&self) -> Result<i64> {
+        let (lhs, rhs) = self
+            .monkeys
+            .get(&"root".to_owned())
+            .and_then(|op| op.operands())
+            .ok_or_else(|| anyhow!("Root operands not found"))?;
+        let lhs = self.evaluate(lhs)?;
+        let rhs = self.evaluate(rhs)?;
+        Ok((rhs.a * lhs.c - lhs.a * rhs.c) / (lhs.b * rhs.c - rhs.b * lhs.c))
     }
 }
 
@@ -168,11 +170,12 @@ impl std::str::FromStr for Op {
         if let Ok(n) = s.parse::<i64>() {
             return Ok(Op::Number(n));
         }
-        let (a, rest) = s
+        let (a, op, b) = s
             .split_once(' ')
-            .ok_or_else(|| anyhow!("Invalid op {}", s))?;
-        let (op, b) = rest
-            .split_once(' ')
+            .and_then(|(a, rest)| {
+                let (op, b) = rest.split_once(' ')?;
+                Some((a, op, b))
+            })
             .ok_or_else(|| anyhow!("Invalid op {}", s))?;
         let a = a.to_owned();
         let b = b.to_owned();
