@@ -43,7 +43,8 @@ impl SeedlingMap {
 
     fn step(&mut self, i: usize) -> bool {
         // HashMap entries are (to, from) pairs
-        let mut proposals: FxHashMap<Point, Point> = FxHashMap::default();
+        let mut proposals: FxHashMap<Point, Point> =
+            FxHashMap::with_capacity_and_hasher(self.elves.len(), Default::default());
         for &elf in &self.elves {
             let destination = self.proposal(elf, i);
             if let Some(other_elf) = proposals.get(&destination).cloned() {
@@ -55,8 +56,9 @@ impl SeedlingMap {
             }
         }
 
-        self.elves = proposals.keys().cloned().collect();
-        proposals.iter().any(|(to, from)| to != from)
+        let changed = proposals.iter().any(|(to, from)| to != from);
+        self.elves = proposals.into_keys().collect();
+        changed
     }
 
     fn proposal(&self, point: Point, i: usize) -> Point {
@@ -77,8 +79,10 @@ impl SeedlingMap {
             (Point::new(1, 0), 0b00011100),
         ];
         let mut neighbor_mask: u8 = 0;
-        for (j, &offset) in OFFSETS.iter().enumerate() {
-            if self.elves.contains(&(point + offset)) {
+        // Clippy's alternative is no more readable, and 10ms slower.
+        #[allow(clippy::needless_range_loop)]
+        for j in 0..8 {
+            if self.elves.contains(&(point + OFFSETS[j])) {
                 neighbor_mask |= 1 << j;
             }
         }

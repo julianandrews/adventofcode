@@ -5,7 +5,8 @@ This directory contains my solutions for [Advent of Code 2022](https://adventofc
 ## Thoughts
 
 As always, my top priorities were correctness and clarity, though for the first
-time I set myself a goal of getting sub-1s all-parts runtime on my computer.
+time I set myself a goal of getting sub-1s all-parts runtime on my computer,
+and I managed less than half that, so I'm pretty happy!
 
 I leaned heavily into Rust's type system this year, sometimes going a little
 overboard with the parsing, but it's really satisfying to have data types that
@@ -13,7 +14,7 @@ encode the constraints of your problem.
 
 ## Performance
 
-I've made no real attempt to micro-optimize, but aimed to use efficient
+I've made no serious attempt to micro-optimize, but aimed to use efficient
 algorithms and data structures. I probably used bit sets a little more often
 than strictly justified by my goals. I really like bit sets.
 
@@ -24,7 +25,7 @@ and in the name of total runtime I decided to switch to the less efficient
 solution.
 
 I'm confident there are meaningful speed-ups to be had on the slowest days
-(particularly 23 and 24), but I'm happy with where I've landed for now!
+(particularly 23), but I'm happy with where I've landed for now!
 
 I measured performance using [hyperfine](https://github.com/sharkdp/hyperfine).
 See the `bench` [script](rust/bench) for details.
@@ -53,8 +54,8 @@ See the `bench` [script](rust/bench) for details.
 | 20  |  59.7ms |
 | 21  |   1.1ms |
 | 22  |   1.1ms |
-| 23  | 160.1ms |
+| 23  | 123.6ms |
 | 24  |  98.9ms |
 | 25  |   0.4ms |
 
-Total Runtime: 435.5ms
+Total Runtime: 398.4ms
