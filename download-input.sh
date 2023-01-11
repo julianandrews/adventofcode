@@ -15,7 +15,8 @@ PYTHON=~/.virtualenvs/pycookiecheat/bin/python
 
 year="$1"
 day="$2"
+dir="$(dirname "$0")/$year/inputs/day$(printf '%02d' $day)"
 
 session_key=$($PYTHON -c 'import pycookiecheat; print(pycookiecheat.chrome_cookies("https://adventofcode.com")["session"])')
-curl -sSL -H "cookie: session=$session_key" https://adventofcode.com/$year/day/$day/input \
-  | tee "$(dirname "$0")/$year/inputs/day$(printf '%02d' $day)/input.txt"
+mkdir -p "$dir"
+curl -sSL -H "cookie: session=$session_key" https://adventofcode.com/$year/day/$day/input | tee "$dir/input.txt"
