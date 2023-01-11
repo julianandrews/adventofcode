@@ -1,16 +1,16 @@
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::utils::get_input;
 
-type Cache<'a> = HashMap<&'a PathBuf, u32>;
+type Cache<'a> = FxHashMap<&'a PathBuf, u32>;
 
 fn main() -> Result<()> {
     let input = get_input()?;
     let filesystem = input.trim().parse()?;
-    let mut cache: Cache = HashMap::new();
+    let mut cache: Cache = FxHashMap::default();
 
     println!("Part 1: {}", part1(&filesystem, &mut cache));
     println!("Part 2: {}", part2(&filesystem, &mut cache));
@@ -41,7 +41,7 @@ fn part2<'fs: 'cache, 'cache>(filesystem: &'fs FileSystem, cache: &mut Cache<'ca
 }
 
 #[derive(Debug, Clone)]
-struct FileSystem(HashMap<PathBuf, Node>);
+struct FileSystem(FxHashMap<PathBuf, Node>);
 
 impl FileSystem {
     fn size<'cache, 'fs: 'cache, P: AsRef<Path>>(
@@ -77,7 +77,7 @@ impl std::str::FromStr for FileSystem {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut filesystem = HashMap::new();
+        let mut filesystem = FxHashMap::default();
         let mut pwd = PathBuf::new();
         let mut lines = s.lines().peekable();
         while let Some(line) = lines.next() {
@@ -153,36 +153,36 @@ mod tests {
     #[test]
     fn size_1() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/a/e", &mut HashMap::new()), 584);
+        assert_eq!(filesystem.size("/a/e", &mut FxHashMap::default()), 584);
     }
 
     #[test]
     fn size_2() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/a", &mut HashMap::new()), 94853);
+        assert_eq!(filesystem.size("/a", &mut FxHashMap::default()), 94853);
     }
 
     #[test]
     fn size_3() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/d", &mut HashMap::new()), 24933642);
+        assert_eq!(filesystem.size("/d", &mut FxHashMap::default()), 24933642);
     }
 
     #[test]
     fn size_4() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(filesystem.size("/", &mut HashMap::new()), 48381165);
+        assert_eq!(filesystem.size("/", &mut FxHashMap::default()), 48381165);
     }
 
     #[test]
     fn sum_small() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(part1(&filesystem, &mut HashMap::new()), 95437);
+        assert_eq!(part1(&filesystem, &mut FxHashMap::default()), 95437);
     }
 
     #[test]
     fn to_delete() {
         let filesystem: FileSystem = TEST_DATA.parse().unwrap();
-        assert_eq!(part2(&filesystem, &mut HashMap::new()), 24933642);
+        assert_eq!(part2(&filesystem, &mut FxHashMap::default()), 24933642);
     }
 }

@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::planar::{Direction, TileMap, Turn};
 use aoc::utils::get_input;
@@ -108,7 +107,7 @@ impl<'a> WrappingMap for MonkeyMap<'a> {
 #[derive(Debug, Clone)]
 struct MonkeyCube<'a> {
     map: &'a TileMap<Tile>,
-    edge_connections: HashMap<Position, Position>,
+    edge_connections: FxHashMap<Position, Position>,
 }
 
 impl<'a> WrappingMap for MonkeyCube<'a> {
@@ -134,7 +133,7 @@ impl<'a> MonkeyCube<'a> {
 
         // For each corner, move outward matching up pairs as long as one side or the other is a
         // flat edge.
-        let mut edge_connections = HashMap::new();
+        let mut edge_connections = FxHashMap::default();
         for (p1, p2) in &corners {
             let (mut p1, mut p2) = (*p1, *p2);
             loop {

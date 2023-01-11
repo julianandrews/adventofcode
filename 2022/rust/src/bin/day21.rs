@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::utils::get_input;
 
@@ -28,7 +27,7 @@ fn part2(monkey_riddle: &mut MonkeyRiddle) -> Result<i64> {
 
 #[derive(Debug, Clone)]
 struct MonkeyRiddle {
-    monkeys: HashMap<MonkeyId, Op>,
+    monkeys: FxHashMap<MonkeyId, Op>,
 }
 
 impl MonkeyRiddle {
@@ -151,7 +150,7 @@ impl std::str::FromStr for MonkeyRiddle {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut monkeys = HashMap::new();
+        let mut monkeys = FxHashMap::default();
         for line in s.split('\n') {
             let (id_part, op_part) = line
                 .split_once(": ")

@@ -1,13 +1,13 @@
-use std::collections::HashSet;
 use std::ops::RangeInclusive;
 
 use anyhow::{anyhow, Result};
+use rustc_hash::FxHashSet;
 
 use aoc::utils::{get_input, parse_fields};
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let points: HashSet<Point3d> = parse_fields(input.trim(), '\n')?;
+    let points: FxHashSet<Point3d> = parse_fields(input.trim(), '\n')?;
 
     println!("Part 1: {}", part1(&points));
     println!("Part 2: {}", part2(&points));
@@ -15,17 +15,17 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1(points: &HashSet<Point3d>) -> usize {
+fn part1(points: &FxHashSet<Point3d>) -> usize {
     empty_neighbors(points).count()
 }
 
-fn part2(points: &HashSet<Point3d>) -> usize {
+fn part2(points: &FxHashSet<Point3d>) -> usize {
     exterior_neighbors(points).count()
 }
 
 /// Returns an iterator over all empty neighbors of each point.
 /// Values will repeat if they are neighbors of multiple input points.
-fn empty_neighbors(points: &HashSet<Point3d>) -> impl Iterator<Item = Point3d> + '_ {
+fn empty_neighbors(points: &FxHashSet<Point3d>) -> impl Iterator<Item = Point3d> + '_ {
     points
         .iter()
         .flat_map(|p| p.neighbors().filter(|q| !points.contains(q)))
@@ -33,10 +33,10 @@ fn empty_neighbors(points: &HashSet<Point3d>) -> impl Iterator<Item = Point3d> +
 
 /// Returns an iterator over all exterior neighbors of each point.
 /// Values will repeat if they are neighbors of multiple input points.
-fn exterior_neighbors(points: &HashSet<Point3d>) -> impl Iterator<Item = Point3d> + '_ {
+fn exterior_neighbors(points: &FxHashSet<Point3d>) -> impl Iterator<Item = Point3d> + '_ {
     let bounds = Bounds::from_points(points);
     let mut to_visit: Vec<Point3d> = vec![bounds.corner()];
-    let mut exterior: HashSet<Point3d> = HashSet::new();
+    let mut exterior: FxHashSet<Point3d> = FxHashSet::default();
     while let Some(point) = to_visit.pop() {
         if bounds.contains(&point) && !exterior.contains(&point) && !points.contains(&point) {
             exterior.insert(point);
@@ -51,7 +51,7 @@ struct Bounds([RangeInclusive<i8>; 3]);
 
 impl Bounds {
     /// Construct bounds extending one space beyond any point in the set.
-    fn from_points(points: &HashSet<Point3d>) -> Self {
+    fn from_points(points: &FxHashSet<Point3d>) -> Self {
         let mut bounds = vec![];
         for i in 0..3 {
             let min = points.iter().map(|p| p.0[i]).min().unwrap_or(0);
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn small_example() {
-        let points: HashSet<Point3d> = ["1,1,1", "2,1,1"]
+        let points: FxHashSet<Point3d> = ["1,1,1", "2,1,1"]
             .iter()
             .map(|s| s.parse().unwrap())
             .collect();
@@ -116,13 +116,13 @@ mod tests {
 
     #[test]
     fn larger_example() {
-        let points: HashSet<Point3d> = TEST_DATA.iter().map(|s| s.parse().unwrap()).collect();
+        let points: FxHashSet<Point3d> = TEST_DATA.iter().map(|s| s.parse().unwrap()).collect();
         assert_eq!(empty_neighbors(&points).count(), 64);
     }
 
     #[test]
     fn exterior_surface() {
-        let points: HashSet<Point3d> = TEST_DATA.iter().map(|s| s.parse().unwrap()).collect();
+        let points: FxHashSet<Point3d> = TEST_DATA.iter().map(|s| s.parse().unwrap()).collect();
         assert_eq!(exterior_neighbors(&points).count(), 58);
     }
 }

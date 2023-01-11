@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::{bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::utils::get_input;
 
@@ -29,7 +28,7 @@ fn tower_height(dirs: &[Direction], n: usize) -> usize {
     // Run until we detect a cycle (or reach n).
     let mut rockfall = RockFall { lines: vec![] };
     let mut dir_iter = dirs.iter().cloned().enumerate().cycle();
-    let mut seen: HashMap<State, (usize, usize)> = HashMap::new();
+    let mut seen: FxHashMap<State, (usize, usize)> = FxHashMap::default();
     let mut rocks = FallingRock::iter();
     let mut rock_count = 0;
     let (cycle_start, initial_height) = loop {

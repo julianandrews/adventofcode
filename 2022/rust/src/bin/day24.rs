@@ -1,6 +1,7 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::VecDeque;
 
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashSet;
 
 use aoc::utils::get_input;
 
@@ -44,7 +45,7 @@ struct StormMap {
 
 impl StormMap {
     fn navigate(&self, time: usize, start: Position, destination: Position) -> Option<usize> {
-        let mut visited = HashSet::new();
+        let mut visited = FxHashSet::default();
         let mut to_visit = VecDeque::new();
         to_visit.push_back(Node {
             position: start,
@@ -202,7 +203,6 @@ impl std::str::FromStr for StormMap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
 
     static SIMPLE_MAP: &str = "\
         #.#####\n\
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn open_tiles() {
         let map: StormMap = SIMPLE_MAP.parse().unwrap();
-        let storm_points: HashSet<_> = SIMPLE_MAP_STORM_POINTS.into_iter().collect();
+        let storm_points: FxHashSet<_> = SIMPLE_MAP_STORM_POINTS.into_iter().collect();
         for t in 0..=5 {
             for x in 0..5 {
                 for y in 0..5 {

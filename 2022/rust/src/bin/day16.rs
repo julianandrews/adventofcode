@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashMap;
 
 use aoc::utils::get_input;
 
@@ -49,15 +48,15 @@ struct ValveMap {
 
 impl ValveMap {
     /// Returns a map of valves opened to best possible pressure for opening those valves.
-    fn best_pressures(&self, time: Time) -> HashMap<ValveSet, Pressure> {
-        let mut pressures = HashMap::new();
+    fn best_pressures(&self, time: Time) -> FxHashMap<ValveSet, Pressure> {
+        let mut pressures = FxHashMap::default();
         self.best_pressure_helper(&mut pressures, self.starting_index, time, ValveSet(0), 0);
         pressures
     }
 
     fn best_pressure_helper(
         &self,
-        pressures: &mut HashMap<ValveSet, Pressure>,
+        pressures: &mut FxHashMap<ValveSet, Pressure>,
         i: usize,
         time: Time,
         valves: ValveSet,
@@ -109,7 +108,7 @@ mod parsing {
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let rooms: Vec<Room> = s.lines().map(str::parse).collect::<Result<_>>()?;
-            let room_indices: HashMap<&str, usize> = rooms
+            let room_indices: FxHashMap<&str, usize> = rooms
                 .iter()
                 .enumerate()
                 .map(|(i, r)| (r.name.as_str(), i))

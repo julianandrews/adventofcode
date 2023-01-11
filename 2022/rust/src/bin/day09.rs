@@ -1,6 +1,5 @@
-use std::collections::HashSet;
-
 use anyhow::{anyhow, bail, Result};
+use rustc_hash::FxHashSet;
 
 use aoc::planar::{Direction, Point};
 use aoc::utils::{get_input, parse_fields};
@@ -17,7 +16,7 @@ fn main() -> Result<()> {
 
 fn count_visited<const N: usize>(motions: &[Motion]) -> usize {
     let mut knots = [Knot::default(); N];
-    let mut visited: HashSet<Knot> = HashSet::new();
+    let mut visited: FxHashSet<Knot> = FxHashSet::default();
     visited.insert(knots[N - 1]);
     for motion in motions {
         let diff = motion.direction.unit_vector();
