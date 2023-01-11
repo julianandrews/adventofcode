@@ -101,7 +101,7 @@ impl<'a> WrappingMap for MonkeyMap<'a> {
     }
 
     fn map(&self) -> &TileMap<Tile> {
-        &self.map
+        self.map
     }
 }
 
@@ -124,7 +124,7 @@ impl<'a> WrappingMap for MonkeyCube<'a> {
     }
 
     fn map(&self) -> &TileMap<Tile> {
-        &self.map
+        self.map
     }
 }
 
@@ -230,10 +230,10 @@ impl Position {
     }
 
     fn is_on_map(&self, map: &TileMap<Tile>) -> bool {
-        match map.get(self.column, self.row) {
-            Some(Tile::Open | Tile::Wall) => true,
-            _ => false,
-        }
+        matches!(
+            map.get(self.column, self.row),
+            Some(Tile::Open | Tile::Wall)
+        )
     }
 
     fn can_turn_on_map(&self, map: &TileMap<Tile>, turn: Turn) -> bool {

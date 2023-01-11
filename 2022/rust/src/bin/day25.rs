@@ -4,21 +4,21 @@ use aoc::utils::{get_input, parse_fields};
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let numbers: Vec<SNAFU> = parse_fields(input.trim(), '\n')?;
+    let numbers: Vec<Snafu> = parse_fields(input.trim(), '\n')?;
 
     println!("Part 1: {}", part1(&numbers));
 
     Ok(())
 }
 
-fn part1(numbers: &[SNAFU]) -> String {
-    numbers.iter().fold(SNAFU(0), |a, b| a + *b).to_string()
+fn part1(numbers: &[Snafu]) -> String {
+    numbers.iter().fold(Snafu(0), |a, b| a + *b).to_string()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SNAFU(i64);
+struct Snafu(i64);
 
-impl std::str::FromStr for SNAFU {
+impl std::str::FromStr for Snafu {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -34,19 +34,19 @@ impl std::str::FromStr for SNAFU {
             Ok(total * 5 + digit)
         })?;
 
-        Ok(SNAFU(value))
+        Ok(Snafu(value))
     }
 }
 
-impl std::ops::Add for SNAFU {
+impl std::ops::Add for Snafu {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        SNAFU(self.0 + rhs.0)
+        Snafu(self.0 + rhs.0)
     }
 }
 
-impl std::fmt::Display for SNAFU {
+impl std::fmt::Display for Snafu {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut n = self.0;
         let mut digits = vec![];
@@ -95,14 +95,14 @@ mod tests {
     #[test]
     fn parse() {
         for (s, n) in TEST_PAIRS {
-            assert_eq!(s.parse::<SNAFU>().unwrap(), SNAFU(n));
+            assert_eq!(s.parse::<Snafu>().unwrap(), Snafu(n));
         }
     }
 
     #[test]
     fn to_string() {
         for (s, n) in TEST_PAIRS {
-            assert_eq!(SNAFU(n).to_string(), s);
+            assert_eq!(Snafu(n).to_string(), s);
         }
     }
 }

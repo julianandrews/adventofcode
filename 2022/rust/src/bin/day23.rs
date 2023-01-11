@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     let map: SeedlingMap = input.trim().parse()?;
 
     println!("Part 1: {}", part1(map.clone()));
-    println!("Part 2: {}", part2(map.clone()));
+    println!("Part 2: {}", part2(map));
 
     Ok(())
 }
@@ -77,8 +77,8 @@ impl SeedlingMap {
             (Point::new(1, 0), 0b00011100),
         ];
         let mut neighbor_mask: u8 = 0;
-        for j in 0..8 {
-            if self.elves.contains(&(point + OFFSETS[j])) {
+        for (j, &offset) in OFFSETS.iter().enumerate() {
+            if self.elves.contains(&(point + offset)) {
                 neighbor_mask |= 1 << j;
             }
         }
