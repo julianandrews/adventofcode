@@ -11,7 +11,7 @@ pub fn get_input() -> std::io::Result<String> {
         None
     };
     let mut reader: Box<dyn io::Read> = match &filename {
-        Some(filename) => Box::new(io::BufReader::new(File::open(&filename)?)),
+        Some(filename) => Box::new(io::BufReader::new(File::open(filename)?)),
         None => Box::new(io::stdin()),
     };
 
