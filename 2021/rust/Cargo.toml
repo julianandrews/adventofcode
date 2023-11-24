@@ -10,4 +10,8 @@ bitvec = "1"
 nalgebra = "0.32.1"
 ndarray = "0.15.6"
 ndarray-conv = "0.1.3"
+num_enum = "0.5.10"
 regex = "1"
+
+[features]
+verbose = []
