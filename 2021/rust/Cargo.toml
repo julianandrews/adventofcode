@@ -12,6 +12,7 @@ ndarray = "0.15.6"
 ndarray-conv = "0.1.3"
 num_enum = "0.5.10"
 regex = "1"
+z3 = "0.12.1"
 
 [features]
 verbose = []
