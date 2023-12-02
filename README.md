@@ -12,6 +12,6 @@ Solutions are organized by year.
   or Rust for practice
 - [2019](2019) - Added Go to the mix of languages I was playing with
 - [2020](2020) - I was pretty well addicted to Rust by now. All Rust!
-- [2021](2021) - More Rust! I lost steam towards the end. Some day I'll go back and finish.
+- [2021](2021) - More Rust! I lost steam towards the end, but finally finished up in 2023.
 - [2022](2022) - All parts in Rust! I set a goal of sub 1s total runtime.
 - [2023](2023) - Still more Rust. Once again aiming for sub 1s total runtime.
