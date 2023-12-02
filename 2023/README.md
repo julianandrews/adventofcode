@@ -10,7 +10,7 @@ efficiency and readability are my priorities, in that order.
 | Day | Runtime |
 | --- | ------: |
 | 1   |   1.9ms |
-| 2   |         |
+| 2   |   0.5ms |
 | 3   |         |
 | 4   |         |
 | 5   |         |
