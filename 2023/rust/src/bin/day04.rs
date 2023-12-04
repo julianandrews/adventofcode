@@ -63,8 +63,11 @@ impl std::str::FromStr for Card {
         }
 
         fn parse_bitvec(s: &str) -> Result<u128> {
-            s.split_whitespace()
-                .try_fold(0, |n, s| Ok(n | 1 << (s.parse::<u8>()? as u128)))
+            s.split_whitespace().try_fold(0, |n, s| {
+                Ok(n | 1u128
+                    .checked_shl(s.parse::<u32>()?)
+                    .ok_or_else(|| anyhow!("Invalid numbers: {}", s))?)
+            })
         }
 
         let (id_part, winning_part, numbers_part) =
