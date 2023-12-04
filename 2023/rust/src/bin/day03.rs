@@ -1,4 +1,5 @@
 use anyhow::Result;
+use std::cmp::Ordering;
 
 use aoc::utils::get_input;
 
@@ -34,10 +35,12 @@ fn part_number_sum(lines: &[DiagramLine]) -> u64 {
                         touches = true;
                         break;
                     }
-                    if x > range.end() + 1 {
-                        break;
-                    } else if x < range.end() + 1 {
-                        line_symbols.next();
+                    match x.cmp(&(range.end() + 1)) {
+                        Ordering::Less => {
+                            line_symbols.next();
+                        }
+                        Ordering::Equal => {}
+                        Ordering::Greater => break,
                     }
                 }
             }
@@ -92,7 +95,7 @@ impl<'a> DiagramLine<'a> {
         self.line
             .bytes()
             .enumerate()
-            .filter(|(_, b)| *b != b'.' && !is_digit(b))
+            .filter(|(_, b)| *b != b'.' && !b.is_ascii_digit())
     }
 }
 
@@ -106,11 +109,11 @@ impl<'a> Iterator for NumberRangeIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let bytes = self.line.as_bytes();
-        while !is_digit(bytes.get(self.x)?) {
+        while !bytes.get(self.x)?.is_ascii_digit() {
             self.x += 1;
         }
         let start = self.x;
-        while bytes.get(self.x).is_some_and(is_digit) {
+        while bytes.get(self.x).is_some_and(|b| b.is_ascii_digit()) {
             self.x += 1;
         }
         Some(NumberRange {
@@ -133,10 +136,6 @@ impl<'a> NumberRange<'a> {
     fn end(&self) -> usize {
         self.start + self.contents.len() - 1
     }
-}
-
-fn is_digit(b: &u8) -> bool {
-    (b'0'..=b'9').contains(b)
 }
 
 #[cfg(test)]
