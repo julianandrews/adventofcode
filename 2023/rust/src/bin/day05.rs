@@ -37,19 +37,19 @@ struct Almanac {
 
 impl Almanac {
     /// Return the final value of all seeds after mapping through all maps.
-    pub fn seed_images<'a>(&'a self) -> impl Iterator<Item = u64> + 'a {
+    pub fn seed_images(&self) -> impl Iterator<Item = u64> + '_ {
         self.seeds
             .iter()
             .map(|&seed| self.maps.iter().fold(seed, |number, map| map.get(number)))
     }
 
     /// Return the image of all seeds interpreted as ranges as a collection of ranges after mapping through all maps.
-    pub fn seed_range_images<'a>(&'a self) -> impl Iterator<Item = Range<u64>> + 'a {
+    pub fn seed_range_images(&self) -> impl Iterator<Item = Range<u64>> + '_ {
         let seed_ranges = self.seeds.chunks(2).map(|p| p[0]..p[0] + p[1]);
         seed_ranges.flat_map(|range| self.range_image(range))
     }
 
-    fn range_image<'a>(&'a self, range: Range<u64>) -> impl Iterator<Item = Range<u64>> + 'a {
+    fn range_image(&self, range: Range<u64>) -> impl Iterator<Item = Range<u64>> + '_ {
         let mut ranges = vec![range];
         for map in self.maps.iter() {
             ranges = ranges
@@ -94,7 +94,7 @@ impl RangeMapCollection {
         ranges
     }
 
-    fn overlapping<'a>(&'a self, range: Range<u64>) -> impl Iterator<Item = &RangeMap> + 'a {
+    fn overlapping(&self, range: Range<u64>) -> impl Iterator<Item = &RangeMap> + '_ {
         self.ranges
             .iter()
             .skip_while(move |r| r.source.end < range.start)
