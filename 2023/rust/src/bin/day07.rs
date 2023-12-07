@@ -94,15 +94,11 @@ impl From<&[Card; 5]> for HandType {
 impl From<&[CardWithJokers; 5]> for HandType {
     fn from(hand: &[CardWithJokers; 5]) -> HandType {
         let mut counts = [0; 13];
-        let mut joker_count = 0;
         for card in hand {
-            match card {
-                CardWithJokers::Joker => joker_count += 1,
-                _ => counts[*card as usize] += 1,
-            }
+            counts[*card as usize] += 1;
         }
-        counts.sort_unstable();
-        HandType::from_card_counts(counts[12] + joker_count, counts[11])
+        counts[1..].sort_unstable();
+        HandType::from_card_counts(counts[12] + counts[0], counts[11])
             .expect("Impossible card counts")
     }
 }
