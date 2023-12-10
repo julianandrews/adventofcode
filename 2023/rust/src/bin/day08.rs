@@ -67,7 +67,7 @@ impl Network {
 
         Ok(cycles
             .into_iter()
-            .fold(1, |lcm, cycle| num_integer::lcm(lcm, cycle.length)) as u64)
+            .fold(1, |lcm, cycle| num_integer::lcm(lcm, cycle.length)))
     }
 
     fn find_cycle(&self, instructions: &[Instruction], starting_node: &str) -> Result<Cycle> {
@@ -100,17 +100,13 @@ impl Network {
         instructions: &'a [Instruction],
         mut node: &'a str,
     ) -> impl Iterator<Item = &str> + 'a {
-        instructions
-            .iter()
-            .cycle()
-            .map(move |instruction| {
-                node = match instruction {
-                    Instruction::Left => &self.nodes.get(node)?.0,
-                    Instruction::Right => &self.nodes.get(node)?.1,
-                };
-                Some(node)
-            })
-            .flatten()
+        instructions.iter().cycle().filter_map(move |instruction| {
+            node = match instruction {
+                Instruction::Left => &self.nodes.get(node)?.0,
+                Instruction::Right => &self.nodes.get(node)?.1,
+            };
+            Some(node)
+        })
     }
 }
 
