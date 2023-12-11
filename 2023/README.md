@@ -19,7 +19,7 @@ efficiency and readability are my priorities, in that order.
 | 8   |   5.0ms |
 | 9   |   0.7ms |
 | 10  |   1.5ms |
-| 11  |         |
+| 11  |   1.1ms |
 | 12  |         |
 | 13  |         |
 | 14  |         |
