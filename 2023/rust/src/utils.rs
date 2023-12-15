@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
+use std::str::pattern::Pattern;
 use std::str::FromStr;
 
 pub fn get_input() -> std::io::Result<String> {
@@ -17,10 +18,9 @@ pub fn get_input() -> std::io::Result<String> {
     Ok(input)
 }
 
-// TODO: See if I can use `std::str::Pattern` instead of `char`
-pub fn parse_fields<T: FromStr, C: FromIterator<T>>(
-    data: &str,
-    delimiter: char,
+pub fn parse_fields<'a, P: Pattern<'a>, T: FromStr, C: FromIterator<T>>(
+    data: &'a str,
+    pat: P,
 ) -> Result<C, <T as FromStr>::Err> {
-    data.split(delimiter).map(&str::parse).collect()
+    data.split(pat).map(&str::parse).collect()
 }
