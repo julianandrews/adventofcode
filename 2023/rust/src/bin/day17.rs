@@ -1,8 +1,7 @@
-use std::collections::BinaryHeap;
-
 use anyhow::{anyhow, bail, Result};
 #[cfg(feature = "verbose")]
 use rustc_hash::FxHashMap;
+use std::collections::BinaryHeap;
 
 use aoc::planar::{Direction, TileMap, Turn};
 use aoc::utils::get_input;
@@ -36,10 +35,16 @@ impl HeatMap {
         F: Fn(&TileMap<HeatLoss>, &State) -> Vec<(State, u32)>,
     {
         // Djikstra's algorithm
-        let mut costs = vec![u32::MAX; 1 << 22];
-        costs[State::default().simple_hash()] = self.0.get(0, 0)?.0;
+        let initial = [
+            SearchNode::initial(Direction::East),
+            SearchNode::initial(Direction::South),
+        ];
+        let mut costs = vec![u32::MAX; 1 << 20];
         let mut queue = BinaryHeap::new();
-        queue.push(SearchNode::default());
+        for node in initial {
+            costs[node.state.simple_hash()] = self.0.get(0, 0)?.0;
+            queue.push(node);
+        }
         #[cfg(feature = "verbose")]
         let mut parents: FxHashMap<State, SearchNode> = FxHashMap::default();
 
@@ -78,27 +83,19 @@ impl HeatMap {
 
 fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
     let mut neighbors = vec![];
-    if state.momentum < 3 {
-        if let Some((x, y)) = map.step(state.x, state.y, state.direction) {
-            let neighbor = State {
-                x,
-                y,
-                momentum: state.momentum + 1,
-                direction: state.direction,
-            };
-            neighbors.push((neighbor, map.get(x, y).unwrap().0));
-        }
-    }
     for turn in [Turn::Clockwise, Turn::CounterClockwise] {
         let direction = state.direction.turn(turn);
-        if let Some((x, y)) = map.step(state.x, state.y, direction) {
-            let neighbor = State {
-                x,
-                y,
-                momentum: 1,
-                direction,
-            };
-            neighbors.push((neighbor, map.get(x, y).unwrap().0));
+        let (mut x, mut y) = (state.x, state.y);
+        let mut cost = 0;
+        for _ in 0..3 {
+            if let Some((a, b)) = map.step(x, y, direction) {
+                (x, y) = (a, b);
+                cost += map.get(x, y).unwrap().0;
+                let neighbor = State { x, y, direction };
+                neighbors.push((neighbor, cost));
+            } else {
+                break;
+            }
         }
     }
     neighbors
@@ -106,39 +103,20 @@ fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32
 
 fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
     let mut neighbors = vec![];
-    if state.momentum < 10 {
-        if let Some((mut x, mut y)) = map.step(state.x, state.y, state.direction) {
-            let mut cost = map.get(x, y).unwrap().0;
-            let mut momentum = state.momentum + 1;
-            while momentum < 4 {
-                if let Some((a, b)) = map.step(x, y, state.direction) {
-                    (x, y) = (a, b);
-                    momentum += 1;
-                    cost += map.get(x, y).unwrap().0;
-                } else {
-                    break;
+    for turn in [Turn::Clockwise, Turn::CounterClockwise] {
+        let direction = state.direction.turn(turn);
+        let (mut x, mut y) = (state.x, state.y);
+        let mut cost = 0;
+        for d in 0..10 {
+            if let Some((a, b)) = map.step(x, y, direction) {
+                (x, y) = (a, b);
+                cost += map.get(x, y).unwrap().0;
+                if d >= 3 {
+                    let neighbor = State { x, y, direction };
+                    neighbors.push((neighbor, cost));
                 }
-            }
-            let neighbor = State {
-                x,
-                y,
-                momentum,
-                direction: state.direction,
-            };
-            neighbors.push((neighbor, cost));
-        }
-    }
-    if state.momentum == 0 || state.momentum >= 4 {
-        for turn in [Turn::Clockwise, Turn::CounterClockwise] {
-            let direction = state.direction.turn(turn);
-            if let Some((x, y)) = map.step(state.x, state.y, direction) {
-                let neighbor = State {
-                    x,
-                    y,
-                    momentum: 1,
-                    direction,
-                };
-                neighbors.push((neighbor, map.get(x, y).unwrap().0));
+            } else {
+                break;
             }
         }
     }
@@ -148,34 +126,39 @@ fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(Stat
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct HeatLoss(u32);
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct SearchNode {
     cost: u32,
     state: State,
+}
+
+impl SearchNode {
+    fn initial(direction: Direction) -> SearchNode {
+        SearchNode {
+            cost: 0,
+            state: State::initial(direction),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct State {
     x: usize,
     y: usize,
-    momentum: usize,
     direction: Direction,
 }
 
 impl State {
-    fn simple_hash(&self) -> usize {
-        self.x | self.y << 8 | (self.direction as usize) << 16 | self.momentum << 18
-    }
-}
-
-impl Default for State {
-    fn default() -> Self {
+    fn initial(direction: Direction) -> State {
         State {
             x: 0,
             y: 0,
-            momentum: 0,
-            direction: Direction::East,
+            direction,
         }
+    }
+
+    fn simple_hash(&self) -> usize {
+        self.x | self.y << 8 | (self.direction as usize) << 16
     }
 }
 
@@ -209,14 +192,14 @@ impl TryFrom<char> for HeatLoss {
 
     fn try_from(c: char) -> Result<Self, Self::Error> {
         c.to_digit(10)
-            .map(|d| HeatLoss(d as u32))
+            .map(HeatLoss)
             .ok_or_else(|| anyhow!("Failed to parse heat loss: {}", c))
     }
 }
 
 impl From<&HeatLoss> for char {
     fn from(h: &HeatLoss) -> Self {
-        char::from_digit(h.0 as u32, 10).unwrap()
+        char::from_digit(h.0, 10).unwrap()
     }
 }
 
