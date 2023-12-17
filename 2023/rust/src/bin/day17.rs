@@ -1,6 +1,7 @@
 use std::collections::BinaryHeap;
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
+#[cfg(feature = "verbose")]
 use rustc_hash::FxHashMap;
 
 use aoc::planar::{Direction, TileMap, Turn};
@@ -8,7 +9,7 @@ use aoc::utils::get_input;
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let map = HeatMap(input.trim().parse()?);
+    let map = input.trim().parse()?;
 
     println!("Part 1: {}", part1(&map)?);
     println!("Part 2: {}", part2(&map)?);
@@ -16,12 +17,12 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1(map: &HeatMap) -> Result<u64> {
+fn part1(map: &HeatMap) -> Result<u32> {
     map.minimum_loss(crucible_neighbors)
         .ok_or_else(|| anyhow!("Failed to find path"))
 }
 
-fn part2(map: &HeatMap) -> Result<u64> {
+fn part2(map: &HeatMap) -> Result<u32> {
     map.minimum_loss(ultra_crucible_neighbors)
         .ok_or_else(|| anyhow!("Failed to find path"))
 }
@@ -30,15 +31,15 @@ fn part2(map: &HeatMap) -> Result<u64> {
 struct HeatMap(TileMap<HeatLoss>);
 
 impl HeatMap {
-    fn minimum_loss<F>(&self, neighbors: F) -> Option<u64>
+    fn minimum_loss<F>(&self, neighbors: F) -> Option<u32>
     where
-        F: Fn(&TileMap<HeatLoss>, &State) -> Vec<(State, u64)>,
+        F: Fn(&TileMap<HeatLoss>, &State) -> Vec<(State, u32)>,
     {
         // Djikstra's algorithm
-        let mut costs = FxHashMap::default();
+        let mut costs = vec![u32::MAX; 1 << 22];
+        costs[State::default().simple_hash()] = self.0.get(0, 0)?.0;
         let mut queue = BinaryHeap::new();
         queue.push(SearchNode::default());
-        costs.insert(State::default(), self.0.get(0, 0)?.0);
         #[cfg(feature = "verbose")]
         let mut parents: FxHashMap<State, SearchNode> = FxHashMap::default();
 
@@ -47,12 +48,12 @@ impl HeatMap {
                 #[cfg(feature = "verbose")]
                 print_chain(&SearchNode { cost, state }, parents);
                 return Some(cost);
-            } else if cost > *costs.get(&state).unwrap_or(&u64::MAX) {
+            } else if cost > costs[state.simple_hash()] {
                 continue;
             }
 
             for (neighbor, neighbor_cost) in neighbors(&self.0, &state) {
-                let old_cost = costs.entry(neighbor.clone()).or_insert(u64::MAX);
+                let old_cost = costs.get_mut(neighbor.simple_hash()).unwrap();
                 let new_cost = cost + neighbor_cost;
                 if new_cost < *old_cost {
                     *old_cost = new_cost;
@@ -75,8 +76,19 @@ impl HeatMap {
     }
 }
 
-fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u64)> {
+fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
     let mut neighbors = vec![];
+    if state.momentum < 3 {
+        if let Some((x, y)) = map.step(state.x, state.y, state.direction) {
+            let neighbor = State {
+                x,
+                y,
+                momentum: state.momentum + 1,
+                direction: state.direction,
+            };
+            neighbors.push((neighbor, map.get(x, y).unwrap().0));
+        }
+    }
     for turn in [Turn::Clockwise, Turn::CounterClockwise] {
         let direction = state.direction.turn(turn);
         if let Some((x, y)) = map.step(state.x, state.y, direction) {
@@ -89,22 +101,33 @@ fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u64
             neighbors.push((neighbor, map.get(x, y).unwrap().0));
         }
     }
-    if state.momentum < 3 {
-        if let Some((x, y)) = map.step(state.x, state.y, state.direction) {
-            let neighbor = State {
-                x,
-                y,
-                momentum: state.momentum + 1,
-                direction: state.direction,
-            };
-            neighbors.push((neighbor, map.get(x, y).unwrap().0));
-        }
-    }
     neighbors
 }
 
-fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u64)> {
+fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
     let mut neighbors = vec![];
+    if state.momentum < 10 {
+        if let Some((mut x, mut y)) = map.step(state.x, state.y, state.direction) {
+            let mut cost = map.get(x, y).unwrap().0;
+            let mut momentum = state.momentum + 1;
+            while momentum < 4 {
+                if let Some((a, b)) = map.step(x, y, state.direction) {
+                    (x, y) = (a, b);
+                    momentum += 1;
+                    cost += map.get(x, y).unwrap().0;
+                } else {
+                    break;
+                }
+            }
+            let neighbor = State {
+                x,
+                y,
+                momentum,
+                direction: state.direction,
+            };
+            neighbors.push((neighbor, cost));
+        }
+    }
     if state.momentum == 0 || state.momentum >= 4 {
         for turn in [Turn::Clockwise, Turn::CounterClockwise] {
             let direction = state.direction.turn(turn);
@@ -119,38 +142,15 @@ fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(Stat
             }
         }
     }
-    if state.momentum < 10 {
-        if let Some((x, y)) = map.step(state.x, state.y, state.direction) {
-            let neighbor = State {
-                x,
-                y,
-                momentum: state.momentum + 1,
-                direction: state.direction,
-            };
-            neighbors.push((neighbor, map.get(x, y).unwrap().0));
-        }
-    }
     neighbors
 }
 
-#[cfg(feature = "verbose")]
-fn print_chain(node: &SearchNode, mut parents: FxHashMap<State, SearchNode>) {
-    let mut chain = vec![];
-    chain.push(node.clone());
-    while let Some(node) = parents.remove(&chain.last().unwrap().state) {
-        chain.push(node);
-    }
-    for node in chain.iter().rev() {
-        println!("{}\n{:?}\n", node.cost, node.state);
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct HeatLoss(u64);
+struct HeatLoss(u32);
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 struct SearchNode {
-    cost: u64,
+    cost: u32,
     state: State,
 }
 
@@ -160,6 +160,12 @@ struct State {
     y: usize,
     momentum: usize,
     direction: Direction,
+}
+
+impl State {
+    fn simple_hash(&self) -> usize {
+        self.x | self.y << 8 | (self.direction as usize) << 16 | self.momentum << 18
+    }
 }
 
 impl Default for State {
@@ -186,12 +192,24 @@ impl PartialOrd for SearchNode {
     }
 }
 
+impl std::str::FromStr for HeatMap {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let map: TileMap<HeatLoss> = s.parse()?;
+        if map.width() > 256 || map.height() > 256 {
+            bail!("Map too large");
+        }
+        Ok(HeatMap(map))
+    }
+}
+
 impl TryFrom<char> for HeatLoss {
     type Error = anyhow::Error;
 
     fn try_from(c: char) -> Result<Self, Self::Error> {
         c.to_digit(10)
-            .map(|d| HeatLoss(d as u64))
+            .map(|d| HeatLoss(d as u32))
             .ok_or_else(|| anyhow!("Failed to parse heat loss: {}", c))
     }
 }
@@ -199,6 +217,18 @@ impl TryFrom<char> for HeatLoss {
 impl From<&HeatLoss> for char {
     fn from(h: &HeatLoss) -> Self {
         char::from_digit(h.0 as u32, 10).unwrap()
+    }
+}
+
+#[cfg(feature = "verbose")]
+fn print_chain(node: &SearchNode, mut parents: FxHashMap<State, SearchNode>) {
+    let mut chain = vec![];
+    chain.push(node.clone());
+    while let Some(node) = parents.remove(&chain.last().unwrap().state) {
+        chain.push(node);
+    }
+    for node in chain.iter().rev() {
+        println!("{}\n{:?}\n", node.cost, node.state);
     }
 }
 
@@ -223,13 +253,13 @@ mod tests {
 
     #[test]
     fn normal_crucible() {
-        let map = HeatMap(TEST_DATA.parse().unwrap());
+        let map: HeatMap = TEST_DATA.parse().unwrap();
         assert_eq!(map.minimum_loss(crucible_neighbors), Some(102));
     }
 
     #[test]
     fn ultra_crucible() {
-        let map = HeatMap(TEST_DATA.parse().unwrap());
+        let map: HeatMap = TEST_DATA.parse().unwrap();
         assert_eq!(map.minimum_loss(ultra_crucible_neighbors), Some(94));
     }
 }
