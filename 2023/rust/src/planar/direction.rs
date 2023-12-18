@@ -1,3 +1,5 @@
+// TODO
+// 41276 too high
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
@@ -48,6 +50,15 @@ impl Direction {
             2 => Direction::South,
             3 => Direction::West,
             _ => unreachable!(),
+        }
+    }
+
+    pub fn step(&self) -> (i32, i32) {
+        match self {
+            Direction::North => (0, -1),
+            Direction::East => (1, 0),
+            Direction::South => (0, 1),
+            Direction::West => (-1, 0),
         }
     }
 }

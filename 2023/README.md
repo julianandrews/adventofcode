@@ -3,7 +3,10 @@
 This directory contains my solutions for [Advent of Code 2022](https://adventofcode.com/2022).
 
 Like last year, I'm aiming for sub 1s total runtime. Correctness, algorithmic
-efficiency and readability are my priorities, in that order.
+efficiency and readability are my priorities, in that order. I will generally
+avoid optimizations that hurt readability without substantially improving
+runtime, but won't avoid added complexity if the performance gain is
+substantial.
 
 ## Performance
 
@@ -26,7 +29,7 @@ efficiency and readability are my priorities, in that order.
 | 15  |   0.9ms |
 | 16  | 150.0ms |
 | 17  |  32.6ms |
-| 18  |         |
+| 18  |   0.5ms |
 | 19  |         |
 | 20  |         |
 | 21  |         |
