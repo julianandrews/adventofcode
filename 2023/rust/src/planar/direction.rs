@@ -1,5 +1,3 @@
-// TODO
-// 41276 too high
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
