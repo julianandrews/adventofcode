@@ -25,10 +25,10 @@ fn part1(workflow_set: &WorkflowSet, ratings: &[Rating]) -> u64 {
 }
 
 fn part2(workflow_set: &WorkflowSet) -> Result<u64> {
-    let accepted = workflow_set.accepted_ranges();
+    let accepted = workflow_set.accepted_ranges(RatingRange::default());
 
     // This step is slow and, on the real inputs, unecessary since no ranges intersect. But in
-    // principle ranges could intersect (I think?) , and then we'd need to find the true
+    // principle ranges could intersect (I think?), and then we'd need to find the true
     // intersection volume.
     if iter_pairs(&accepted).any(|(a, b)| !a.intersection(b).is_empty()) {
         bail!("Non empty intersection in ranges. Smarter algorithm required to find intersection volume");
@@ -55,22 +55,17 @@ impl<'a> WorkflowSet<'a> {
         false
     }
 
-    fn accepted_ranges(&self) -> Vec<RatingRange> {
-        let output_ranges: FxHashMap<_, _> = self
-            .workflows
-            .iter()
-            .map(|(label, workflow)| (label, workflow.output_ranges()))
-            .collect();
-        let mut queue = vec![(RatingRange::default(), Action::GoTo("in"))];
+    fn accepted_ranges(&self, start: RatingRange) -> Vec<RatingRange> {
+        let mut stack = vec![(start, Action::GoTo("in"))];
         let mut accepted = vec![];
-        while let Some((range, action)) = queue.pop() {
+        while let Some((range, action)) = stack.pop() {
             match action {
                 Action::Accept => accepted.push(range),
                 Action::Reject => {}
                 Action::GoTo(label) => {
-                    if let Some(ranges) = output_ranges.get(&label) {
-                        for (r, a) in ranges {
-                            queue.push((range.intersection(r), *a));
+                    if let Some(workflow) = self.workflows.get(label) {
+                        for (r, a) in workflow.run_range(&range) {
+                            stack.push((range.intersection(&r), a));
                         }
                     }
                 }
@@ -97,23 +92,23 @@ impl<'a> Workflow<'a> {
         unreachable!();
     }
 
-    fn output_ranges(&self) -> Vec<(RatingRange, Action)> {
+    fn run_range(&self, range: &RatingRange) -> Vec<(RatingRange, Action)> {
         let mut output = vec![];
-        let mut range = RatingRange::default();
+        let mut range = range.clone();
         for rule in &self.rules {
             match rule.condition {
                 Some(condition) => {
-                    let (accepted, skipped) = condition.test_range(&range);
-                    output.push((accepted, rule.action));
-                    range = skipped;
+                    let (passed_test, failed_test) = condition.test_range(&range);
+                    output.push((passed_test, rule.action));
+                    range = failed_test;
                 }
                 None => {
                     output.push((range, rule.action));
-                    break;
+                    return output;
                 }
             }
         }
-        output
+        unreachable!()
     }
 }
 
@@ -138,18 +133,18 @@ impl Condition {
     }
 
     fn test_range(&self, range: &RatingRange) -> (RatingRange, RatingRange) {
-        let (mut accepted, mut skipped) = (range.clone(), range.clone());
+        let (mut passed_test, mut failed_test) = (range.clone(), range.clone());
         match *self {
             Condition::GreaterThan(category, value) => {
-                accepted.get_mut(category).start = value + 1;
-                skipped.get_mut(category).end = value + 1;
+                passed_test.get_mut(category).start = value + 1;
+                failed_test.get_mut(category).end = value + 1;
             }
             Condition::LessThan(category, value) => {
-                accepted.get_mut(category).end = value;
-                skipped.get_mut(category).start = value;
+                passed_test.get_mut(category).end = value;
+                failed_test.get_mut(category).start = value;
             }
         }
-        (accepted, skipped)
+        (passed_test, failed_test)
     }
 }
 
@@ -438,7 +433,7 @@ mod tests {
     }
 
     #[test]
-    fn output_ranges() {
+    fn run_range() {
         let (workflow_set, _) = parsing::parse_input(TEST_DATA).unwrap();
         let workflow = workflow_set.workflows.get("qqz").unwrap();
         #[rustfmt::skip]
@@ -447,7 +442,7 @@ mod tests {
             (build_range(1..4001, 1..1801, 1..4001, 1..2771), Action::GoTo("hdj")),
             (build_range(1..4001, 1801..4001, 1..4001, 1..2771), Action::Reject),
         ];
-        assert_eq!(workflow.output_ranges(), expected);
+        assert_eq!(workflow.run_range(&RatingRange::default()), expected);
     }
 
     #[test]
