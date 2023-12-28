@@ -72,11 +72,7 @@ impl Network {
         };
         let periods = self.find_first_triggers(&inputs);
 
-        Some(
-            periods
-                .into_iter()
-                .fold(1, |lcm, period| num_integer::lcm(lcm, period)),
-        )
+        Some(periods.into_iter().fold(1, num_integer::lcm))
     }
 
     /// Find the first time each index triggers a high pulse.
@@ -207,7 +203,7 @@ mod parsing {
 
     use anyhow::{anyhow, bail, Result};
 
-    pub fn parse_network<'a>(s: &'a str) -> Result<Network> {
+    pub fn parse_network(s: &str) -> Result<Network> {
         let mut modules = vec![];
         let mut destination_list = vec![];
         let mut label_map = FxHashMap::default();
