@@ -28,6 +28,22 @@ impl<'a, T> Iterator for PairIterator<'a, T> {
     }
 }
 
+pub trait AocIterators: Iterator {
+    /// Consume the iterator and return all elements if there are exactly N.
+    fn exactly_n<const N: usize>(mut self) -> Option<[Self::Item; N]>
+    where
+        Self: Sized,
+    {
+        let first_n = self.by_ref().take(N).collect::<Vec<_>>().try_into().ok()?;
+        match self.next() {
+            Some(_) => None,
+            None => Some(first_n),
+        }
+    }
+}
+
+impl<I: Iterator> AocIterators for I {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

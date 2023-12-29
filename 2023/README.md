@@ -33,9 +33,9 @@ substantial.
 | 19  |   1.3ms |
 | 20  |   2.8ms |
 | 21  |  11.4ms |
-| 22  |         |
+| 22  |   1.7ms |
 | 23  |         |
 | 24  |         |
 | 25  |         |
 
-Total Runtime: 101.3ms
+Total Runtime: 103.0ms
