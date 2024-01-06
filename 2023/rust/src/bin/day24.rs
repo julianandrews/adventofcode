@@ -8,7 +8,7 @@ use aoc::utils::{get_input, parse_fields};
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let hailstones: Vec<Hailstone> = parse_fields(input.trim(), '\n')?;
+    let hailstones: Vec<Hailstone<i64>> = parse_fields(input.trim(), '\n')?;
 
     println!("Part 1: {}", part1(&hailstones));
     println!("Part 2: {}", part2(&hailstones)?);
@@ -16,23 +16,23 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1(hailstones: &[Hailstone]) -> usize {
+fn part1(hailstones: &[Hailstone<i64>]) -> usize {
     intersections_in_range(hailstones, 200000000000000.0..=400000000000000.0)
 }
 
-fn part2(hailstones: &[Hailstone]) -> Result<i64> {
+fn part2(hailstones: &[Hailstone<i64>]) -> Result<i64> {
     let bullet = magic_bullet(hailstones).ok_or_else(|| anyhow!("No magic bullet exists."))?;
     Ok(bullet.position[0] + bullet.position[1] + bullet.position[2])
 }
 
-fn intersections_in_range(hailstones: &[Hailstone], range: RangeInclusive<f64>) -> usize {
+fn intersections_in_range(hailstones: &[Hailstone<i64>], range: RangeInclusive<f64>) -> usize {
     iter_pairs(hailstones)
-        .map(|(a, b)| a.intersection(b))
+        .map(|(a, b)| Hailstone::from(a).intersection(&b.into()))
         .filter(|(x, y, ta, tb)| ta >= &0.0 && tb >= &0.0 && range.contains(x) && range.contains(y))
         .count()
 }
 
-fn magic_bullet(hailstones: &[Hailstone]) -> Option<Hailstone> {
+fn magic_bullet(hailstones: &[Hailstone<i64>]) -> Option<Hailstone<i64>> {
     let cfg = z3::Config::new();
     let ctx = z3::Context::new(&cfg);
     let solver = z3::Solver::new(&ctx);
@@ -66,22 +66,38 @@ fn magic_bullet(hailstones: &[Hailstone]) -> Option<Hailstone> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct Hailstone {
-    position: [i64; 3],
-    velocity: [i64; 3],
+struct Hailstone<T> {
+    position: [T; 3],
+    velocity: [T; 3],
 }
 
-impl Hailstone {
-    fn intersection(&self, other: &Hailstone) -> (f64, f64, f64, f64) {
-        let m_self = self.velocity[1] as f64 / self.velocity[0] as f64;
-        let m_other = other.velocity[1] as f64 / other.velocity[0] as f64;
-        let x = (other.position[1] as f64 - self.position[1] as f64
-            + m_self * self.position[0] as f64
-            - m_other * other.position[0] as f64)
+impl From<&Hailstone<i64>> for Hailstone<f64> {
+    fn from(value: &Hailstone<i64>) -> Self {
+        Hailstone {
+            position: [
+                value.position[0] as f64,
+                value.position[1] as f64,
+                value.position[2] as f64,
+            ],
+            velocity: [
+                value.velocity[0] as f64,
+                value.velocity[1] as f64,
+                value.velocity[2] as f64,
+            ],
+        }
+    }
+}
+
+impl Hailstone<f64> {
+    fn intersection(&self, b: &Hailstone<f64>) -> (f64, f64, f64, f64) {
+        let m_self = self.velocity[1] / self.velocity[0];
+        let m_other = b.velocity[1] / b.velocity[0];
+        let x = (b.position[1] - self.position[1] + m_self * self.position[0]
+            - m_other * b.position[0])
             / (m_self - m_other);
-        let y = self.position[1] as f64 + m_self * (x - self.position[0] as f64);
-        let t_self = (x - self.position[0] as f64) / self.velocity[0] as f64;
-        let t_other = (x - other.position[0] as f64) / other.velocity[0] as f64;
+        let y = self.position[1] + m_self * (x - self.position[0]);
+        let t_self = (x - self.position[0]) / self.velocity[0];
+        let t_other = (x - b.position[0]) / b.velocity[0];
         (x, y, t_self, t_other)
     }
 }
@@ -89,17 +105,23 @@ impl Hailstone {
 mod parsing {
     use super::Hailstone;
 
+    use std::str::FromStr;
+
     use anyhow::anyhow;
 
     use aoc::iterators::AocIterators;
 
-    impl std::str::FromStr for Hailstone {
+    impl<T> FromStr for Hailstone<T>
+    where
+        T: FromStr,
+        <T as FromStr>::Err: 'static + Send + Sync + std::error::Error,
+    {
         type Err = anyhow::Error;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let (x, y, z, vx, vy, vz) =
                 split_parts(s).ok_or_else(|| anyhow!("Invalid hailstone {}", s))?;
-            Ok(Hailstone {
+            Ok(Hailstone::<T> {
                 position: [x.trim().parse()?, y.trim().parse()?, z.trim().parse()?],
                 velocity: [vx.trim().parse()?, vy.trim().parse()?, vz.trim().parse()?],
             })
@@ -127,7 +149,7 @@ mod tests {
 
     #[test]
     fn intersections() {
-        let hailstones: Vec<Hailstone> = parse_fields(TEST_DATA, '\n').unwrap();
+        let hailstones: Vec<Hailstone<i64>> = parse_fields(TEST_DATA, '\n').unwrap();
         let result = intersections_in_range(&hailstones, 7.0..=27.0);
 
         assert_eq!(result, 2);
@@ -135,7 +157,7 @@ mod tests {
 
     #[test]
     fn find_magic_bullet() {
-        let hailstones: Vec<Hailstone> = parse_fields(TEST_DATA, '\n').unwrap();
+        let hailstones: Vec<Hailstone<i64>> = parse_fields(TEST_DATA, '\n').unwrap();
         let result = magic_bullet(&hailstones);
         let expected = Some(Hailstone {
             position: [24, 13, 10],
