@@ -30,7 +30,7 @@ impl ComponentGraph {
         // Pick a random node, and then try all other nodes in random order.
         let mut nodes: Vec<_> = (0..self.edges.len()).collect();
         nodes.shuffle(&mut rand::thread_rng());
-        let i = *nodes.get(0)?;
+        let i = *nodes.first()?;
         for &j in &nodes[1..] {
             if let Some(result) = self.component_sizes(i, j, max_cuts) {
                 return Some(result);
