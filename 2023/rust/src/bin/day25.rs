@@ -1,6 +1,7 @@
+use std::collections::VecDeque;
+
 use anyhow::{anyhow, Result};
-use rand::Rng;
-use rustc_hash::FxHashMap;
+use rand::seq::SliceRandom;
 
 use aoc::utils::get_input;
 
@@ -20,62 +21,61 @@ fn part1(graph: &ComponentGraph) -> Result<usize> {
 
 #[derive(Debug, Clone)]
 struct ComponentGraph {
-    nodes: Vec<(usize, FxHashMap<usize, usize>)>,
+    edges: Vec<Vec<bool>>,
 }
 
 impl ComponentGraph {
-    fn find_cut(&self, max_edges: usize) -> Option<(usize, usize)> {
-        // Based on Karger's aglorithm
-        loop {
-            let graph = self.random_cut();
-            let mut nodes = graph.nodes.iter().filter(|&(count, _)| *count != 0);
-            let (a, edges) = nodes.next().unwrap();
-            let a = *a;
-            let &(b, _) = nodes.next().unwrap();
-            let edges = *edges.values().next().unwrap();
-            if edges <= max_edges {
-                return Some((a.min(b), a.max(b)));
+    /// Try to cut the graph into two components and return their sizes.
+    fn find_cut(&self, max_cuts: usize) -> Option<(usize, usize)> {
+        // Pick a random node, and then try all other nodes in random order.
+        let mut nodes: Vec<_> = (0..self.edges.len()).collect();
+        nodes.shuffle(&mut rand::thread_rng());
+        let i = *nodes.get(0)?;
+        for &j in &nodes[1..] {
+            if let Some(result) = self.component_sizes(i, j, max_cuts) {
+                return Some(result);
             }
         }
+        None
     }
 
-    fn random_edge(&self) -> (usize, usize) {
-        let mut rng = rand::thread_rng();
-        let edge_count = self.nodes.iter().map(|(_, edges)| edges.len()).sum();
-        let choice = rng.gen_range(0..edge_count);
-        self.nodes
-            .iter()
-            .enumerate()
-            .flat_map(|(i, (_, edges))| edges.keys().map(move |&j| (i, j)))
-            .nth(choice)
-            .unwrap()
-    }
-
-    fn random_cut(&self) -> ComponentGraph {
+    /// Try to cut a graph into two components with node `i` in one component and `j` in the
+    /// other using at most `max_cuts` cuts. Return the component sizes if a cut exists.
+    fn component_sizes(&self, i: usize, j: usize, max_cuts: usize) -> Option<(usize, usize)> {
         let mut graph = self.clone();
-        while graph.node_count() > 2 {
-            let (i, j) = graph.random_edge();
-            graph.contract_edge(i, j);
+        for _ in 0..max_cuts + 1 {
+            if let Some(component_size) = graph.find_component_size_or_remove_path(i, j) {
+                return Some((component_size, self.edges.len() - component_size));
+            }
         }
-        graph
+        None
     }
 
-    fn contract_edge(&mut self, i: usize, j: usize) {
-        let (i, j) = (i.min(j), i.max(j));
-        self.nodes[i].0 += self.nodes[j].0;
-        self.nodes[j].0 = 0;
-        self.nodes[i].1.remove(&j);
-        self.nodes[j].1.remove(&i);
-        let edges = std::mem::take(&mut self.nodes[j].1);
-        for (k, count) in edges {
-            *self.nodes[i].1.entry(k).or_insert(0) += count;
-            self.nodes[k].1.remove(&j);
-            *self.nodes[k].1.entry(i).or_insert(0) += count;
+    /// If `start` is not connected to `end` return the size of the component containing `start`.
+    /// Otherwise find a path between `start` and `end` and remove all its edges.
+    fn find_component_size_or_remove_path(&mut self, start: usize, end: usize) -> Option<usize> {
+        let mut queue = VecDeque::new();
+        queue.push_back(start);
+        let mut parents = vec![None; self.edges.len()];
+        while let Some(i) = queue.pop_front() {
+            if i == end {
+                let mut child = end;
+                while child != start {
+                    let parent: usize = parents[child].unwrap();
+                    self.edges[child][parent] = false;
+                    self.edges[parent][child] = false;
+                    child = parent;
+                }
+                return None;
+            }
+            for (j, &is_edge) in self.edges[i].iter().enumerate() {
+                if is_edge && parents[j].is_none() {
+                    parents[j] = Some(i);
+                    queue.push_back(j);
+                }
+            }
         }
-    }
-
-    fn node_count(&self) -> usize {
-        self.nodes.iter().filter(|(count, _)| count > &0).count()
+        Some(parents.into_iter().filter(|o| o.is_some()).count())
     }
 }
 
@@ -94,7 +94,7 @@ mod parsing {
                 let (label, neighbor_part) = line
                     .split_once(": ")
                     .ok_or_else(|| anyhow!("Invalid line {}", line))?;
-                for neighbor in neighbor_part.split(" ") {
+                for neighbor in neighbor_part.split(' ') {
                     nodes_by_str.entry(label).or_default().insert(neighbor);
                     nodes_by_str.entry(neighbor).or_default().insert(label);
                 }
@@ -104,22 +104,24 @@ mod parsing {
                 .enumerate()
                 .map(|(i, &s)| (s, i))
                 .collect();
-            let mut nodes = vec![(1, FxHashMap::default()); nodes_by_str.len()];
+
+            let mut edges = vec![vec![false; nodes_by_str.len()]; nodes_by_str.len()];
             for (label, neighbors) in nodes_by_str.into_iter() {
                 let node_ix = *node_indices.get(label).unwrap();
                 for neighbor in neighbors {
                     let neighbor_ix = *node_indices.get(neighbor).unwrap();
-                    nodes[node_ix].1.insert(neighbor_ix, 1);
+                    edges[node_ix][neighbor_ix] = true;
+                    edges[neighbor_ix][node_ix] = true;
                 }
             }
-            Ok(ComponentGraph { nodes })
+            Ok(ComponentGraph { edges })
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::ComponentGraph;
 
     static TEST_DATA: &str = "\
         jqt: rhn xhk nvd\n\
@@ -139,7 +141,9 @@ mod tests {
     #[test]
     fn cut() {
         let graph: ComponentGraph = TEST_DATA.parse().unwrap();
+        let (a, b) = graph.find_cut(3).unwrap();
+        let (a, b) = (a.min(b), a.max(b));
 
-        assert_eq!(graph.find_cut(3), Some((6, 9)));
+        assert_eq!((a, b), (6, 9));
     }
 }
