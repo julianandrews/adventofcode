@@ -12,7 +12,7 @@ substantial.
 
 | Day | Runtime |
 | --- | ------: |
-| 1   |   1.9ms |
+| 1   |   0.6ms |
 | 2   |   0.5ms |
 | 3   |   0.7ms |
 | 4   |   0.5ms |
@@ -38,4 +38,4 @@ substantial.
 | 24  | 123.8ms |
 | 25  |   6.9ms |
 
-Total Runtime: 384.1ms
+Total Runtime: 382.8ms

@@ -36,17 +36,16 @@ fn calibration_value(s: &str) -> Option<u32> {
         ("four", 4), ("4", 4), ("five", 5), ("5", 5), ("six", 6), ("6", 6),
         ("seven", 7), ("7", 7), ("eight", 8), ("8", 8), ("nine", 9), ("9", 9),
     ];
-    let first_digit = DIGITS
-        .iter()
-        .filter_map(|(word, n)| Some((s.find(word)?, n)))
-        .min_by_key(|&(index, _n)| index)?
-        .1;
-    let last_digit = DIGITS
-        .iter()
-        .filter_map(|(word, n)| Some((s.rfind(word)?, n)))
-        .max_by_key(|&(index, _n)| index)?
-        .1;
-
+    let digit_at = |i| -> Option<u32> {
+        let (_, substr) = s.split_at(i);
+        DIGITS
+            .iter()
+            .filter(|&(word, _)| substr.starts_with(word))
+            .map(|&(_, n)| n)
+            .next()
+    };
+    let first_digit = (0..s.len()).find_map(digit_at)?;
+    let last_digit = (0..s.len()).rev().find_map(digit_at)?;
     Some(10 * first_digit + last_digit)
 }
 
