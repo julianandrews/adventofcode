@@ -2,11 +2,29 @@
 
 This directory contains my solutions for [Advent of Code 2022](https://adventofcode.com/2022).
 
-Like last year, I'm aiming for sub 1s total runtime. Correctness, algorithmic
-efficiency and readability are my priorities, in that order. I will generally
-avoid optimizations that hurt readability without substantially improving
-runtime, but won't avoid added complexity if the performance gain is
+Like last year, I've aimed for sub 1s total runtime. Correctness, algorithmic
+efficiency and readability are my priorities, in that order. I have generally
+avoided optimizations that hurt readability without substantially improving
+runtime, but didn't avoid added complexity if the performance gain was
 substantial.
+
+I've avoided optimizations that could lead to incorrect results for any inputs.
+There are a few cases where I've elected to use faster less general algorithm
+to solve a problem, but in those cases I've tried to at least ensure that if
+the assumptions of the faster algorithm are violated the solution will return
+an error rather than failing silently.
+
+Where possible I've preferred algorithms that will handle all possible inputs
+efficiently, but in a few cases I've chosen algorithms that perform well on
+real inputs even though the solutions may not be optimal for adversarially
+crafted inputs.
+
+Many of these runtimes could be further improved by using parallelism, but my
+goal here is to measure how efficient the solution is, not how many cores my
+computer has. I'm not really interested in seeing how much faster rayon
+`par_iter()` makes things. There are a couple problems where parallelization
+could be somewhat challenging and interesting - day 23 in particular jumps out
+- but for the sake of uniformity, I've avoided parallelization altogether.
 
 ## Performance
 
