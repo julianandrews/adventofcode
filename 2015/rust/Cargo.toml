@@ -2,6 +2,9 @@
 name = "aoc"
 version = "0.1.0"
 authors = ["Julian Andrews <jandrews271@gmail.com>"]
+edition = "2021"
 
 [dependencies]
-rust-crypto = "0.2.36"
+anyhow = "1.0.79"
+md-5 = "0.10.6"
+rustc-hash = "1.1.0"

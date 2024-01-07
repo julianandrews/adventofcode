@@ -1,44 +1,45 @@
-extern crate aoc;
+use anyhow::Result;
+use rustc_hash::FxHashSet;
 
-use aoc::Result;
-use std::collections::HashSet;
-use std::io;
-use std::io::{Read, Write};
-
-enum Direction {
-    North,
-    South,
-    East,
-    West,
-}
-
-impl Direction {
-    fn from_char(c: char) -> Result<Direction> {
-        match c {
-            '^' => Ok(Direction::North),
-            '>' => Ok(Direction::East),
-            'v' => Ok(Direction::South),
-            '<' => Ok(Direction::West),
-            _ => Err("Unrecognized direction".into()),
-        }
-    }
-}
+use aoc::planar::Direction;
+use aoc::utils::get_input;
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
-    let directions: Vec<Direction> = input
-        .trim()
-        .chars()
-        .map(Direction::from_char)
-        .collect::<std::result::Result<_, _>>()?;
+    let input = get_input()?;
+    let directions: Vec<Direction> = parsing::parse_directions(input.trim())?;
 
-    writeln!(io::stdout(), "{}", part1(&directions)?);
-    writeln!(io::stdout(), "{}", part2(&directions)?);
+    println!("Part 1: {}", part1(&directions));
+    println!("Part 2: {}", part2(&directions));
 
     Ok(())
 }
 
+fn part1(directions: &[Direction]) -> usize {
+    houses_visited(directions, 1)
+}
+
+fn part2(directions: &[Direction]) -> usize {
+    houses_visited(directions, 2)
+}
+
+fn houses_visited(directions: &[Direction], santa_count: usize) -> usize {
+    if santa_count == 0 {
+        return 0;
+    }
+    let mut visited = FxHashSet::default();
+    let mut santas = vec![Santa::default(); santa_count];
+    visited.insert(Santa::default());
+
+    for (i, direction) in directions.iter().enumerate() {
+        let santa = &mut santas[i % santa_count];
+        santa.step(direction);
+        visited.insert(*santa);
+    }
+
+    visited.len()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 struct Santa {
     pub x: i64,
     pub y: i64,
@@ -53,35 +54,69 @@ impl Santa {
             Direction::West => self.x -= 1,
         }
     }
+}
 
-    fn new() -> Santa {
-        Santa { x: 0, y: 0 }
+mod parsing {
+    use super::Direction;
+
+    use anyhow::{anyhow, Result};
+
+    pub fn parse_directions(s: &str) -> Result<Vec<Direction>> {
+        s.chars()
+            .map(|c| match c {
+                '^' => Ok(Direction::North),
+                '>' => Ok(Direction::East),
+                'v' => Ok(Direction::South),
+                '<' => Ok(Direction::West),
+                c => Err(anyhow!("Unrecognized direction {}", c)),
+            })
+            .collect()
     }
 }
 
-fn part1(directions: &[Direction]) -> Result<usize> {
-    let mut seen_houses = HashSet::new();
-    seen_houses.insert((0, 0));
-    let mut santa = Santa::new();
+#[cfg(test)]
+mod tests {
+    use super::{houses_visited, parsing::parse_directions};
 
-    for direction in directions {
-        santa.step(direction);
-        seen_houses.insert((santa.x, santa.y));
+    #[test]
+    fn houses_visited_1() {
+        let directions: Vec<_> = parse_directions(">").unwrap();
+
+        assert_eq!(houses_visited(&directions, 1), 2);
     }
 
-    Ok(seen_houses.len())
-}
+    #[test]
+    fn houses_visited_2() {
+        let directions: Vec<_> = parse_directions("^>v<").unwrap();
 
-fn part2(directions: &[Direction]) -> Result<usize> {
-    let mut seen_houses = HashSet::new();
-    seen_houses.insert((0, 0));
-    let mut santas = [Santa::new(), Santa::new()];
-
-    for (i, direction) in directions.iter().enumerate() {
-        let santa = &mut santas[i % santas.len()];
-        santa.step(direction);
-        seen_houses.insert((santa.x, santa.y));
+        assert_eq!(houses_visited(&directions, 1), 4);
     }
 
-    Ok(seen_houses.len())
+    #[test]
+    fn houses_visited_3() {
+        let directions: Vec<_> = parse_directions("^v^v^v^v^v").unwrap();
+
+        assert_eq!(houses_visited(&directions, 1), 2);
+    }
+
+    #[test]
+    fn robo_santa_1() {
+        let directions: Vec<_> = parse_directions("^v").unwrap();
+
+        assert_eq!(houses_visited(&directions, 2), 3);
+    }
+
+    #[test]
+    fn robo_santa_2() {
+        let directions: Vec<_> = parse_directions("^>v<").unwrap();
+
+        assert_eq!(houses_visited(&directions, 2), 3);
+    }
+
+    #[test]
+    fn robo_santa_3() {
+        let directions: Vec<_> = parse_directions("^v^v^v^v^v").unwrap();
+
+        assert_eq!(houses_visited(&directions, 2), 11);
+    }
 }

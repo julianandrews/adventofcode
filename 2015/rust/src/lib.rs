@@ -1,1 +1,4 @@
-pub type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
+#![feature(pattern)]
+
+pub mod planar;
+pub mod utils;

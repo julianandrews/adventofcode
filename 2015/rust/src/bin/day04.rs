@@ -1,50 +1,57 @@
-extern crate aoc;
-extern crate crypto;
+use anyhow::Result;
+use md5::{Digest, Md5};
 
-use aoc::Result;
-use crypto::digest::Digest;
-use std::io;
-use std::io::{Read, Write};
+use aoc::utils::get_input;
 
 fn main() -> Result<()> {
-    let mut input = String::new();
-    io::stdin().read_to_string(&mut input)?;
+    let input = get_input()?;
     let secret = input.trim();
 
-    writeln!(io::stdout(), "{}", part1(secret)?);
-    writeln!(io::stdout(), "{}", part2(secret)?);
+    println!("Part 1: {}", part1(secret));
+    println!("Part 2: {}", part2(secret));
 
     Ok(())
 }
 
-fn part1(secret: &str) -> Result<usize> {
-    let secret = secret.as_bytes();
-    let result: &mut [u8; 16] = &mut [0; 16];
-    for i in 0.. {
-        let mut digest = crypto::md5::Md5::new();
-        digest.input(secret);
-        digest.input(i.to_string().as_bytes());
-        digest.result(result);
-        if result[0] | result[1] | (result[2] >> 4) == 0 {
-            return Ok(i);
-        }
-    }
-
-    Err("Unexpected termination.".into())
+fn part1(secret: &str) -> usize {
+    find_hash(secret, ends_in_five_zeroes)
 }
 
-fn part2(secret: &str) -> Result<usize> {
-    let secret = secret.as_bytes();
-    let result: &mut [u8; 16] = &mut [0; 16];
+fn part2(secret: &str) -> usize {
+    find_hash(secret, ends_in_siz_zeros)
+}
+
+fn find_hash(secret: &str, predicate: fn(&[u8]) -> bool) -> usize {
+    let base_hasher = Md5::new_with_prefix(secret);
     for i in 0.. {
-        let mut digest = crypto::md5::Md5::new();
-        digest.input(secret);
-        digest.input(i.to_string().as_bytes());
-        digest.result(result);
-        if result[0] | result[1] | result[2] == 0 {
-            return Ok(i);
+        let mut hasher = base_hasher.clone();
+        hasher.update(i.to_string());
+        if predicate(&hasher.finalize()) {
+            return i;
         }
     }
+    unreachable!()
+}
 
-    Err("Unexpected termination.".into())
+fn ends_in_five_zeroes(hash: &[u8]) -> bool {
+    hash[0] | hash[1] | (hash[2] >> 4) == 0
+}
+
+fn ends_in_siz_zeros(hash: &[u8]) -> bool {
+    hash[0] | hash[1] | hash[2] == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ends_in_five_zeroes, find_hash};
+
+    #[test]
+    fn five_zeros_1() {
+        assert_eq!(find_hash("abcdef", ends_in_five_zeroes), 609043);
+    }
+
+    #[test]
+    fn five_zeros_2() {
+        assert_eq!(find_hash("pqrstuv", ends_in_five_zeroes), 1048970);
+    }
 }
