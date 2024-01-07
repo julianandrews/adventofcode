@@ -2,6 +2,8 @@
 
 This directory contains my solutions for [Advent of Code 2022](https://adventofcode.com/2022).
 
+## Goals
+
 Like last year, I've aimed for sub 1s total runtime. Correctness, algorithmic
 efficiency and readability are my priorities, in that order. I have generally
 avoided optimizations that hurt readability without substantially improving
@@ -53,7 +55,7 @@ could be somewhat challenging and interesting - day 23 in particular jumps out
 | 21  |  11.4ms |
 | 22  |   1.7ms |
 | 23  | 150.4ms |
-| 24  | 123.8ms |
+| 24  |   3.1ms |
 | 25  |   6.9ms |
 
-Total Runtime: 382.8ms
+Total Runtime: 262.1ms

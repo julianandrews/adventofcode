@@ -1,10 +1,14 @@
 use std::ops::RangeInclusive;
 
-use anyhow::{anyhow, Result};
-use z3::ast::{Ast, Int, Real};
+use anyhow::{anyhow, bail, Result};
+use itertools::Itertools;
+use ndarray::{array, Array1, Array2};
+use ndarray_linalg::Solve;
 
 use aoc::iterators::iter_pairs;
 use aoc::utils::{get_input, parse_fields};
+
+static MAX_ERROR: f64 = 0.4;
 
 fn main() -> Result<()> {
     let input = get_input()?;
@@ -33,42 +37,79 @@ fn intersections_in_range(hailstones: &[Hailstone<i64>], range: RangeInclusive<f
 }
 
 fn magic_bullet(hailstones: &[Hailstone<i64>]) -> Option<Hailstone<i64>> {
-    let cfg = z3::Config::new();
-    let ctx = z3::Context::new(&cfg);
-    let solver = z3::Solver::new(&ctx);
+    let hailstones: Vec<Hailstone<f64>> = hailstones.iter().map(|h| h.into()).collect();
+    let bullet = hailstones
+        .iter()
+        .tuple_combinations()
+        .filter_map(|(a, b, c)| three_stone_killer(a, b, c))
+        .next()?;
+    Hailstone::try_from(&bullet).ok()
+}
 
-    let new_value = |s: &str| -> Real { Real::new_const(&ctx, s) };
-    let p = [new_value("x"), new_value("y"), new_value("z")];
-    let v = [new_value("vx"), new_value("vy"), new_value("vz")];
-
-    for (j, hailstone) in hailstones.iter().enumerate() {
-        let t = new_value(&format!("t_{}", j));
-        for i in 0..3 {
-            let p_i = Real::from_int(&Int::from_i64(&ctx, hailstone.position[i]));
-            let v_i = Real::from_int(&Int::from_i64(&ctx, hailstone.velocity[i]));
-            solver.assert(&(p_i + (v_i - &v[i]) * &t)._eq(&p[i]));
-        }
-    }
-
-    let model = match solver.check() {
-        z3::SatResult::Sat => solver.get_model()?,
-        _ => return None,
-    };
-    let get_value = |value: &Real| -> Option<i64> {
-        match model.eval(value, true)?.as_real()? {
-            (num, 1) => Some(num),
-            _ => None,
-        }
-    };
-    let position = [get_value(&p[0])?, get_value(&p[1])?, get_value(&p[2])?];
-    let velocity = [get_value(&v[0])?, get_value(&v[1])?, get_value(&v[2])?];
-    Some(Hailstone { position, velocity })
+/// Return the unique hailstone that will hit `a`, `b` and `c`.
+///
+/// : For all i
+/// xb - xi = (vxb - vxi) ti
+/// yb - yi = (vyb - vyi) ti
+/// (xb - xi) / (vxb - vxi) = (yb - yi) / (vyb - vyi)
+/// (xb - xi) (vyb - vyi) = (yb - yi) (vxb - vxi)
+/// xb * vyb - yb * vxb = xb * vyi + xi * vyb - xi * vyi - yb * vxi + yi * vxi - yi * vxb
+/// : So, for all i, j
+/// xb * vyi + xi * vyb - xi * vyi - yb * vxi + yi * vxi - yi * vxb = xb * vyj + xj * vyb - xj * vyj - yb * vxj + yj * vxj - yj * vxb
+/// (vyi - vyj) xb + (vxj - vxi) yb + (yj - yi) vxb + (xi - xj) vyb = xi * vyi - xj * vyj - yi * vxi + yj * vxj
+/// : This gets us 2 independent equations, and then we can get two more for each other coordinate pairing.
+fn three_stone_killer(
+    h0: &Hailstone<f64>,
+    h1: &Hailstone<f64>,
+    h2: &Hailstone<f64>,
+) -> Option<Hailstone<f64>> {
+    let [x0, y0, z0] = h0.position;
+    let [vx0, vy0, vz0] = h0.velocity;
+    let [x1, y1, z1] = h1.position;
+    let [vx1, vy1, vz1] = h1.velocity;
+    let [x2, y2, z2] = h2.position;
+    let [vx2, vy2, vz2] = h2.velocity;
+    let a: Array2<f64> = array![
+        [vy1 - vy0, vx0 - vx1, 0.0, y0 - y1, x1 - x0, 0.0],
+        [vy2 - vy0, vx0 - vx2, 0.0, y0 - y2, x2 - x0, 0.0],
+        [0.0, vz1 - vz0, vy0 - vy1, 0.0, z0 - z1, y1 - y0],
+        [0.0, vz2 - vz0, vy0 - vy2, 0.0, z0 - z2, y2 - y0],
+        [vz0 - vz1, 0.0, vx1 - vx0, z1 - z0, 0.0, x0 - x1],
+        [vz0 - vz2, 0.0, vx2 - vx0, z2 - z0, 0.0, x0 - x2],
+    ];
+    let b: Array1<f64> = array![
+        x1 * vy1 + vx0 * y0 - x0 * vy0 - vx1 * y1,
+        x2 * vy2 + vx0 * y0 - x0 * vy0 - vx2 * y2,
+        y1 * vz1 + vy0 * z0 - y0 * vz0 - vy1 * z1,
+        y2 * vz2 + vy0 * z0 - y0 * vz0 - vy2 * z2,
+        z1 * vx1 + vz0 * x0 - z0 * vx0 - vz1 * x1,
+        z2 * vx2 + vz0 * x0 - z0 * vx0 - vz2 * x2,
+    ];
+    let x = a.solve_into(b).ok()?;
+    Some(Hailstone {
+        position: [x[0], x[1], x[2]],
+        velocity: [x[3], x[4], x[5]],
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Hailstone<T> {
     position: [T; 3],
     velocity: [T; 3],
+}
+
+impl Hailstone<f64> {
+    fn intersection(&self, b: &Hailstone<f64>) -> (f64, f64, f64, f64) {
+        let m_self = self.velocity[1] / self.velocity[0];
+        let m_other = b.velocity[1] / b.velocity[0];
+        let x = (b.position[1] - self.position[1] + m_self * self.position[0]
+            - m_other * b.position[0])
+            / (m_self - m_other);
+        let y = self.position[1] + m_self * (x - self.position[0]);
+        let t_self = (x - self.position[0]) / self.velocity[0];
+        let t_other = (x - b.position[0]) / b.velocity[0];
+        (x, y, t_self, t_other)
+    }
 }
 
 impl From<&Hailstone<i64>> for Hailstone<f64> {
@@ -88,18 +129,31 @@ impl From<&Hailstone<i64>> for Hailstone<f64> {
     }
 }
 
-impl Hailstone<f64> {
-    fn intersection(&self, b: &Hailstone<f64>) -> (f64, f64, f64, f64) {
-        let m_self = self.velocity[1] / self.velocity[0];
-        let m_other = b.velocity[1] / b.velocity[0];
-        let x = (b.position[1] - self.position[1] + m_self * self.position[0]
-            - m_other * b.position[0])
-            / (m_self - m_other);
-        let y = self.position[1] + m_self * (x - self.position[0]);
-        let t_self = (x - self.position[0]) / self.velocity[0];
-        let t_other = (x - b.position[0]) / b.velocity[0];
-        (x, y, t_self, t_other)
+impl TryFrom<&Hailstone<f64>> for Hailstone<i64> {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &Hailstone<f64>) -> Result<Self, Self::Error> {
+        Ok(Hailstone {
+            position: [
+                round_to_i64(value.position[0])?,
+                round_to_i64(value.position[1])?,
+                round_to_i64(value.position[2])?,
+            ],
+            velocity: [
+                round_to_i64(value.velocity[0])?,
+                round_to_i64(value.velocity[1])?,
+                round_to_i64(value.velocity[2])?,
+            ],
+        })
     }
+}
+
+fn round_to_i64(x: f64) -> Result<i64> {
+    let result = x.round();
+    if (x - result).abs() > MAX_ERROR {
+        bail!("Error too large");
+    }
+    Ok(result as i64)
 }
 
 mod parsing {
