@@ -45,7 +45,7 @@ impl<'a> InstructionGraph<'a> {
     fn evaluate_instructions<'b>(&'a self, values: &'b mut FxHashMap<&'a str, u16>) -> Option<()> {
         for &wire in self.toposort()?.iter().rev() {
             if !values.contains_key(wire) {
-                values.insert(wire, self.evaluate(wire, &values).unwrap());
+                values.insert(wire, self.evaluate(wire, values).unwrap());
             }
         }
         Some(())
@@ -118,7 +118,7 @@ mod parsing {
     use anyhow::{anyhow, Result};
     use rustc_hash::FxHashMap;
 
-    pub fn parse_graph<'a>(s: &'a str) -> Result<InstructionGraph<'a>> {
+    pub fn parse_graph(s: &str) -> Result<InstructionGraph<'_>> {
         let mut ops = FxHashMap::default();
         for line in s.lines() {
             let (op_part, wire) = line
@@ -130,24 +130,20 @@ mod parsing {
         Ok(InstructionGraph { ops })
     }
 
-    fn parse_op<'a>(s: &'a str) -> Result<Op<'a>> {
+    fn parse_op(s: &str) -> Result<Op<'_>> {
         let parts: Vec<_> = s.split(' ').collect();
-        match parts.as_slice() {
-            &[value] => Ok(Op::Value(parse_value(value)?)),
-            &[op_type, value] if op_type == "NOT" => Ok(Op::Not(parse_value(value)?)),
-            &[a, op_type, b] if op_type == "AND" => Ok(Op::And(parse_value(a)?, parse_value(b)?)),
-            &[a, op_type, b] if op_type == "OR" => Ok(Op::Or(parse_value(a)?, parse_value(b)?)),
-            &[a, op_type, b] if op_type == "LSHIFT" => {
-                Ok(Op::LShift(parse_value(a)?, parse_value(b)?))
-            }
-            &[a, op_type, b] if op_type == "RSHIFT" => {
-                Ok(Op::RShift(parse_value(a)?, parse_value(b)?))
-            }
+        match *parts.as_slice() {
+            [value] => Ok(Op::Value(parse_value(value)?)),
+            ["NOT", value] => Ok(Op::Not(parse_value(value)?)),
+            [a, "AND", b] => Ok(Op::And(parse_value(a)?, parse_value(b)?)),
+            [a, "OR", b] => Ok(Op::Or(parse_value(a)?, parse_value(b)?)),
+            [a, "LSHIFT", b] => Ok(Op::LShift(parse_value(a)?, parse_value(b)?)),
+            [a, "RSHIFT", b] => Ok(Op::RShift(parse_value(a)?, parse_value(b)?)),
             _ => Err(anyhow!("Invalid operation {}.", s)),
         }
     }
 
-    fn parse_value<'a>(s: &'a str) -> Result<Value<'a>> {
+    fn parse_value(s: &str) -> Result<Value<'_>> {
         match s.parse::<u16>() {
             Ok(n) => Ok(Value::Int(n)),
             Err(_) => Ok(Value::Wire(s)),
