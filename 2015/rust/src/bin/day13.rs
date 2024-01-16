@@ -1,7 +1,6 @@
 #![feature(try_blocks)]
 
-use itertools::Itertools;
-
+use aoc::combinatorics::permute;
 use aoc::utils::get_input;
 
 fn main() -> anyhow::Result<()> {
@@ -33,10 +32,11 @@ impl HappinessMap {
     fn max_happiness(&self) -> i64 {
         let mut best = i64::MIN;
         // Always start with the first person, and permute the remaining people.
-        for indices in (1..self.names.len()).permutations(self.names.len() - 1) {
+        let mut permutations = permute((1..self.names.len()).collect::<Vec<_>>());
+        while let Some(indices) = permutations.next_perm() {
             let mut total = 0;
             let mut a = 0;
-            for b in indices {
+            for &b in indices {
                 total += self.map[a][b] + self.map[b][a];
                 a = b;
             }
