@@ -12,11 +12,11 @@ Ingredient = collections.namedtuple(
 
 def partitions(n, k, l=1):
     if k < 1:
-        raise StopIteration
+        return
     if k == 1:
         if n >= l:
             yield (n,)
-        raise StopIteration
+        return
     for i in range(l, n + 1):
         for result in partitions(n - i, k - 1, i):
             yield (i, ) + result
