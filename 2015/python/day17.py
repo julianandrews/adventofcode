@@ -6,7 +6,7 @@ def partitions(total, buckets):
         if total == 0:
             yield []
         elif total < 0:
-            raise StopIteration
+            return
         else:
             for i, bucket in enumerate(buckets[min_ix:]):
                 for partition in partitions_recurse(total - bucket, min_ix + i + 1):

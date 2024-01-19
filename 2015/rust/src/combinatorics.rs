@@ -47,16 +47,7 @@ impl<E, C: AsRef<[E]> + AsMut<[E]>> Permutations<E, C> {
 mod tests {
     use super::{permute, Permutations};
 
-    fn assert_matches_ignoring_order<T>(a: &[T], b: &[T])
-    where
-        T: Eq + std::hash::Hash + std::fmt::Debug,
-    {
-        assert_eq!(a.len(), b.len());
-        assert_eq!(
-            a.into_iter().collect::<std::collections::HashSet<_>>(),
-            b.into_iter().collect::<std::collections::HashSet<_>>()
-        )
-    }
+    use crate::testing::assert_matches_ignoring_order;
 
     #[test]
     fn permutations_of_0() {
