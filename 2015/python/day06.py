@@ -23,7 +23,7 @@ class Action(enum.Enum):
 
 class Grid:
     def __init__(self):
-        self.array = numpy.zeros((1000, 1000), dtype=numpy.int)
+        self.array = numpy.zeros((1000, 1000), dtype=int)
 
     def total_brightness(self):
         return sum(sum(self.array))
