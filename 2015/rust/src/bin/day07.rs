@@ -1,5 +1,3 @@
-#![feature(return_position_impl_trait_in_trait)]
-
 use anyhow::{anyhow, Result};
 use rustc_hash::FxHashMap;
 
