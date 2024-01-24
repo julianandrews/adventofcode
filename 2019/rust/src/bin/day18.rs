@@ -127,18 +127,16 @@ impl<'a> Graph<'a> for SimpleMaze {
         unimplemented!();
     }
 
-    fn neighbors(&'a self, value: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
+    fn neighbors(&'a self, value: &Self::Item) -> impl Iterator<Item = Self::Item> + 'a {
         let x = value.x;
         let y = value.y;
-        Box::new(
-            [(1, 0), (0, 1), (0, -1), (-1, 0)]
-                .iter()
-                .map(move |(dx, dy)| Point {
-                    x: x + dx,
-                    y: y + dy,
-                })
-                .filter(move |p| !matches!(self.map.get(p), Some(MapTile::Wall) | None)),
-        )
+        [(1, 0), (0, 1), (0, -1), (-1, 0)]
+            .iter()
+            .map(move |(dx, dy)| Point {
+                x: x + dx,
+                y: y + dy,
+            })
+            .filter(move |p| !matches!(self.map.get(p), Some(MapTile::Wall) | None))
     }
 }
 

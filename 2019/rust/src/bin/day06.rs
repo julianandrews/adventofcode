@@ -13,8 +13,8 @@ struct OrbitGraph {
 impl<'a> Graph<'a> for OrbitGraph {
     type Item = &'a String;
 
-    fn nodes(&'a self) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
-        Box::new(self.orbits.keys())
+    fn nodes(&'a self) -> impl Iterator<Item = Self::Item> + 'a {
+        self.orbits.keys()
     }
 
     fn neighbors(&'a self, value: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a> {

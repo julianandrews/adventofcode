@@ -54,10 +54,7 @@ impl FromStr for Reaction {
             .collect::<Result<Vec<Material>>>()?;
         let output = parts[1].parse()?;
 
-        Ok(Reaction {
-            inputs,
-            output,
-        })
+        Ok(Reaction { inputs, output })
     }
 }
 
@@ -90,17 +87,15 @@ impl FromStr for ReactionGraph {
             }
         }
 
-        Ok(ReactionGraph {
-            reactions,
-        })
+        Ok(ReactionGraph { reactions })
     }
 }
 
 impl<'a> Graph<'a> for ReactionGraph {
     type Item = String;
 
-    fn nodes(&'a self) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
-        Box::new(self.reactions.keys().map(|s| s.to_string()))
+    fn nodes(&'a self) -> impl Iterator<Item = Self::Item> + 'a {
+        self.reactions.keys().map(|s| s.to_string())
     }
 
     fn neighbors(&'a self, value: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a> {

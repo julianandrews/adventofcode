@@ -73,11 +73,11 @@ impl fmt::Display for ShipMap {
 impl<'a> graphs::Graph<'a> for ShipMap {
     type Item = Point;
 
-    fn nodes(&'a self) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
-        Box::new(self.status_map.keys().cloned())
+    fn nodes(&'a self) -> impl Iterator<Item = Self::Item> + 'a {
+        self.status_map.keys().cloned()
     }
 
-    fn neighbors(&'a self, point: &Self::Item) -> Box<dyn Iterator<Item = Self::Item> + 'a> {
+    fn neighbors(&'a self, point: &Self::Item) -> impl Iterator<Item = Self::Item> + 'a {
         let mut neighbors = vec![];
         for d in Direction::iterator() {
             let p = d.next_position(*point);
@@ -86,7 +86,7 @@ impl<'a> graphs::Graph<'a> for ShipMap {
             }
         }
 
-        Box::new(neighbors.into_iter())
+        neighbors.into_iter()
     }
 }
 
