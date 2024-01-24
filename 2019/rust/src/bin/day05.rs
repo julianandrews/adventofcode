@@ -1,7 +1,6 @@
-use aoc::aoc_error::AOCError;
-use aoc::intcode::{RegisterValue, VM};
+use anyhow::{anyhow, Result};
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use aoc::intcode::{RegisterValue, VM};
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -21,7 +20,7 @@ fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
             return Ok(output);
         }
     }
-    Err(AOCError::new("Non zero diagnostic code not found"))?
+    Err(anyhow!("Non zero diagnostic code not found"))
 }
 
 fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
@@ -31,7 +30,7 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
             return Ok(output);
         }
     }
-    Err(AOCError::new("Non zero diagnostic code not found"))?
+    Err(anyhow!("Non zero diagnostic code not found"))
 }
 
 #[cfg(test)]

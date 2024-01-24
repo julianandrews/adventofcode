@@ -1,11 +1,10 @@
 use std::collections::BinaryHeap;
 use std::collections::HashMap;
 
-use aoc::aoc_error::AOCError;
+use anyhow::{anyhow, Result};
+
 use aoc::graphs::{bfs, traversal_path, Graph};
 use aoc::simple_bitset::SimpleBitSet;
-
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 fn main() -> Result<()> {
     let input = aoc::utils::get_input()?;
@@ -17,15 +16,13 @@ fn main() -> Result<()> {
 
 fn part1(input: &str) -> Result<u64> {
     let maze: KeyMaze = input.parse()?;
-    maze.steps()
-        .ok_or(AOCError::new("Failed to find path.").into())
+    maze.steps().ok_or(anyhow!("Failed to find path."))
 }
 
 fn part2(input: &str) -> Result<u64> {
     let input = fix_input(input);
     let maze: KeyMaze = input.parse()?;
-    maze.steps()
-        .ok_or(AOCError::new("Failed to find path.").into())
+    maze.steps().ok_or(anyhow!("Failed to find path."))
 }
 
 fn fix_input(input: &str) -> String {
@@ -141,7 +138,7 @@ impl<'a> Graph<'a> for SimpleMaze {
 }
 
 impl std::str::FromStr for SimpleMaze {
-    type Err = Box<dyn std::error::Error>;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let mut map = HashMap::new();
@@ -174,7 +171,7 @@ impl std::str::FromStr for SimpleMaze {
                     '#' => {
                         map.insert(p, MapTile::Wall);
                     }
-                    _ => return Err(AOCError::new("Unexpected map tile").into()),
+                    _ => return Err(anyhow!("Unexpected map tile")),
                 }
             }
         }
@@ -257,7 +254,7 @@ impl KeyMaze {
 }
 
 impl std::str::FromStr for KeyMaze {
-    type Err = Box<dyn std::error::Error>;
+    type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
         let simple_maze: SimpleMaze = s.parse()?;
@@ -343,7 +340,7 @@ struct Waypoint(u8);
 impl Waypoint {
     fn for_entry_point(i: u8) -> Result<Self> {
         if i > u8::MAX - 27 {
-            return Err(AOCError::new("Invalid entry point number").into());
+            return Err(anyhow!("Invalid entry point number"));
         }
         // entry points are stored after 'z'
         Ok(Self(i + 27))
@@ -351,14 +348,14 @@ impl Waypoint {
 
     fn for_key(c: char) -> Result<Self> {
         if !c.is_ascii_lowercase() {
-            return Err(AOCError::new("Invalid key").into());
+            return Err(anyhow!("Invalid key"));
         }
         Ok(Self(c as u8 - b'a'))
     }
 
     fn for_door(c: char) -> Result<Self> {
         if !c.is_ascii_uppercase() {
-            return Err(AOCError::new("Invalid key").into());
+            return Err(anyhow!("Invalid key"));
         }
         Ok(Self(c as u8 - b'A'))
     }

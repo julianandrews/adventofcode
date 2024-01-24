@@ -1,28 +1,8 @@
-extern crate log;
-
-use aoc::aoc_error::AOCError;
-use aoc::intcode::{RegisterValue, VM};
 use std::iter;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use anyhow::{anyhow, bail, Result};
 
-fn run_with_single_input(program: &[RegisterValue], input: RegisterValue) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.to_vec(), Some(Box::new(iter::once(input))));
-    let value = vm.outputs().next().ok_or("No output generated")?;
-    if vm.outputs().next().is_some() {
-        Err(AOCError::new("Unexpected output"))?
-    }
-
-    Ok(value)
-}
-
-fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
-    run_with_single_input(program, 1)
-}
-
-fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
-    run_with_single_input(program, 2)
-}
+use aoc::intcode::{RegisterValue, VM};
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -33,6 +13,24 @@ fn main() -> Result<()> {
     println!("Part 1: {}", part1(&program)?);
     println!("Part 2: {}", part2(&program)?);
     Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
+    run_with_single_input(program, 1)
+}
+
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    run_with_single_input(program, 2)
+}
+
+fn run_with_single_input(program: &[RegisterValue], input: RegisterValue) -> Result<RegisterValue> {
+    let mut vm = VM::new(program.to_vec(), Some(Box::new(iter::once(input))));
+    let value = vm.outputs().next().ok_or(anyhow!("No output generated"))?;
+    if vm.outputs().next().is_some() {
+        bail!("Unexpected output");
+    }
+
+    Ok(value)
 }
 
 #[cfg(test)]

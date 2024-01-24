@@ -1,19 +1,51 @@
-extern crate aoc;
-
-use aoc::aoc_error::AOCError;
-use aoc::direction::Direction;
-use aoc::graphs;
-use aoc::intcode::{RegisterValue, VM};
-use aoc::point::Point2D;
-use num_enum::TryFromPrimitive;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::rc::Rc;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use anyhow::{anyhow, bail, Result};
+use num_enum::TryFromPrimitive;
+
+use aoc::direction::Direction;
+use aoc::graphs;
+use aoc::intcode::{RegisterValue, VM};
+use aoc::point::Point2D;
+
 type Point = Point2D<i64>;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+    let vm = VM::new(program.clone(), None);
+    let mut explorer = ShipExplorer::new(vm);
+    explorer.explore()?;
+    let ship_map = explorer.ship_map;
+
+    println!("{}", ship_map);
+    println!("Part 1: {}", part1(&ship_map)?);
+    println!("Part 2: {}", part2(&ship_map)?);
+    Ok(())
+}
+
+fn part1(ship_map: &ShipMap) -> Result<u64> {
+    Ok(ship_map
+        .find_oxygen(Point { x: 0, y: 0 })
+        .ok_or(anyhow!("Oxygen not found"))?
+        .depth)
+}
+
+fn part2(ship_map: &ShipMap) -> Result<u64> {
+    let start_position = ship_map
+        .find_oxygen(Point { x: 0, y: 0 })
+        .ok_or(anyhow!("Oxygen not found"))?
+        .value;
+
+    graphs::bfs(ship_map, start_position)
+        .last()
+        .map(|node| node.depth)
+        .ok_or(anyhow!("No positions connected to start"))
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
@@ -151,7 +183,7 @@ impl<'a> ShipExplorer<'a> {
             self.vm
                 .outputs()
                 .next()
-                .ok_or(AOCError::new("Outputs exhausted"))?,
+                .ok_or(anyhow!("Outputs exhausted"))?,
         )?)?)
     }
 
@@ -170,7 +202,7 @@ impl<'a> ShipExplorer<'a> {
                 self.route.push(direction);
             }
             StatusCode::HitWall => (),
-            StatusCode::Unexplored => Err(AOCError::new("Should never happen"))?,
+            StatusCode::Unexplored => bail!("Should never happen"),
         }
         Ok(())
     }
@@ -178,12 +210,12 @@ impl<'a> ShipExplorer<'a> {
         let direction = self
             .route
             .pop()
-            .ok_or(AOCError::new("No route to backtrack"))?
+            .ok_or(anyhow!("No route to backtrack"))?
             .reverse();
         self.set_next_input(direction);
         self.ship_map.explorer_position = self.get_next_position(direction);
         if &self.get_next_output()? != self.ship_map.get_status(&self.ship_map.explorer_position) {
-            return Err(AOCError::new("Different status on backtrack"))?;
+            bail!("Different status on backtrack");
         }
         Ok(())
     }
@@ -203,37 +235,4 @@ impl<'a> ShipExplorer<'a> {
         }
         Ok(())
     }
-}
-
-fn part1(ship_map: &ShipMap) -> Result<u64> {
-    Ok(ship_map
-        .find_oxygen(Point { x: 0, y: 0 })
-        .ok_or(AOCError::new("Oxygen not found"))?
-        .depth)
-}
-
-fn part2(ship_map: &ShipMap) -> Result<u64> {
-    let start_position = ship_map
-        .find_oxygen(Point { x: 0, y: 0 })
-        .ok_or(AOCError::new("Oxygen not found"))?
-        .value;
-
-    Ok(graphs::bfs(ship_map, start_position)
-        .last()
-        .map(|node| node.depth)
-        .ok_or(AOCError::new("No positions connected to start"))?)
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
-    let vm = VM::new(program.clone(), None);
-    let mut explorer = ShipExplorer::new(vm);
-    explorer.explore()?;
-    let ship_map = explorer.ship_map;
-
-    println!("{}", ship_map);
-    println!("Part 1: {}", part1(&ship_map)?);
-    println!("Part 2: {}", part2(&ship_map)?);
-    Ok(())
 }

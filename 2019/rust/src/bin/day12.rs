@@ -1,13 +1,33 @@
-extern crate num_integer;
+use std::iter;
 
-use aoc::aoc_error::AOCError;
+use anyhow::{bail, Result};
+
 use aoc::iterators::cycle_detect;
 use aoc::point::{Axis3D, Point3D};
-use std::iter;
-use std::str::FromStr;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 type Point = Point3D<i64>;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let system: PlanetarySystem = input.parse()?;
+
+    println!("Part 1: {}", part1(system.clone()));
+    println!("Part 2: {}", part2(&system)?);
+
+    Ok(())
+}
+
+fn part1(mut system: PlanetarySystem) -> i64 {
+    for _ in 0..1000 {
+        system.step();
+    }
+
+    system.energy()
+}
+
+fn part2(system: &PlanetarySystem) -> Result<usize> {
+    cycle_length(system)
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct Moon {
@@ -41,39 +61,9 @@ impl Moon {
     }
 }
 
-impl FromStr for Moon {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let parts = &s[1..s.len() - 1]
-            .splitn(3, ", ")
-            .map(|s| s[2..].parse())
-            .collect::<std::result::Result<Vec<i64>, _>>()?;
-        if parts.len() != 3 {
-            return Err(AOCError::new("Failed to parse moon."))?;
-        }
-
-        Ok(Moon::new(Point {
-            x: parts[0],
-            y: parts[1],
-            z: parts[2],
-        }))
-    }
-}
-
 #[derive(Debug, Clone)]
 struct PlanetarySystem {
     moons: Vec<Moon>,
-}
-
-impl FromStr for PlanetarySystem {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        Ok(PlanetarySystem {
-            moons: s.lines().map(&str::parse).collect::<Result<_>>()?,
-        })
-    }
 }
 
 impl PlanetarySystem {
@@ -118,7 +108,7 @@ fn cycle_length(system: &PlanetarySystem) -> Result<usize> {
         })
         .collect::<Vec<_>>();
     if cycles.len() != 3 {
-        Err(AOCError::new("Expected to find 3 cycles"))?;
+        bail!("Expected to find 3 cycles");
     }
 
     let cycle_start = cycles.iter().map(|c| c.start).max().unwrap();
@@ -129,25 +119,40 @@ fn cycle_length(system: &PlanetarySystem) -> Result<usize> {
     Ok(cycle_start + cycle_length)
 }
 
-fn part1(mut system: PlanetarySystem) -> i64 {
-    for _ in 0..1000 {
-        system.step();
+mod parsing {
+    use super::{Moon, PlanetarySystem, Point};
+
+    use anyhow::{bail, Result};
+
+    impl std::str::FromStr for Moon {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let parts = &s[1..s.len() - 1]
+                .splitn(3, ", ")
+                .map(|s| s[2..].parse())
+                .collect::<std::result::Result<Vec<i64>, _>>()?;
+            if parts.len() != 3 {
+                bail!("Failed to parse moon.");
+            }
+
+            Ok(Moon::new(Point {
+                x: parts[0],
+                y: parts[1],
+                z: parts[2],
+            }))
+        }
     }
 
-    system.energy()
-}
+    impl std::str::FromStr for PlanetarySystem {
+        type Err = anyhow::Error;
 
-fn part2(system: &PlanetarySystem) -> Result<usize> {
-    cycle_length(system)
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let system: PlanetarySystem = input.parse()?;
-
-    println!("Part 1: {}", part1(system.clone()));
-    println!("Part 2: {}", part2(&system)?);
-    Ok(())
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            Ok(PlanetarySystem {
+                moons: s.lines().map(&str::parse).collect::<Result<_>>()?,
+            })
+        }
+    }
 }
 
 #[cfg(test)]

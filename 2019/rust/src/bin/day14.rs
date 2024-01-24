@@ -1,94 +1,29 @@
-use aoc::aoc_error::AOCError;
-use aoc::graphs::{toposort, Graph};
 use std::collections::HashMap;
-use std::str::FromStr;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use anyhow::{anyhow, Result};
 
-struct Material {
-    kind: String,
-    quantity: usize,
+use aoc::graphs::{toposort, Graph};
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let reaction_graph: ReactionGraph = input.trim().parse()?;
+
+    println!("Part 1: {}", part1(&reaction_graph)?);
+    println!("Part 2: {}", part2(&reaction_graph)?);
+    Ok(())
 }
 
-impl Material {
-    fn fuel(quantity: usize) -> Material {
-        Material {
-            kind: String::from("FUEL"),
-            quantity,
-        }
-    }
+fn part1(reaction_graph: &ReactionGraph) -> Result<usize> {
+    reaction_graph.required_ore(&Material::fuel(1))
 }
 
-impl FromStr for Material {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.splitn(2, ' ').collect();
-        if parts.len() != 2 {
-            return Err(AOCError::new("Invalid Material"))?;
-        }
-
-        Ok(Material {
-            kind: parts[1].to_string(),
-            quantity: parts[0].parse()?,
-        })
-    }
+fn part2(reaction_graph: &ReactionGraph) -> Result<usize> {
+    reaction_graph.ore_fuel_yield(1000000000000)
 }
 
-struct Reaction {
-    inputs: Vec<Material>,
-    output: Material,
-}
-
-impl FromStr for Reaction {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let parts: Vec<&str> = s.splitn(2, " => ").collect();
-        if parts.len() != 2 {
-            return Err(AOCError::new("Invalid Reaction"))?;
-        }
-        let inputs = parts[0]
-            .split(", ")
-            .map(&str::parse)
-            .collect::<Result<Vec<Material>>>()?;
-        let output = parts[1].parse()?;
-
-        Ok(Reaction { inputs, output })
-    }
-}
-
+#[derive(Debug, Clone)]
 struct ReactionGraph {
     reactions: HashMap<String, Reaction>,
-}
-
-impl FromStr for ReactionGraph {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let mut reactions = HashMap::new();
-        reactions.insert(
-            "ORE".to_string(),
-            Reaction {
-                inputs: vec![],
-                output: Material {
-                    kind: "ORE".to_string(),
-                    quantity: 1,
-                },
-            },
-        );
-
-        for line in s.lines() {
-            let reaction: Reaction = line.trim().parse()?;
-            if reactions.contains_key(&reaction.output.kind) {
-                return Err(AOCError::new("Unexpected repeated output"))?;
-            } else {
-                reactions.insert(reaction.output.kind.clone(), reaction);
-            }
-        }
-
-        Ok(ReactionGraph { reactions })
-    }
 }
 
 impl<'a> Graph<'a> for ReactionGraph {
@@ -116,7 +51,7 @@ impl ReactionGraph {
         let mut amounts: HashMap<String, usize> = HashMap::new();
         amounts.insert(goal.kind.clone(), goal.quantity);
 
-        for kind in toposort(self).ok_or(AOCError::new("No toposort found for graph"))? {
+        for kind in toposort(self).ok_or(anyhow!("No toposort found for graph"))? {
             if let (Some(reaction), Some(needed)) = (self.reactions.get(&kind), amounts.get(&kind))
             {
                 let multiple = aoc::nums::ceiling_div(*needed, reaction.output.quantity);
@@ -134,7 +69,7 @@ impl ReactionGraph {
         Ok(*self
             .required_amounts(goal)?
             .get("ORE")
-            .ok_or(AOCError::new("ORE not found in raw inputs"))?)
+            .ok_or(anyhow!("ORE not found in raw inputs"))?)
     }
 
     fn ore_fuel_yield(&self, available_ore: usize) -> Result<usize> {
@@ -157,21 +92,94 @@ impl ReactionGraph {
     }
 }
 
-fn part1(reaction_graph: &ReactionGraph) -> Result<usize> {
-    reaction_graph.required_ore(&Material::fuel(1))
+#[derive(Debug, Clone)]
+struct Material {
+    kind: String,
+    quantity: usize,
 }
 
-fn part2(reaction_graph: &ReactionGraph) -> Result<usize> {
-    reaction_graph.ore_fuel_yield(1000000000000)
+impl Material {
+    fn fuel(quantity: usize) -> Material {
+        Material {
+            kind: String::from("FUEL"),
+            quantity,
+        }
+    }
 }
 
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let reaction_graph: ReactionGraph = input.parse()?;
+#[derive(Debug, Clone)]
+struct Reaction {
+    inputs: Vec<Material>,
+    output: Material,
+}
 
-    println!("Part 1: {}", part1(&reaction_graph)?);
-    println!("Part 2: {}", part2(&reaction_graph)?);
-    Ok(())
+mod parsing {
+    use super::{Material, Reaction, ReactionGraph};
+
+    use anyhow::{bail, Result};
+
+    impl std::str::FromStr for Material {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let parts: Vec<&str> = s.splitn(2, ' ').collect();
+            if parts.len() != 2 {
+                bail!("Invalid Material.");
+            }
+
+            Ok(Material {
+                kind: parts[1].to_string(),
+                quantity: parts[0].parse()?,
+            })
+        }
+    }
+
+    impl std::str::FromStr for Reaction {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let parts: Vec<&str> = s.splitn(2, " => ").collect();
+            if parts.len() != 2 {
+                bail!("Invalid Reaction.");
+            }
+            let inputs = parts[0]
+                .split(", ")
+                .map(&str::parse)
+                .collect::<Result<Vec<Material>>>()?;
+            let output = parts[1].parse()?;
+
+            Ok(Reaction { inputs, output })
+        }
+    }
+
+    impl std::str::FromStr for ReactionGraph {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let mut reactions = std::collections::HashMap::new();
+            reactions.insert(
+                "ORE".to_string(),
+                Reaction {
+                    inputs: vec![],
+                    output: Material {
+                        kind: "ORE".to_string(),
+                        quantity: 1,
+                    },
+                },
+            );
+
+            for line in s.lines() {
+                let reaction: Reaction = line.trim().parse()?;
+                if reactions.contains_key(&reaction.output.kind) {
+                    bail!("Unexpected repeated output.");
+                } else {
+                    reactions.insert(reaction.output.kind.clone(), reaction);
+                }
+            }
+
+            Ok(ReactionGraph { reactions })
+        }
+    }
 }
 
 #[cfg(test)]

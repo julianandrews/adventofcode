@@ -1,16 +1,41 @@
-extern crate num_integer;
-
-use aoc::aoc_error::AOCError;
-use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::convert::TryFrom;
 use std::f64::consts::PI;
-use std::fmt;
-use std::str::FromStr;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
+
 type Point = aoc::point::Point2D<i64>;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let mut asteroid_field = input.trim().parse()?;
+
+    println!("{}", asteroid_field);
+    println!("Part 1: {}", part1(&asteroid_field)?);
+    println!("Part 2: {}", part2(&mut asteroid_field)?);
+    Ok(())
+}
+
+fn part1(asteroid_field: &AsteroidField) -> Result<usize> {
+    Ok(asteroid_field.visible_count(
+        &asteroid_field
+            .monitoring_station()
+            .ok_or(anyhow!("No monitoring station found"))?,
+    ))
+}
+
+fn part2(asteroid_field: &mut AsteroidField) -> Result<i64> {
+    let monitoring_station = asteroid_field
+        .monitoring_station()
+        .ok_or(anyhow!("No monitoring station found"))?;
+    let coords = asteroid_field
+        .destroy_n(&monitoring_station, 200)
+        .ok_or(anyhow!("nth asteroid not found"))?;
+
+    Ok(100 * coords.x + coords.y)
+}
 
 enum MapTile {
     Full,
@@ -18,19 +43,19 @@ enum MapTile {
 }
 
 impl TryFrom<char> for MapTile {
-    type Error = Box<dyn std::error::Error>;
+    type Error = anyhow::Error;
 
     fn try_from(c: char) -> std::result::Result<Self, Self::Error> {
         match c {
             '#' => Ok(MapTile::Full),
             '.' => Ok(MapTile::Empty),
-            _ => Err(AOCError::new("Unrecognized map tile"))?,
+            _ => Err(anyhow!("Unrecognized map tile")),
         }
     }
 }
 
-impl fmt::Display for MapTile {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for MapTile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MapTile::Full => write!(f, "#"),
             MapTile::Empty => write!(f, "."),
@@ -42,25 +67,8 @@ struct AsteroidField {
     grid: Vec<Vec<MapTile>>,
 }
 
-impl FromStr for AsteroidField {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        let grid = s
-            .lines()
-            .map(|line| line.chars().map(MapTile::try_from).collect::<Result<_>>())
-            .collect::<Result<Vec<Vec<MapTile>>>>()?;
-        let width = if !grid.is_empty() { grid[0].len() } else { 0 };
-        if grid.iter().any(|row| row.len() != width) {
-            Err(AOCError::new("Non rectangular asteroid field input"))?;
-        }
-
-        Ok(AsteroidField { grid })
-    }
-}
-
-impl fmt::Display for AsteroidField {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl std::fmt::Display for AsteroidField {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let lines = self
             .grid
             .iter()
@@ -177,33 +185,27 @@ impl AsteroidField {
     }
 }
 
-fn part1(asteroid_field: &AsteroidField) -> Result<usize> {
-    Ok(asteroid_field.visible_count(
-        &asteroid_field
-            .monitoring_station()
-            .ok_or(AOCError::new("No monitoring station found"))?,
-    ))
-}
+mod parsing {
+    use super::{AsteroidField, MapTile};
 
-fn part2(asteroid_field: &mut AsteroidField) -> Result<i64> {
-    let monitoring_station = asteroid_field
-        .monitoring_station()
-        .ok_or(AOCError::new("No monitoring station found"))?;
-    let coords = asteroid_field
-        .destroy_n(&monitoring_station, 200)
-        .ok_or(AOCError::new("nth asteroid not found"))?;
+    use anyhow::{bail, Result};
 
-    Ok(100 * coords.x + coords.y)
-}
+    impl std::str::FromStr for AsteroidField {
+        type Err = anyhow::Error;
 
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let mut asteroid_field = input.trim().parse()?;
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let grid = s
+                .lines()
+                .map(|line| line.chars().map(MapTile::try_from).collect::<Result<_>>())
+                .collect::<Result<Vec<Vec<MapTile>>>>()?;
+            let width = if !grid.is_empty() { grid[0].len() } else { 0 };
+            if grid.iter().any(|row| row.len() != width) {
+                bail!("Non rectangular asteroid field input");
+            }
 
-    println!("{}", asteroid_field);
-    println!("Part 1: {}", part1(&asteroid_field)?);
-    println!("Part 2: {}", part2(&mut asteroid_field)?);
-    Ok(())
+            Ok(AsteroidField { grid })
+        }
+    }
 }
 
 #[cfg(test)]

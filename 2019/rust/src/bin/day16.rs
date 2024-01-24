@@ -1,10 +1,47 @@
-extern crate aoc;
-
-use aoc::aoc_error::AOCError;
-use aoc::nums::digits;
 use std::convert::TryFrom;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use anyhow::{bail, Result};
+
+use aoc::nums::digits;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let input_list = parse_digits(input.trim())?;
+
+    println!("Part 1: {}", part1(&input_list));
+    println!("Part 2: {}", part2(&input_list)?);
+    Ok(())
+}
+
+fn part1(input_list: &[u8]) -> String {
+    fft(input_list, 100)[..8]
+        .iter()
+        .map(|d| std::char::from_digit(*d as u32, 10).unwrap())
+        .collect()
+}
+
+fn part2(input_list: &[u8]) -> Result<String> {
+    let new_input_list_length = input_list.len() * 10_000;
+    let message_offset: usize = input_list
+        .iter()
+        .take(7)
+        .map(|d| d.to_string())
+        .collect::<String>()
+        .parse()?;
+    if message_offset <= new_input_list_length / 2 {
+        bail!("Message offset too close to start of list");
+    }
+    let trailing_digits = input_list
+        .iter()
+        .cycle()
+        .skip(message_offset % input_list.len())
+        .take(new_input_list_length - message_offset)
+        .cloned()
+        .collect::<Vec<u8>>();
+    let digits = fft_last_half_digits(trailing_digits, 100);
+
+    Ok(digits.iter().take(8).map(u8::to_string).collect())
+}
 
 fn fft(input_list: &[u8], num_phases: usize) -> Vec<u8> {
     static BASE_PATTERN: [i64; 4] = [0, 1, 0, -1];
@@ -45,45 +82,6 @@ fn parse_digits(s: &str) -> Result<Vec<u8>> {
         .into_iter()
         .map(u8::try_from)
         .collect::<std::result::Result<Vec<_>, _>>()?)
-}
-
-fn part1(input_list: &[u8]) -> String {
-    fft(input_list, 100)[..8]
-        .iter()
-        .map(|d| std::char::from_digit(*d as u32, 10).unwrap())
-        .collect()
-}
-
-fn part2(input_list: &[u8]) -> Result<String> {
-    let new_input_list_length = input_list.len() * 10_000;
-    let message_offset: usize = input_list
-        .iter()
-        .take(7)
-        .map(|d| d.to_string())
-        .collect::<String>()
-        .parse()?;
-    if message_offset <= new_input_list_length / 2 {
-        Err(AOCError::new("Message offset too close to start of list"))?;
-    }
-    let trailing_digits = input_list
-        .iter()
-        .cycle()
-        .skip(message_offset % input_list.len())
-        .take(new_input_list_length - message_offset)
-        .cloned()
-        .collect::<Vec<u8>>();
-    let digits = fft_last_half_digits(trailing_digits, 100);
-
-    Ok(digits.iter().take(8).map(u8::to_string).collect())
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let input_list = parse_digits(input.trim())?;
-
-    println!("Part 1: {}", part1(&input_list));
-    println!("Part 2: {}", part2(&input_list)?);
-    Ok(())
 }
 
 #[cfg(test)]

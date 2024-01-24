@@ -1,11 +1,13 @@
-use crate::aoc_error::AOCError;
+use anyhow::anyhow;
 use num_enum::TryFromPrimitive;
+
 use std::convert::TryFrom;
+
+use anyhow::Result;
 
 pub type RegisterValue = i64;
 
 type Address = usize;
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
 pub fn parse_program(input: &str) -> Result<Vec<RegisterValue>> {
     Ok(input
@@ -152,10 +154,10 @@ impl<'a> VM<'a> {
         modes: &[ValueMode],
     ) -> Result<(RegisterValue, RegisterValue, Address)> {
         if modes[2] == ValueMode::Immediate {
-            return Err(AOCError::new(&format!(
+            return Err(anyhow!(
                 "Unexpected mode {:?} at 0 for binary operation",
                 modes[2]
-            )))?;
+            ));
         }
         Ok((
             self.get_value(params[0], modes[0])?,
@@ -213,18 +215,15 @@ impl<'a> VM<'a> {
 
     fn store(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
         if modes[0] == ValueMode::Immediate {
-            return Err(AOCError::new(&format!(
-                "Unexpected mode {:?} at 0",
-                modes[0]
-            )))?;
+            return Err(anyhow!("Unexpected mode {:?} at 0", modes[0]));
         }
         let address = self.get_address(params[0], modes[0])?;
         let value = self
             .inputs
             .as_mut()
-            .ok_or(AOCError::new("Inputs not provided"))?
+            .ok_or(anyhow!("Inputs not provided"))?
             .next()
-            .ok_or(AOCError::new("Failed to get input"))?;
+            .ok_or(anyhow!("Failed to get input"))?;
         log::trace!("Storing {} at {}", value, address);
         self.memory[address] = value;
         self.ip += params.len() + 1;

@@ -1,7 +1,6 @@
-use aoc::aoc_error::AOCError;
-use aoc::intcode::{OpType, RegisterValue, VM};
+use anyhow::{anyhow, Result};
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use aoc::intcode::{OpType, RegisterValue, VM};
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -26,7 +25,7 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
             }
         }
     }
-    Err(AOCError::new("Correct inputs not found"))?
+    Err(anyhow!("Correct inputs not found"))
 }
 
 fn run<'a>(

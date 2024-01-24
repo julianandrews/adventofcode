@@ -1,8 +1,32 @@
-extern crate aoc;
+use anyhow::{anyhow, Result};
 
-use aoc::aoc_error::AOCError;
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+    println!("Part 1: {}", part1(&input)?);
+    println!("Part 2: {}", part2(&input)?);
+
+    Ok(())
+}
+
+fn part1(moves: &str) -> Result<usize> {
+    let deck = Deck::from_moves(10007, moves)?;
+    for (i, card) in deck.iter().enumerate() {
+        if card == 2019 {
+            return Ok(i);
+        }
+    }
+    Err(anyhow!("Card 2019 not found"))
+}
+
+fn part2(moves: &str) -> Result<u64> {
+    let deck = Deck::from_moves(119315717514047, moves)?;
+    let deck = deck * 101741582076661;
+
+    deck.iter()
+        .nth(2020)
+        .ok_or(anyhow!("Card at index 2020 not found"))
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Deck {
@@ -67,7 +91,7 @@ impl Deck {
                 let n: u64 = line
                     .rsplit(' ')
                     .next()
-                    .ok_or(AOCError::new(&format!("Couldn't parse '{}'", line)))?
+                    .ok_or(anyhow!("Couldn't parse '{}'", line))?
                     .parse()?;
                 deck.increment(n)?;
             } else if line == "deal into new stack" {
@@ -76,14 +100,14 @@ impl Deck {
                 let mut n: i64 = line
                     .rsplit(' ')
                     .next()
-                    .ok_or(AOCError::new(&format!("Couldn't parse '{}'", line)))?
+                    .ok_or(anyhow!("Couldn't parse '{}'", line))?
                     .parse()?;
                 while n < 0 {
                     n += deck.size as i64;
                 }
                 deck.cut(n as u64);
             } else {
-                return Err(AOCError::new(&format!("Couldn't parse '{}'", line)))?;
+                return Err(anyhow!("Couldn't parse '{}'", line))?;
             }
         }
 
@@ -97,10 +121,11 @@ impl Deck {
     fn increment(&mut self, n: u64) -> Result<()> {
         self.stride = mod_mul(
             self.stride,
-            mod_inverse(n, self.size).ok_or(AOCError::new(&format!(
+            mod_inverse(n, self.size).ok_or(anyhow!(
                 "No inverse found for {} mod {}",
-                n, self.size
-            )))?,
+                n,
+                self.size
+            ))?,
             self.size,
         );
         Ok(())
@@ -194,34 +219,6 @@ fn mod_inverse(a: u64, m: u64) -> Option<u64> {
     } else {
         Some(xs.1.value)
     }
-}
-
-fn part1(moves: &str) -> Result<usize> {
-    let deck = Deck::from_moves(10007, moves)?;
-    for (i, card) in deck.iter().enumerate() {
-        if card == 2019 {
-            return Ok(i);
-        }
-    }
-    Err(AOCError::new("Card 2019 not found"))?
-}
-
-fn part2(moves: &str) -> Result<u64> {
-    let deck = Deck::from_moves(119315717514047, moves)?;
-    let deck = deck * 101741582076661;
-
-    Ok(deck
-        .iter()
-        .nth(2020)
-        .ok_or(AOCError::new("Card at index 2020 not found"))?)
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-
-    println!("Part 1: {}", part1(&input)?);
-    println!("Part 2: {}", part2(&input)?);
-    Ok(())
 }
 
 #[cfg(test)]

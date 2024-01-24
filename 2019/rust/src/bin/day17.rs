@@ -1,17 +1,57 @@
-extern crate aoc;
+use std::collections::HashSet;
+use std::convert::TryFrom;
+use std::fmt;
+
+use anyhow::{anyhow, bail, Result};
 
 use aoc::direction::Direction;
 use aoc::intcode::{RegisterValue, VM};
 use aoc::point::Point2D;
-use std::collections::HashSet;
-use std::convert::TryFrom;
-use std::fmt;
-use std::str::FromStr;
 
-use aoc::aoc_error::AOCError;
-
-type Result<T> = ::std::result::Result<T, Box<dyn std::error::Error>>;
 type Point = Point2D<i64>;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+
+    println!("Part 1: {}", part1(&program)?);
+    println!("Part 2: {}", part2(&program)?);
+
+    Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> Result<usize> {
+    let scaffold = Scaffold::from_program(program)?;
+    Ok(scaffold
+        .intersections()
+        .filter_map(|p| scaffold.alignment_parameter(p))
+        .sum())
+}
+
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    let scaffold = Scaffold::from_program(program)?;
+    let instructions = scaffold.full_instructions()?;
+    let (func_a, func_b, func_c) =
+        get_functions(20, &instructions).ok_or(anyhow!("No functions found for routine"))?;
+    let main_routine = instructions
+        .replace(func_a, "A")
+        .replace(func_b, "B")
+        .replace(func_c, "C");
+    let input_string = [
+        main_routine,
+        func_a.to_string(),
+        func_b.to_string(),
+        func_c.to_string(),
+        "n".to_string(),
+        "".to_string(),
+    ]
+    .join("\n");
+    let inputs = Box::new(input_string.chars().map(|c| c as RegisterValue));
+    let mut vm = VM::new(program.to_vec(), Some(inputs));
+    vm.set_memory(0, 2);
+
+    vm.outputs().last().ok_or(anyhow!("No output generated"))
+}
 
 #[derive(Clone, Copy)]
 enum ScaffoldTile {
@@ -21,7 +61,7 @@ enum ScaffoldTile {
 }
 
 impl TryFrom<char> for ScaffoldTile {
-    type Error = Box<dyn std::error::Error>;
+    type Error = anyhow::Error;
 
     fn try_from(value: char) -> Result<Self> {
         match value {
@@ -31,7 +71,7 @@ impl TryFrom<char> for ScaffoldTile {
             '>' => Ok(ScaffoldTile::Vacuum(Direction::East)),
             '^' => Ok(ScaffoldTile::Vacuum(Direction::North)),
             'v' => Ok(ScaffoldTile::Vacuum(Direction::South)),
-            _ => Err(AOCError::new(&format!("Unrecognized map tile: {}", value)))?,
+            _ => Err(anyhow!("Unrecognized map tile: {}", value)),
         }
     }
 }
@@ -57,40 +97,6 @@ struct Scaffold {
     map: Box<[ScaffoldTile]>,
     width: usize,
     height: usize,
-}
-
-impl FromStr for Scaffold {
-    type Err = Box<dyn std::error::Error>;
-
-    fn from_str(s: &str) -> Result<Self> {
-        let height = s.lines().count();
-        let width = if height == 0 {
-            0
-        } else {
-            s.lines().next().unwrap().len()
-        };
-        if s.lines().any(|line| line.len() != width) {
-            return Err(AOCError::new("Non-rectangular scaffold grid"))?;
-        }
-        let map: Vec<ScaffoldTile> = s
-            .lines()
-            .flat_map(|line| line.chars().map(ScaffoldTile::try_from))
-            .collect::<Result<_>>()?;
-
-        let vacuum_count = map
-            .iter()
-            .filter(|tile| matches!(tile, ScaffoldTile::Vacuum(_)))
-            .count();
-        if vacuum_count != 1 {
-            return Err(AOCError::new("Multiple vacuums found.'"))?;
-        }
-
-        Ok(Scaffold {
-            map: map.into_boxed_slice(),
-            width,
-            height,
-        })
-    }
 }
 
 impl fmt::Display for Scaffold {
@@ -211,13 +217,13 @@ impl Scaffold {
     fn full_instructions(&self) -> Result<String> {
         let points: Vec<Point> = self.vacuum_locations().collect();
         if points.len() != 1 {
-            return Err(AOCError::new("No unique vacuum_location found."))?;
+            bail!("No unique vacuum_location found.");
         }
         let mut current_location = points[0];
         let mut instructions: Vec<String> = vec![];
         let mut current_direction = match self.at(current_location) {
             ScaffoldTile::Vacuum(d) => d,
-            _ => return Err(AOCError::new("Should not happen"))?,
+            _ => bail!("Should not happen"),
         };
         let mut visited = HashSet::new();
         visited.insert(current_location);
@@ -238,7 +244,7 @@ impl Scaffold {
                 if candidates.is_empty() {
                     break;
                 } else if candidates.len() > 1 {
-                    return Err(AOCError::new("Multiple paths found."))?;
+                    bail!("Multiple paths found.");
                 }
                 let new_direction = candidates.into_iter().next().unwrap();
                 if current_direction.right_turn() == new_direction {
@@ -296,47 +302,44 @@ fn get_functions(max_func_length: usize, full_routine: &str) -> Option<(&str, &s
     None
 }
 
-fn part1(program: &[RegisterValue]) -> Result<usize> {
-    let scaffold = Scaffold::from_program(program)?;
-    Ok(scaffold
-        .intersections()
-        .filter_map(|p| scaffold.alignment_parameter(p))
-        .sum())
-}
+mod parsing {
+    use super::{Scaffold, ScaffoldTile};
 
-fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
-    let scaffold = Scaffold::from_program(program)?;
-    let instructions = scaffold.full_instructions()?;
-    let (func_a, func_b, func_c) =
-        get_functions(20, &instructions).ok_or(AOCError::new("No functions found for routine"))?;
-    let main_routine = instructions
-        .replace(func_a, "A")
-        .replace(func_b, "B")
-        .replace(func_c, "C");
-    let input_string = [
-        main_routine,
-        func_a.to_string(),
-        func_b.to_string(),
-        func_c.to_string(),
-        "n".to_string(),
-        "".to_string(),
-    ]
-    .join("\n");
-    let inputs = Box::new(input_string.chars().map(|c| c as RegisterValue));
-    let mut vm = VM::new(program.to_vec(), Some(inputs));
-    vm.set_memory(0, 2);
-    let result = vm.outputs().last();
+    use anyhow::{bail, Result};
 
-    Ok(result.ok_or(AOCError::new("No output generated"))?)
-}
+    impl std::str::FromStr for Scaffold {
+        type Err = anyhow::Error;
 
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
+        fn from_str(s: &str) -> Result<Self> {
+            let height = s.lines().count();
+            let width = if height == 0 {
+                0
+            } else {
+                s.lines().next().unwrap().len()
+            };
+            if s.lines().any(|line| line.len() != width) {
+                bail!("Non-rectangular scaffold grid");
+            }
+            let map: Vec<ScaffoldTile> = s
+                .lines()
+                .flat_map(|line| line.chars().map(ScaffoldTile::try_from))
+                .collect::<Result<_>>()?;
 
-    println!("Part 1: {}", part1(&program)?);
-    println!("Part 2: {}", part2(&program)?);
-    Ok(())
+            let vacuum_count = map
+                .iter()
+                .filter(|tile| matches!(tile, ScaffoldTile::Vacuum(_)))
+                .count();
+            if vacuum_count != 1 {
+                bail!("Multiple vacuums found.'");
+            }
+
+            Ok(Scaffold {
+                map: map.into_boxed_slice(),
+                width,
+                height,
+            })
+        }
+    }
 }
 
 #[cfg(test)]

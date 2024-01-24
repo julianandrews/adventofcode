@@ -1,12 +1,21 @@
-extern crate log;
-
-use aoc::aoc_error::AOCError;
-use aoc::intcode::{RegisterValue, VM};
-use itertools::Itertools;
 use std::cell::RefCell;
 use std::iter;
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use anyhow::{anyhow, Result};
+use itertools::Itertools;
+
+use aoc::intcode::{RegisterValue, VM};
+
+fn main() -> Result<()> {
+    env_logger::init();
+
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+
+    println!("Part 1: {}", part1(&program)?);
+    println!("Part 2: {}", part2(&program)?);
+    Ok(())
+}
 
 fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
     let mut best = 0;
@@ -17,10 +26,7 @@ fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
                 program.to_vec(),
                 Some(Box::new(iter::once(phase).chain(iter::once(signal)))),
             );
-            signal = vm
-                .outputs()
-                .next()
-                .ok_or(AOCError::new("Outputs exhausted"))?;
+            signal = vm.outputs().next().ok_or(anyhow!("Outputs exhausted"))?;
         }
         best = std::cmp::max(best, signal);
     }
@@ -52,22 +58,11 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
             best,
             vms[vms.len() - 1]
                 .last_output()
-                .ok_or(AOCError::new("No output generated"))?,
+                .ok_or(anyhow!("No output generated"))?,
         );
     }
 
     Ok(best)
-}
-
-fn main() -> Result<()> {
-    env_logger::init();
-
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
-
-    println!("Part 1: {}", part1(&program)?);
-    println!("Part 2: {}", part2(&program)?);
-    Ok(())
 }
 
 #[cfg(test)]

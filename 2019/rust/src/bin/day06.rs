@@ -1,13 +1,35 @@
-use aoc::aoc_error::AOCError;
-use aoc::graphs::{bfs, Graph};
-use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
+use anyhow::{anyhow, Result};
+use rustc_hash::{FxHashMap, FxHashSet};
 
-type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+use aoc::graphs::{bfs, Graph};
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let orbit_graph = input.parse()?;
+
+    println!("Part 1: {}", part1(&orbit_graph)?);
+    println!("Part 2: {}", part2(&orbit_graph)?);
+    Ok(())
+}
+
+fn part1(orbit_graph: &OrbitGraph) -> Result<u64> {
+    Ok(bfs(orbit_graph, &"COM".to_string())
+        .map(|node| node.depth)
+        .sum())
+}
+
+fn part2(orbit_graph: &OrbitGraph) -> Result<u64> {
+    for node in bfs(orbit_graph, &"YOU".to_string()) {
+        if node.value == "SAN" {
+            return Ok(node.depth - 2);
+        }
+    }
+    Err(anyhow!("Failed to find Santa!"))
+}
 
 #[derive(Debug)]
 struct OrbitGraph {
-    orbits: HashMap<String, HashSet<String>>,
+    orbits: FxHashMap<String, FxHashSet<String>>,
 }
 
 impl<'a> Graph<'a> for OrbitGraph {
@@ -25,57 +47,41 @@ impl<'a> Graph<'a> for OrbitGraph {
     }
 }
 
-impl FromStr for OrbitGraph {
-    type Err = AOCError;
+mod parsing {
+    use super::OrbitGraph;
 
-    fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
-        let mut orbits = HashMap::new();
-        for line in s.lines() {
-            let mut split = line.trim().splitn(2, ')');
-            let a = match split.next() {
-                Some(value) => value,
-                None => return Err(AOCError::new(&format!("Failed to parse line: {}", line))),
-            };
-            let b = match split.next() {
-                Some(value) => value,
-                None => return Err(AOCError::new(&format!("Failed to parse line: {}", line))),
-            };
-            orbits
-                .entry(a.to_string())
-                .or_insert_with(HashSet::new)
-                .insert(b.to_string());
-            orbits
-                .entry(b.to_string())
-                .or_insert_with(HashSet::new)
-                .insert(a.to_string());
-        }
+    use anyhow::bail;
 
-        Ok(OrbitGraph { orbits })
-    }
-}
+    use rustc_hash::{FxHashMap, FxHashSet};
 
-fn part1(orbit_graph: &OrbitGraph) -> Result<u64> {
-    Ok(bfs(orbit_graph, &"COM".to_string())
-        .map(|node| node.depth)
-        .sum())
-}
+    impl std::str::FromStr for OrbitGraph {
+        type Err = anyhow::Error;
 
-fn part2(orbit_graph: &OrbitGraph) -> Result<u64> {
-    for node in bfs(orbit_graph, &"YOU".to_string()) {
-        if node.value == "SAN" {
-            return Ok(node.depth - 2);
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            let mut orbits: FxHashMap<String, FxHashSet<String>> = FxHashMap::default();
+            for line in s.lines() {
+                let mut split = line.trim().splitn(2, ')');
+                let a = match split.next() {
+                    Some(value) => value,
+                    None => bail!("Failed to parse line: {}", line),
+                };
+                let b = match split.next() {
+                    Some(value) => value,
+                    None => bail!("Failed to parse line: {}", line),
+                };
+                orbits
+                    .entry(a.to_string())
+                    .or_default()
+                    .insert(b.to_string());
+                orbits
+                    .entry(b.to_string())
+                    .or_default()
+                    .insert(a.to_string());
+            }
+
+            Ok(OrbitGraph { orbits })
         }
     }
-    Err(AOCError::new("Failed to find Santa!"))?
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let orbit_graph = input.parse()?;
-
-    println!("Part 1: {}", part1(&orbit_graph)?);
-    println!("Part 2: {}", part2(&orbit_graph)?);
-    Ok(())
 }
 
 #[cfg(test)]
