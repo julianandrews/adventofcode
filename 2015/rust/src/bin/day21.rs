@@ -27,7 +27,7 @@ fn part2(boss: &Character) -> Result<u64> {
     let mut best = None;
     for gear in Equipment::outfits() {
         let hero = Character::with_gear(100, &gear);
-        if !hero.defeats(&boss) {
+        if !hero.defeats(boss) {
             best = Some(gear.cost.max(best.unwrap_or(0)));
         }
     }
