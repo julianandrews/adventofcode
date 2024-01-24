@@ -23,7 +23,7 @@ where
     }
 
     let mut result = Vec::with_capacity(num_nodes);
-    while queue.len() > 0 {
+    while !queue.is_empty() {
         let node = queue.pop().unwrap();
         for neighbor in graph.neighbors(&node) {
             // TODO: Don't just unwrap here, this represents a real logic error where there's a

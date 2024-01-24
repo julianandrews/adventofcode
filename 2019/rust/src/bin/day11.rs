@@ -31,15 +31,15 @@ impl<'a> Robot<'a> {
         let position = Rc::new(RefCell::new(Point { x: 0, y: 0 }));
         let painted_panels = Rc::new(RefCell::new(HashSet::new()));
         let mut robot = Robot {
-            vm: vm,
+            vm,
             position: position.clone(),
             direction: Direction::North,
             painted_panels: painted_panels.clone(),
         };
 
         let input_iterator = RobotInputIterator {
-            position: position,
-            painted_panels: painted_panels,
+            position,
+            painted_panels,
         };
         robot.vm.set_inputs(Some(Box::new(input_iterator)));
 
@@ -68,7 +68,7 @@ impl<'a> Robot<'a> {
         let min_y = panels.iter().map(|p| p.y).min().unwrap();
         let max_y = panels.iter().map(|p| p.y).max().unwrap();
 
-        let panel_char = |x, y| match panels.contains(&Point { x: x, y: y }) {
+        let panel_char = |x, y| match panels.contains(&Point { x, y }) {
             true => '█',
             false => ' ',
         };
@@ -130,11 +130,11 @@ impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
                 self.robot.direction = self.robot.direction.left_turn();
             }
 
-            let paint_location = self.robot.position.borrow().clone();
+            let paint_location = *self.robot.position.borrow();
             self.robot.move_robot();
 
             return Some(RobotInstruction {
-                paint_location: paint_location,
+                paint_location,
                 paint_white: paint_white != 0,
             });
         }
@@ -143,8 +143,8 @@ impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
     }
 }
 
-fn part1(program: &Vec<RegisterValue>) -> usize {
-    let vm = VM::new(program.clone(), None);
+fn part1(program: &[RegisterValue]) -> usize {
+    let vm = VM::new(program.to_vec(), None);
     let mut robot = Robot::new(vm);
     let painted_locations = robot
         .instructions()
@@ -155,8 +155,8 @@ fn part1(program: &Vec<RegisterValue>) -> usize {
     painted_locations.len()
 }
 
-fn part2(program: &Vec<RegisterValue>) -> String {
-    let vm = VM::new(program.clone(), None);
+fn part2(program: &[RegisterValue]) -> String {
+    let vm = VM::new(program.to_vec(), None);
     let mut robot = Robot::new(vm);
     robot.paint_panel(Point { x: 0, y: 0 });
     for _ in robot.instructions() {}

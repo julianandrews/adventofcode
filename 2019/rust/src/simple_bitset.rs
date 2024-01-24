@@ -1,6 +1,12 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SimpleBitSet(pub u64);
 
+impl Default for SimpleBitSet {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SimpleBitSet {
     pub fn new() -> Self {
         SimpleBitSet(0)

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+function runall {
+  for b in src/bin/day*
+  do
+    bin=$(basename "$b" ".rs")
+    echo "Running $bin"
+    cat ../inputs/day${bin:3:2}/input.txt | cargo run --bin "$bin" "$@" 2>/dev/null | sed 's/^/  /'
+  done
+}
+
+function runday {
+  day=$(printf "%02d" "$1")
+  shift
+  echo "Running day${day}"
+  cat ../inputs/day${day}/input.txt | cargo run --bin "day${day}" "$@" | sed 's/^/  /'
+}
+
+if [[ "$1" =~ ^[0-9]+$ ]]; then
+  runday "$@"
+else
+  runall "$@"
+fi

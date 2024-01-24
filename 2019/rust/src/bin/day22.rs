@@ -15,7 +15,7 @@ impl std::ops::Add for Deck {
     type Output = Self;
 
     fn add(self, other: Self) -> Self {
-        let mut deck = self.clone();
+        let mut deck = self;
         deck += other;
         deck
     }
@@ -42,7 +42,7 @@ impl std::ops::Mul<u64> for Deck {
         let mut n = rhs;
         while n != 0 {
             let mut count = 1;
-            let mut new_deck = self.clone();
+            let mut new_deck = self;
             while count < n / 2 {
                 new_deck = new_deck + new_deck;
                 count *= 2;
@@ -58,14 +58,14 @@ impl std::ops::Mul<u64> for Deck {
 impl Deck {
     fn from_moves(size: u64, moves: &str) -> Result<Deck> {
         let mut deck = Deck {
-            size: size,
+            size,
             stride: 1,
             offset: 0,
         };
         for line in moves.lines() {
             if line.starts_with("deal with increment") {
                 let n: u64 = line
-                    .rsplit(" ")
+                    .rsplit(' ')
                     .next()
                     .ok_or(AOCError::new(&format!("Couldn't parse '{}'", line)))?
                     .parse()?;
@@ -74,7 +74,7 @@ impl Deck {
                 deck.deal_new_stack()?;
             } else if line.starts_with("cut") {
                 let mut n: i64 = line
-                    .rsplit(" ")
+                    .rsplit(' ')
                     .next()
                     .ok_or(AOCError::new(&format!("Couldn't parse '{}'", line)))?
                     .parse()?;
@@ -113,7 +113,7 @@ impl Deck {
     }
 
     fn iter(&self) -> impl Iterator<Item = u64> {
-        let cloned = self.clone();
+        let cloned = *self;
         (0..self.size).map(move |n| {
             mod_add(
                 cloned.offset,
@@ -125,8 +125,8 @@ impl Deck {
 }
 
 fn mod_add(mut a: u64, mut b: u64, m: u64) -> u64 {
-    a = a % m;
-    b = b % m;
+    a %= m;
+    b %= m;
     if b >= m.wrapping_sub(a) {
         b = b.wrapping_sub(m);
     }
@@ -179,14 +179,12 @@ fn mod_inverse(a: u64, m: u64) -> Option<u64> {
         if xs.0.is_negative != xs.1.is_negative {
             new_x0.value += xs.1.value;
             new_x0.is_negative = xs.1.is_negative;
+        } else if xs.1.value > new_x0.value {
+            new_x0.value = xs.1.value - new_x0.value;
+            new_x0.is_negative = xs.1.is_negative;
         } else {
-            if xs.1.value > new_x0.value {
-                new_x0.value = xs.1.value - new_x0.value;
-                new_x0.is_negative = xs.1.is_negative;
-            } else {
-                new_x0.value = new_x0.value - xs.1.value;
-                new_x0.is_negative = !xs.0.is_negative;
-            }
+            new_x0.value -= xs.1.value;
+            new_x0.is_negative = !xs.0.is_negative;
         }
         xs = (new_x0, xs.0);
     }
@@ -367,7 +365,7 @@ mod tests {
 
         let deck = Deck::from_moves(10, moves).unwrap();
         for i in 0..20 {
-            let all_moves = vec![moves.clone(); i].join("\n");
+            let all_moves = vec![moves; i].join("\n");
             assert_eq!(deck * (i as u64), Deck::from_moves(10, &all_moves).unwrap());
         }
     }

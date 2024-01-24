@@ -50,12 +50,12 @@ impl FromStr for AsteroidField {
             .lines()
             .map(|line| line.chars().map(MapTile::try_from).collect::<Result<_>>())
             .collect::<Result<Vec<Vec<MapTile>>>>()?;
-        let width = if grid.len() > 0 { grid[0].len() } else { 0 };
+        let width = if !grid.is_empty() { grid[0].len() } else { 0 };
         if grid.iter().any(|row| row.len() != width) {
             Err(AOCError::new("Non rectangular asteroid field input"))?;
         }
 
-        Ok(AsteroidField { grid: grid })
+        Ok(AsteroidField { grid })
     }
 }
 
@@ -66,7 +66,7 @@ impl fmt::Display for AsteroidField {
             .iter()
             .map(|row| row.iter().map(MapTile::to_string).collect::<String>())
             .collect::<Vec<_>>();
-        write!(f, "{}", lines.join(&"\n"))
+        write!(f, "{}", lines.join("\n"))
     }
 }
 
@@ -76,7 +76,7 @@ impl AsteroidField {
     }
 
     fn width(&self) -> usize {
-        if self.grid.len() > 0 {
+        if !self.grid.is_empty() {
             self.grid[0].len()
         } else {
             0
@@ -141,9 +141,9 @@ impl AsteroidField {
     }
 
     fn visible_count(&self, location: &Point) -> usize {
-        self.get_directions(&location)
+        self.get_directions(location)
             .iter()
-            .filter(|&d| self.first_visible_asteroid(&location, &d).is_some())
+            .filter(|&d| self.first_visible_asteroid(location, d).is_some())
             .count()
     }
 
@@ -164,7 +164,7 @@ impl AsteroidField {
     fn destroy_n(&mut self, location: &Point, n: usize) -> Option<Point> {
         let mut count = 0;
         for direction in self.get_directions(location).iter().cycle() {
-            if let Some(coords) = self.first_visible_asteroid(location, &direction) {
+            if let Some(coords) = self.first_visible_asteroid(location, direction) {
                 self.grid[coords.y as usize][coords.x as usize] = MapTile::Empty;
                 count += 1;
                 if count == n {

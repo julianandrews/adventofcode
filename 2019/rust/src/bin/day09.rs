@@ -6,11 +6,8 @@ use std::iter;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
-fn run_with_single_input(
-    program: &Vec<RegisterValue>,
-    input: RegisterValue,
-) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), Some(Box::new(iter::once(input))));
+fn run_with_single_input(program: &[RegisterValue], input: RegisterValue) -> Result<RegisterValue> {
+    let mut vm = VM::new(program.to_vec(), Some(Box::new(iter::once(input))));
     let value = vm.outputs().next().ok_or("No output generated")?;
     if vm.outputs().next().is_some() {
         Err(AOCError::new("Unexpected output"))?
@@ -19,11 +16,11 @@ fn run_with_single_input(
     Ok(value)
 }
 
-fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
+fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
     run_with_single_input(program, 1)
 }
 
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
     run_with_single_input(program, 2)
 }
 

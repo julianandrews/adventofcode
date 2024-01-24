@@ -68,10 +68,7 @@ fn fix_input(input: &str) -> String {
         }
     }
 
-    let lines: Vec<String> = lines
-        .iter()
-        .map(|line| line.into_iter().collect())
-        .collect();
+    let lines: Vec<String> = lines.iter().map(|line| line.iter().collect()).collect();
     lines.join("\n")
 }
 
@@ -105,22 +102,20 @@ impl SimpleMaze {
     fn waypoint_at(&self, point: &Point) -> Option<Waypoint> {
         self.map
             .get(point)
-            .map(|tile| match tile {
+            .and_then(|tile| match tile {
                 MapTile::Waypoint(w) => Some(w),
                 _ => None,
             })
-            .flatten()
             .cloned()
     }
 
     fn door_at(&self, point: &Point) -> Option<Waypoint> {
         self.map
             .get(point)
-            .map(|tile| match tile {
+            .and_then(|tile| match tile {
                 MapTile::Door(w) => Some(w),
                 _ => None,
             })
-            .flatten()
             .cloned()
     }
 }
@@ -142,10 +137,7 @@ impl<'a> Graph<'a> for SimpleMaze {
                     x: x + dx,
                     y: y + dy,
                 })
-                .filter(move |p| match self.map.get(p) {
-                    Some(MapTile::Wall) | None => false,
-                    _ => true,
-                }),
+                .filter(move |p| !matches!(self.map.get(p), Some(MapTile::Wall) | None)),
         )
     }
 }
@@ -316,7 +308,7 @@ impl MazeState {
             .fold(SimpleBitSet(0), |result, w| result | w);
         Ok(MazeState {
             robot_locations,
-            visited_waypoints: robot_locations.clone(),
+            visited_waypoints: robot_locations,
         })
     }
 }
@@ -360,14 +352,14 @@ impl Waypoint {
     }
 
     fn for_key(c: char) -> Result<Self> {
-        if !('a'..='z').contains(&c) {
+        if !c.is_ascii_lowercase() {
             return Err(AOCError::new("Invalid key").into());
         }
         Ok(Self(c as u8 - b'a'))
     }
 
     fn for_door(c: char) -> Result<Self> {
-        if !('A'..='Z').contains(&c) {
+        if !c.is_ascii_uppercase() {
             return Err(AOCError::new("Invalid key").into());
         }
         Ok(Self(c as u8 - b'A'))

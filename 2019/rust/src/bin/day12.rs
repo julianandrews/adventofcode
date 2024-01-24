@@ -2,7 +2,7 @@ extern crate num_integer;
 
 use aoc::aoc_error::AOCError;
 use aoc::iterators::cycle_detect;
-use aoc::point::Point3D;
+use aoc::point::{Axis3D, Point3D};
 use std::iter;
 use std::str::FromStr;
 
@@ -18,20 +18,20 @@ struct Moon {
 impl Moon {
     fn new(position: Point) -> Moon {
         Moon {
-            position: position,
+            position,
             velocity: Point { x: 0, y: 0, z: 0 },
         }
     }
 
     fn update_velocity(&mut self, other: &Moon) {
-        for i in 0..3 {
-            self.velocity[i] += -(self.position[i].cmp(&other.position[i]) as i64);
+        for axis in Axis3D::iter() {
+            self.velocity[axis] += -(self.position[axis].cmp(&other.position[axis]) as i64);
         }
     }
 
     fn update_position(&mut self) {
-        for i in 0..3 {
-            self.position[i] += self.velocity[i];
+        for axis in Axis3D::iter() {
+            self.position[axis] += self.velocity[axis];
         }
     }
 
@@ -83,8 +83,8 @@ impl PlanetarySystem {
             let (a, b) = self.moons.split_at_mut(i);
             let moon_b = &mut b[0];
             for moon_a in a {
-                moon_a.update_velocity(&moon_b);
-                moon_b.update_velocity(&moon_a);
+                moon_a.update_velocity(moon_b);
+                moon_b.update_velocity(moon_a);
             }
         }
         for moon in &mut self.moons {
@@ -106,19 +106,19 @@ impl PlanetarySystem {
 }
 
 fn cycle_length(system: &PlanetarySystem) -> Result<usize> {
-    let cycles = (0..3)
-        .filter_map(|i| {
+    let cycles = Axis3D::iter()
+        .filter_map(|axis| {
             cycle_detect(system.states().map(|system| {
                 system
                     .moons
                     .iter()
-                    .map(|m| (m.position[i], m.velocity[i]))
+                    .map(|m| (m.position[axis], m.velocity[axis]))
                     .collect::<Vec<_>>()
             }))
         })
         .collect::<Vec<_>>();
     if cycles.len() != 3 {
-        return Err(AOCError::new("Expected to find 3 cycles"))?;
+        Err(AOCError::new("Expected to find 3 cycles"))?;
     }
 
     let cycle_start = cycles.iter().map(|c| c.start).max().unwrap();

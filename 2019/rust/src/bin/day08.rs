@@ -36,9 +36,9 @@ impl Image {
             .collect::<std::result::Result<Vec<Pixel>, _>>()?;
 
         Ok(Image {
-            pixels: pixels,
-            width: width,
-            height: height,
+            pixels,
+            width,
+            height,
         })
     }
 
@@ -78,7 +78,7 @@ impl fmt::Display for Image {
                     .collect()
             })
             .collect();
-        write!(f, "{}", lines.join(&"\n"))
+        write!(f, "{}", lines.join("\n"))
     }
 }
 

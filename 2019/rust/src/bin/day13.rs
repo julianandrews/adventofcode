@@ -48,7 +48,7 @@ struct ArcadeMachine<'a> {
 
 impl<'a> fmt::Display for ArcadeMachine<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.grid.len() == 0 {
+        if self.grid.is_empty() {
             return write!(f, "");
         }
         let min_x = self.grid.keys().map(|p| p.x).min().unwrap();
@@ -58,7 +58,7 @@ impl<'a> fmt::Display for ArcadeMachine<'a> {
 
         let panel_char = |x, y| {
             self.grid
-                .get(&Point { x: x, y: y })
+                .get(&Point { x, y })
                 .unwrap_or(&Tile::Empty)
                 .to_string()
         };
@@ -78,7 +78,7 @@ impl<'a> ArcadeMachine<'a> {
         let last_paddle_location = Rc::new(RefCell::new(None));
 
         let mut machine = ArcadeMachine {
-            vm: vm,
+            vm,
             grid: HashMap::new(),
             score: 0,
             last_ball_location: last_ball_location.clone(),
@@ -111,23 +111,23 @@ impl<'a> ArcadeMachine<'a> {
                 Tile::Paddle => *self.last_paddle_location.borrow_mut() = Some(x),
                 _ => (),
             }
-            self.grid.insert(Point { x: x, y: y }, tile);
+            self.grid.insert(Point { x, y }, tile);
         }
 
         Ok(())
     }
 }
 
-fn part1(program: &Vec<RegisterValue>) -> Result<usize> {
-    let vm = VM::new(program.clone(), None);
+fn part1(program: &[RegisterValue]) -> Result<usize> {
+    let vm = VM::new(program.to_vec(), None);
     let mut machine = ArcadeMachine::new(vm);
     machine.run()?;
 
     Ok(machine.grid.values().filter(|&t| t == &Tile::Block).count())
 }
 
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), None);
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    let mut vm = VM::new(program.to_vec(), None);
     vm.set_memory(0, 2);
     let mut machine = ArcadeMachine::new(vm);
     machine.run()?;

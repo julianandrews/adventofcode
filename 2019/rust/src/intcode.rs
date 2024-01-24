@@ -8,7 +8,7 @@ type Address = usize;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
 pub fn parse_program(input: &str) -> Result<Vec<RegisterValue>> {
-    Ok((&input)
+    Ok(input
         .trim()
         .split(',')
         .map(|s| s.parse::<RegisterValue>())
@@ -74,7 +74,7 @@ impl<'a> VM<'a> {
     ) -> VM {
         VM {
             memory: VMMemory { memory: program },
-            inputs: inputs,
+            inputs,
             ip: 0,
             relative_base: 0,
             output: None,
@@ -176,7 +176,7 @@ impl<'a> VM<'a> {
     }
 
     fn add(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        let (a, b, address) = self.binary_operands(params, modes)?;
         log::trace!("Storing {} + {} at {}", a, b, address);
         self.memory[address] = a + b;
         self.ip += params.len() + 1;
@@ -185,7 +185,7 @@ impl<'a> VM<'a> {
     }
 
     fn multiply(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        let (a, b, address) = self.binary_operands(params, modes)?;
         log::trace!("Storing {} * {} at {}", a, b, address);
         self.memory[address] = a * b;
         self.ip += params.len() + 1;
@@ -194,7 +194,7 @@ impl<'a> VM<'a> {
     }
 
     fn less_than(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        let (a, b, address) = self.binary_operands(params, modes)?;
         log::trace!("Storing {} < {} at {}", a, b, address);
         self.memory[address] = if a < b { 1 } else { 0 };
         self.ip += params.len() + 1;
@@ -203,7 +203,7 @@ impl<'a> VM<'a> {
     }
 
     fn equals(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (a, b, address) = self.binary_operands(&params, &modes)?;
+        let (a, b, address) = self.binary_operands(params, modes)?;
         log::trace!("Storing {} == {} at {}", a, b, address);
         self.memory[address] = if a == b { 1 } else { 0 };
         self.ip += params.len() + 1;
@@ -242,7 +242,7 @@ impl<'a> VM<'a> {
     }
 
     fn jump_if_true(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (value, address) = self.jump_operands(&params, &modes)?;
+        let (value, address) = self.jump_operands(params, modes)?;
         if value != 0 {
             log::trace!("Jumping to {:?}", address);
             self.ip = address;
@@ -254,7 +254,7 @@ impl<'a> VM<'a> {
     }
 
     fn jump_if_false(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
-        let (value, address) = self.jump_operands(&params, &modes)?;
+        let (value, address) = self.jump_operands(params, modes)?;
         if value == 0 {
             log::trace!("Jumping to {:?}", address);
             self.ip = address;

@@ -1,9 +1,33 @@
-extern crate log;
-
 use aoc::aoc_error::AOCError;
 use aoc::intcode::{OpType, RegisterValue, VM};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
+
+fn main() -> Result<()> {
+    env_logger::init();
+
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+
+    println!("Part 1: {}", part1(&program)?);
+    println!("Part 2: {}", part2(&program)?);
+    Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
+    Ok(run(program.to_vec(), Some(12), Some(2))?.diagnostic_code())
+}
+
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    for a in 0..99 {
+        for b in 0..99 {
+            if run(program.to_vec(), Some(a), Some(b))?.diagnostic_code() == 19690720 {
+                return Ok(100 * a + b);
+            }
+        }
+    }
+    Err(AOCError::new("Correct inputs not found"))?
+}
 
 fn run<'a>(
     program: Vec<RegisterValue>,
@@ -25,32 +49,6 @@ fn run<'a>(
     }
 
     Ok(vm)
-}
-
-fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    Ok(run(program.clone(), Some(12), Some(2))?.diagnostic_code())
-}
-
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    for a in 0..99 {
-        for b in 0..99 {
-            if run(program.clone(), Some(a), Some(b))?.diagnostic_code() == 19690720 {
-                return Ok(100 * a + b);
-            }
-        }
-    }
-    Err(AOCError::new("Correct inputs not found"))?
-}
-
-fn main() -> Result<()> {
-    env_logger::init();
-
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
-
-    println!("Part 1: {}", part1(&program)?);
-    println!("Part 2: {}", part2(&program)?);
-    Ok(())
 }
 
 #[cfg(test)]

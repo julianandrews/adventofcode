@@ -7,6 +7,17 @@ pub struct Point2D<T> {
     pub y: T,
 }
 
+pub enum Axis2D {
+    X,
+    Y,
+}
+
+impl Axis2D {
+    pub fn iter() -> impl Iterator<Item = Axis3D> {
+        [Axis3D::X, Axis3D::Y, Axis3D::Z].iter().copied()
+    }
+}
+
 impl<T: ops::Add<Output = T>> ops::Add for Point2D<T> {
     type Output = Self;
 
@@ -27,24 +38,22 @@ impl<T: ops::Add<Output = T> + Copy> ops::AddAssign for Point2D<T> {
     }
 }
 
-impl<T> ops::Index<usize> for Point2D<T> {
+impl<T> ops::Index<Axis2D> for Point2D<T> {
     type Output = T;
 
-    fn index(&self, index: usize) -> &Self::Output {
+    fn index(&self, index: Axis2D) -> &Self::Output {
         match index {
-            0 => &self.x,
-            1 => &self.y,
-            _ => panic!(format!("Invalid index {} for Point2D", index)),
+            Axis2D::X => &self.x,
+            Axis2D::Y => &self.y,
         }
     }
 }
 
-impl<T> ops::IndexMut<usize> for Point2D<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+impl<T> ops::IndexMut<Axis2D> for Point2D<T> {
+    fn index_mut(&mut self, index: Axis2D) -> &mut Self::Output {
         match index {
-            0 => &mut self.x,
-            1 => &mut self.y,
-            _ => panic!(format!("Invalid index {} for Point2D", index)),
+            Axis2D::X => &mut self.x,
+            Axis2D::Y => &mut self.y,
         }
     }
 }
@@ -74,6 +83,19 @@ pub struct Point3D<T> {
     pub z: T,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum Axis3D {
+    X,
+    Y,
+    Z,
+}
+
+impl Axis3D {
+    pub fn iter() -> impl Iterator<Item = Axis3D> {
+        [Axis3D::X, Axis3D::Y, Axis3D::Z].iter().copied()
+    }
+}
+
 impl<T: ops::Add<Output = T>> ops::Add for Point3D<T> {
     type Output = Self;
 
@@ -96,26 +118,24 @@ impl<T: ops::Add<Output = T> + Copy> ops::AddAssign for Point3D<T> {
     }
 }
 
-impl<T> ops::Index<usize> for Point3D<T> {
+impl<T> ops::Index<Axis3D> for Point3D<T> {
     type Output = T;
 
-    fn index(&self, index: usize) -> &Self::Output {
+    fn index(&self, index: Axis3D) -> &Self::Output {
         match index {
-            0 => &self.x,
-            1 => &self.y,
-            2 => &self.z,
-            _ => panic!(format!("Invalid index {} for Point3D", index)),
+            Axis3D::X => &self.x,
+            Axis3D::Y => &self.y,
+            Axis3D::Z => &self.z,
         }
     }
 }
 
-impl<T> ops::IndexMut<usize> for Point3D<T> {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+impl<T> ops::IndexMut<Axis3D> for Point3D<T> {
+    fn index_mut(&mut self, index: Axis3D) -> &mut Self::Output {
         match index {
-            0 => &mut self.x,
-            1 => &mut self.y,
-            2 => &mut self.z,
-            _ => panic!(format!("Invalid index {} for Point3D", index)),
+            Axis3D::X => &mut self.x,
+            Axis3D::Y => &mut self.y,
+            Axis3D::Z => &mut self.z,
         }
     }
 }

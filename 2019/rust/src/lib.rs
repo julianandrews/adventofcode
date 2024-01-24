@@ -1,3 +1,5 @@
+#![feature(pattern)]
+
 pub mod aoc_error;
 pub mod direction;
 pub mod graphs;

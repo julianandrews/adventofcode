@@ -8,13 +8,13 @@ use std::iter;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
-fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
+fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
     let mut best = 0;
     for perm in (0..5).permutations(5) {
         let mut signal = 0;
         for phase in perm {
             let mut vm = VM::new(
-                program.clone(),
+                program.to_vec(),
                 Some(Box::new(iter::once(phase).chain(iter::once(signal)))),
             );
             signal = vm
@@ -28,7 +28,7 @@ fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
     Ok(best)
 }
 
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
     let mut best = 0;
     for perm in (5..10).permutations(5) {
         let signal = RefCell::new(Some(0));
@@ -36,7 +36,7 @@ fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
             .iter()
             .map(|&phase| {
                 let inputs = iter::once(phase).chain(iter::from_fn(|| *signal.borrow()));
-                VM::new(program.clone(), Some(Box::new(inputs)))
+                VM::new(program.to_vec(), Some(Box::new(inputs)))
             })
             .collect();
 

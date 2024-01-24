@@ -43,7 +43,7 @@ struct ShipMap {
 
 impl fmt::Display for ShipMap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.status_map.len() == 0 {
+        if self.status_map.is_empty() {
             return write!(f, "");
         }
         let min_x = self.status_map.keys().map(|p| p.x).min().unwrap();
@@ -52,7 +52,7 @@ impl fmt::Display for ShipMap {
         let max_y = self.status_map.keys().map(|p| p.y).max().unwrap();
 
         let map_char = |x, y| {
-            let p = Point { x: x, y: y };
+            let p = Point { x, y };
             if p == self.explorer_position {
                 "@".to_string()
             } else {
@@ -97,8 +97,8 @@ impl ShipMap {
         status_map.insert(explorer_position, StatusCode::Moved);
 
         ShipMap {
-            status_map: status_map,
-            explorer_position: explorer_position,
+            status_map,
+            explorer_position,
         }
     }
 
@@ -109,12 +109,8 @@ impl ShipMap {
     }
 
     fn find_oxygen(&self, start: Point) -> Option<Rc<graphs::TraversalNode<Point>>> {
-        for node in graphs::bfs(self, start) {
-            if self.status_map.get(&node.value) == Some(&StatusCode::FoundOxygen) {
-                return Some(node);
-            }
-        }
-        None
+        graphs::bfs(self, start)
+            .find(|node| self.status_map.get(&node.value) == Some(&StatusCode::FoundOxygen))
     }
 }
 
@@ -134,10 +130,10 @@ impl<'a> ShipExplorer<'a> {
         }))));
 
         ShipExplorer {
-            vm: vm,
+            vm,
             ship_map: ShipMap::new(),
             route: vec![],
-            next_input: next_input,
+            next_input,
         }
     }
 
@@ -199,7 +195,7 @@ impl<'a> ShipExplorer<'a> {
             });
             if let Some(direction) = unexplored_directions.next() {
                 self.try_move(direction)?;
-            } else if self.route.len() > 0 {
+            } else if !self.route.is_empty() {
                 self.backtrack()?;
             } else {
                 break;

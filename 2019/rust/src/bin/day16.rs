@@ -6,7 +6,7 @@ use std::convert::TryFrom;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 
-fn fft(input_list: &Vec<u8>, num_phases: usize) -> Vec<u8> {
+fn fft(input_list: &[u8], num_phases: usize) -> Vec<u8> {
     static BASE_PATTERN: [i64; 4] = [0, 1, 0, -1];
     let pattern_iterator = |n: usize| {
         (0..4)
@@ -14,15 +14,15 @@ fn fft(input_list: &Vec<u8>, num_phases: usize) -> Vec<u8> {
             .flat_map(move |i| std::iter::repeat(BASE_PATTERN[i]).take(n + 1))
             .skip(1)
     };
-    let mut input = input_list.clone();
+    let mut input = input_list.to_vec();
     let mut output = vec![0; input.len()];
     for _phase in 0..num_phases {
-        for n in 0..input.len() {
+        for (n, o) in output.iter_mut().enumerate().take(input.len()) {
             let total = input
                 .iter()
                 .zip(pattern_iterator(n))
                 .fold(0, |total, (a, b)| total + *a as i64 * b);
-            output[n] = (total.abs() % 10) as u8;
+            *o = (total.abs() % 10) as u8;
         }
         std::mem::swap(&mut input, &mut output);
     }
@@ -47,14 +47,14 @@ fn parse_digits(s: &str) -> Result<Vec<u8>> {
         .collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
-fn part1(input_list: &Vec<u8>) -> String {
+fn part1(input_list: &[u8]) -> String {
     fft(input_list, 100)[..8]
         .iter()
         .map(|d| std::char::from_digit(*d as u32, 10).unwrap())
         .collect()
 }
 
-fn part2(input_list: &Vec<u8>) -> Result<String> {
+fn part2(input_list: &[u8]) -> Result<String> {
     let new_input_list_length = input_list.len() * 10_000;
     let message_offset: usize = input_list
         .iter()

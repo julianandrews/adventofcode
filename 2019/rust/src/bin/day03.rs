@@ -1,55 +1,47 @@
-use aoc::aoc_error::AOCError;
-use aoc::direction::Direction;
 use aoc::point::Point2D;
 use aoc::utils::parse_fields;
-use std::collections::{HashMap, HashSet};
-use std::str::FromStr;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+use anyhow::{anyhow, Result};
+use rustc_hash::{FxHashMap, FxHashSet};
+
 type Point = Point2D<i64>;
 
-struct Wire {
-    signal_distances: HashMap<Point, u64>,
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let mut wires: Vec<Wire> = parse_fields(input.trim(), '\n')?;
+    if wires.len() != 2 {
+        Err(anyhow!("Invalid input"))?;
+    }
+    let wire_1 = wires.pop().unwrap();
+    let wire_2 = wires.pop().unwrap();
+
+    println!("Part 1: {}", part1(&wire_1, &wire_2)?);
+    println!("Part 2: {}", part2(&wire_1, &wire_2)?);
+    Ok(())
 }
 
-impl FromStr for Wire {
-    type Err = Box<dyn std::error::Error>;
+fn part1(wire_1: &Wire, wire_2: &Wire) -> Result<i64> {
+    let wire_1_points = wire_1.points().collect::<FxHashSet<_>>();
+    let wire_2_points = wire_2.points().collect::<FxHashSet<_>>();
+    let intersections = wire_1_points.intersection(&wire_2_points);
+    intersections
+        .map(|p| p.x.abs() + p.y.abs())
+        .min()
+        .ok_or(anyhow!("No intersections found"))
+}
 
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        fn direction_from_char(c: char) -> Result<Direction> {
-            match c {
-                'U' => Ok(Direction::North),
-                'R' => Ok(Direction::East),
-                'D' => Ok(Direction::South),
-                'L' => Ok(Direction::West),
-                _ => Err(AOCError::new(&format!("Unexpected character: {}", c)))?,
-            }
-        }
+fn part2(wire_1: &Wire, wire_2: &Wire) -> Result<u64> {
+    let wire_1_points = wire_1.points().collect::<FxHashSet<_>>();
+    let wire_2_points = wire_2.points().collect::<FxHashSet<_>>();
+    let intersections = wire_1_points.intersection(&wire_2_points);
+    intersections
+        .map(|p| wire_1.signal_distance(p) + wire_2.signal_distance(p))
+        .min()
+        .ok_or(anyhow!("No intersections found"))
+}
 
-        let mut signal_distances: HashMap<Point, u64> = HashMap::new();
-        let mut signal_distance = 0;
-        let mut pos = Point { x: 0, y: 0 };
-        for instruction in s.split(",") {
-            let direction = direction_from_char(
-                instruction
-                    .chars()
-                    .nth(0)
-                    .ok_or(AOCError::new("No direction found"))?,
-            )?;
-            let distance: u64 = instruction[1..].parse()?;
-            for _ in 0..distance {
-                signal_distance += 1;
-                pos = direction.next_position(pos);
-                signal_distances
-                    .entry(pos.clone())
-                    .or_insert(signal_distance);
-            }
-        }
-
-        Ok(Wire {
-            signal_distances: signal_distances,
-        })
-    }
+struct Wire {
+    signal_distances: FxHashMap<Point, u64>,
 }
 
 impl Wire {
@@ -62,38 +54,49 @@ impl Wire {
     }
 }
 
-fn part1(wire_1: &Wire, wire_2: &Wire) -> Result<i64> {
-    let wire_1_points = wire_1.points().collect::<HashSet<_>>();
-    let wire_2_points = wire_2.points().collect::<HashSet<_>>();
-    let intersections = wire_1_points.intersection(&wire_2_points);
-    Ok(intersections
-        .map(|p| p.x.abs() + p.y.abs())
-        .min()
-        .ok_or(AOCError::new("No intersections found"))?)
-}
+mod parsing {
+    use super::{Point, Wire};
 
-fn part2(wire_1: &Wire, wire_2: &Wire) -> Result<u64> {
-    let wire_1_points = wire_1.points().collect::<HashSet<_>>();
-    let wire_2_points = wire_2.points().collect::<HashSet<_>>();
-    let intersections = wire_1_points.intersection(&wire_2_points);
-    Ok(intersections
-        .map(|p| wire_1.signal_distance(p) + wire_2.signal_distance(p))
-        .min()
-        .ok_or(AOCError::new("No intersections found"))?)
-}
+    use anyhow::{anyhow, Result};
+    use rustc_hash::FxHashMap;
 
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let mut wires = parse_fields(input.trim(), '\n')?;
-    if wires.len() != 2 {
-        Err(AOCError::new("Invalid input"))?;
+    use aoc::direction::Direction;
+
+    impl std::str::FromStr for Wire {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> Result<Self> {
+            fn direction_from_char(c: char) -> Result<Direction> {
+                match c {
+                    'U' => Ok(Direction::North),
+                    'R' => Ok(Direction::East),
+                    'D' => Ok(Direction::South),
+                    'L' => Ok(Direction::West),
+                    _ => Err(anyhow!("Unexpected character: {}", c)),
+                }
+            }
+
+            let mut signal_distances: FxHashMap<Point, u64> = FxHashMap::default();
+            let mut signal_distance = 0;
+            let mut pos = Point { x: 0, y: 0 };
+            for instruction in s.split(',') {
+                let direction = direction_from_char(
+                    instruction
+                        .chars()
+                        .nth(0)
+                        .ok_or(anyhow!("No direction found"))?,
+                )?;
+                let distance: u64 = instruction[1..].parse()?;
+                for _ in 0..distance {
+                    signal_distance += 1;
+                    pos = direction.next_position(pos);
+                    signal_distances.entry(pos).or_insert(signal_distance);
+                }
+            }
+
+            Ok(Wire { signal_distances })
+        }
     }
-    let wire_1 = wires.pop().unwrap();
-    let wire_2 = wires.pop().unwrap();
-
-    println!("Part 1: {}", part1(&wire_1, &wire_2)?);
-    println!("Part 2: {}", part2(&wire_1, &wire_2)?);
-    Ok(())
 }
 
 #[cfg(test)]

@@ -79,10 +79,7 @@ impl FromStr for Scaffold {
 
         let vacuum_count = map
             .iter()
-            .filter(|tile| match tile {
-                ScaffoldTile::Vacuum(_) => true,
-                _ => false,
-            })
+            .filter(|tile| matches!(tile, ScaffoldTile::Vacuum(_)))
             .count();
         if vacuum_count != 1 {
             return Err(AOCError::new("Multiple vacuums found.'"))?;
@@ -90,8 +87,8 @@ impl FromStr for Scaffold {
 
         Ok(Scaffold {
             map: map.into_boxed_slice(),
-            width: width,
-            height: height,
+            width,
+            height,
         })
     }
 }
@@ -118,8 +115,8 @@ impl fmt::Display for Scaffold {
 }
 
 impl Scaffold {
-    fn from_program(program: &Vec<RegisterValue>) -> Result<Scaffold> {
-        let mut vm = VM::new(program.clone(), None);
+    fn from_program(program: &[RegisterValue]) -> Result<Scaffold> {
+        let mut vm = VM::new(program.to_vec(), None);
         let scaffold_string: String = vm
             .outputs()
             .map(|x| u8::try_from(x).map(|y| y as char))
@@ -140,10 +137,7 @@ impl Scaffold {
     }
 
     fn on_scaffold(&self, point: Point) -> bool {
-        match self.at(point) {
-            ScaffoldTile::Space => false,
-            _ => true,
-        }
+        !matches!(self.at(point), ScaffoldTile::Space)
     }
 
     fn alignment_parameter(&self, point: Point) -> Option<usize> {
@@ -154,7 +148,7 @@ impl Scaffold {
         }
     }
 
-    fn neighbors<'a>(&'a self, point: Point) -> impl Iterator<Item = Point> + 'a {
+    fn neighbors(&self, point: Point) -> impl Iterator<Item = Point> + '_ {
         Direction::iterator().filter_map(move |d| {
             let p = Scaffold::step(point, d);
             if self.on_scaffold(p) {
@@ -186,11 +180,11 @@ impl Scaffold {
         }
     }
 
-    fn intersections<'a>(&'a self) -> impl Iterator<Item = Point> + 'a {
+    fn intersections(&self) -> impl Iterator<Item = Point> + '_ {
         (1..self.height as i64 - 1).flat_map(move |y| {
             (1..self.width as i64 - 1)
                 .filter_map(|x| {
-                    let p = Point { x: x, y: y };
+                    let p = Point { x, y };
                     if self.on_scaffold(p) && self.neighbors(p).count() == 4 {
                         Some(p)
                     } else {
@@ -201,7 +195,7 @@ impl Scaffold {
         })
     }
 
-    fn vacuum_locations<'a>(&'a self) -> impl Iterator<Item = Point> + 'a {
+    fn vacuum_locations(&self) -> impl Iterator<Item = Point> + '_ {
         self.map
             .iter()
             .enumerate()
@@ -241,7 +235,7 @@ impl Scaffold {
                     .filter(|d| self.on_scaffold(Scaffold::step(current_location, *d)))
                     .collect();
                 candidates.remove(&current_direction.reverse());
-                if candidates.len() == 0 {
+                if candidates.is_empty() {
                     break;
                 } else if candidates.len() > 1 {
                     return Err(AOCError::new("Multiple paths found."))?;
@@ -260,12 +254,9 @@ impl Scaffold {
     }
 }
 
-fn get_functions<'a>(
-    max_func_length: usize,
-    full_routine: &'a str,
-) -> Option<(&'a str, &'a str, &'a str)> {
+fn get_functions(max_func_length: usize, full_routine: &str) -> Option<(&str, &str, &str)> {
     for i in (0..max_func_length).rev() {
-        if full_routine.as_bytes()[i] != ',' as u8 {
+        if full_routine.as_bytes()[i] != b',' {
             continue;
         }
         let func_a = &full_routine[..i];
@@ -274,8 +265,7 @@ fn get_functions<'a>(
         let next_chunk = &full_routine
             .split(func_a)
             .map(|s| s.trim_start_matches(','))
-            .filter(|s| s.len() != 0)
-            .next()
+            .find(|s| !s.is_empty())
             .unwrap_or("");
         // ... and truncate to max_func_length.
         let next_chunk = &next_chunk[..std::cmp::min(max_func_length, next_chunk.len())];
@@ -288,8 +278,7 @@ fn get_functions<'a>(
             let func_c = full_routine
                 .split(func_a)
                 .flat_map(|s| s.split(func_b).map(|s| s.trim_matches(',')))
-                .filter(|s| s.len() != 0)
-                .next()
+                .find(|s| !s.is_empty())
                 .unwrap_or("");
             if func_c.len() > max_func_length {
                 continue;
@@ -298,7 +287,7 @@ fn get_functions<'a>(
                 .split(func_a)
                 .flat_map(|s| s.split(func_b))
                 .flat_map(|s| s.split(func_c))
-                .all(|s| s.trim_matches(',').len() == 0);
+                .all(|s| s.trim_matches(',').is_empty());
             if all_bits_covered {
                 return Some((func_a, func_b, func_c));
             }
@@ -307,7 +296,7 @@ fn get_functions<'a>(
     None
 }
 
-fn part1(program: &Vec<RegisterValue>) -> Result<usize> {
+fn part1(program: &[RegisterValue]) -> Result<usize> {
     let scaffold = Scaffold::from_program(program)?;
     Ok(scaffold
         .intersections()
@@ -315,7 +304,7 @@ fn part1(program: &Vec<RegisterValue>) -> Result<usize> {
         .sum())
 }
 
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
     let scaffold = Scaffold::from_program(program)?;
     let instructions = scaffold.full_instructions()?;
     let (func_a, func_b, func_c) =
@@ -324,7 +313,7 @@ fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
         .replace(func_a, "A")
         .replace(func_b, "B")
         .replace(func_c, "C");
-    let input_string = vec![
+    let input_string = [
         main_routine,
         func_a.to_string(),
         func_b.to_string(),
@@ -334,7 +323,7 @@ fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
     ]
     .join("\n");
     let inputs = Box::new(input_string.chars().map(|c| c as RegisterValue));
-    let mut vm = VM::new(program.clone(), Some(inputs));
+    let mut vm = VM::new(program.to_vec(), Some(inputs));
     vm.set_memory(0, 2);
     let result = vm.outputs().last();
 

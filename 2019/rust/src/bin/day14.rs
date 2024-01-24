@@ -14,7 +14,7 @@ impl Material {
     fn fuel(quantity: usize) -> Material {
         Material {
             kind: String::from("FUEL"),
-            quantity: quantity,
+            quantity,
         }
     }
 }
@@ -55,8 +55,8 @@ impl FromStr for Reaction {
         let output = parts[1].parse()?;
 
         Ok(Reaction {
-            inputs: inputs,
-            output: output,
+            inputs,
+            output,
         })
     }
 }
@@ -91,7 +91,7 @@ impl FromStr for ReactionGraph {
         }
 
         Ok(ReactionGraph {
-            reactions: reactions,
+            reactions,
         })
     }
 }
@@ -136,11 +136,10 @@ impl ReactionGraph {
     }
 
     fn required_ore(&self, goal: &Material) -> Result<usize> {
-        Ok(self
+        Ok(*self
             .required_amounts(goal)?
             .get("ORE")
-            .ok_or(AOCError::new("ORE not found in raw inputs"))?
-            .clone())
+            .ok_or(AOCError::new("ORE not found in raw inputs"))?)
     }
 
     fn ore_fuel_yield(&self, available_ore: usize) -> Result<usize> {

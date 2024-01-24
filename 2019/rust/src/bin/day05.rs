@@ -1,29 +1,7 @@
-extern crate log;
-
 use aoc::aoc_error::AOCError;
 use aoc::intcode::{RegisterValue, VM};
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
-
-fn part1(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), Some(Box::new(std::iter::once(1))));
-    for output in vm.outputs() {
-        if output != 0 {
-            return Ok(output);
-        }
-    }
-    Err(AOCError::new("Non zero diagnostic code not found"))?
-}
-
-fn part2(program: &Vec<RegisterValue>) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.clone(), Some(Box::new(std::iter::once(5))));
-    for output in vm.outputs() {
-        if output != 0 {
-            return Ok(output);
-        }
-    }
-    Err(AOCError::new("Non zero diagnostic code not found"))?
-}
 
 fn main() -> Result<()> {
     env_logger::init();
@@ -34,6 +12,26 @@ fn main() -> Result<()> {
     println!("Part 1: {}", part1(&program)?);
     println!("Part 2: {}", part2(&program)?);
     Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
+    let mut vm = VM::new(program.to_vec(), Some(Box::new(std::iter::once(1))));
+    for output in vm.outputs() {
+        if output != 0 {
+            return Ok(output);
+        }
+    }
+    Err(AOCError::new("Non zero diagnostic code not found"))?
+}
+
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    let mut vm = VM::new(program.to_vec(), Some(Box::new(std::iter::once(5))));
+    for output in vm.outputs() {
+        if output != 0 {
+            return Ok(output);
+        }
+    }
+    Err(AOCError::new("Non zero diagnostic code not found"))?
 }
 
 #[cfg(test)]

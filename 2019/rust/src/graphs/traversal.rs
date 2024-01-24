@@ -30,7 +30,7 @@ impl<T: Clone> Iterator for TraversalPathIterator<T> {
 
                 Some(value)
             }
-            None => return None,
+            None => None,
         }
     }
 }
@@ -58,9 +58,9 @@ where
 
     BFSTraversal {
         index: 0,
-        graph: graph,
-        queue: queue,
-        seen: seen,
+        graph,
+        queue,
+        seen,
     }
 }
 

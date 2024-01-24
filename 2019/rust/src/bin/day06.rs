@@ -50,7 +50,7 @@ impl FromStr for OrbitGraph {
                 .insert(a.to_string());
         }
 
-        Ok(OrbitGraph { orbits: orbits })
+        Ok(OrbitGraph { orbits })
     }
 }
 
