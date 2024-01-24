@@ -1,4 +1,0 @@
-
-
-rustc version: 1.73.0-nightly (a6f8aa5a0 2023-08-11)
-platform: x86_64-unknown-linux-gnu
