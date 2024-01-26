@@ -326,11 +326,7 @@ impl std::ops::Index<Address> for VMMemory {
     type Output = RegisterValue;
 
     fn index(&self, index: Address) -> &Self::Output {
-        if index < self.memory.len() {
-            &self.memory[index]
-        } else {
-            &0
-        }
+        self.memory.get(index).unwrap_or(&0)
     }
 }
 
