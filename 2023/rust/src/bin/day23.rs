@@ -1,5 +1,5 @@
 use anyhow::{bail, Result};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use aoc::planar::{Direction, TileMap};
 use aoc::utils::get_input;
@@ -87,6 +87,46 @@ impl ForestMap {
             SlopeType::Passable => !matches!(tile, ForestTile::Forest),
         }
     }
+
+    /// Walk through forest to find which directions are cut off.
+    ///
+    /// The entrance is always at (1, 0) with the exit at the opposite corner. As a result the outside
+    /// edge of the map is divided into two forests - the south-west and north-east forests.
+    ///
+    /// If you've gone from the entrance to a node next to the south-west forest going west can never
+    /// get you to the exit without crossing your path.
+    ///
+    /// Similarly, if you're at a node next to the north-east forest, going north can never take you
+    /// to the exit without crossing your path.
+    fn forbidden_dir(&self, x: usize, y: usize, direction: Direction) -> Option<Direction> {
+        if self.entrance.0 != 1 || self.exit.0 != self.map.width() - 2 {
+            // This optimization assumes the entrance and exit are in specific places.
+            // Allow all directions if the assumption doesn't hold.
+            return None;
+        }
+        // Do a DFS for to find the west or east edge.
+        let mut stack = vec![(x, y, direction)];
+        let mut visited = FxHashSet::default();
+        while let Some((x, y, direction)) = stack.pop() {
+            visited.insert((x, y));
+            if let Some((new_x, new_y)) = self.map.step(x, y, direction) {
+                if visited.contains(&(new_x, new_y)) {
+                    continue;
+                }
+                if self.map.get(new_x, new_y) == Some(&ForestTile::Forest) {
+                    if new_x == 0 {
+                        return Some(Direction::West); // We're in the south-west forest
+                    } else if new_x == self.map.width() - 1 {
+                        return Some(Direction::North); // We're in the north-east forest
+                    }
+                    for new_direction in Direction::iterator() {
+                        stack.push((new_x, new_y, new_direction));
+                    }
+                }
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -99,7 +139,7 @@ struct ForestGraph {
 
 impl ForestGraph {
     fn new(map: &ForestMap, slope_type: SlopeType) -> Self {
-        let mut builder = ForestGraphBuilder::new(slope_type);
+        let mut builder = ForestGraphBuilder::new();
         let entrance = builder.add_node(map.entrance);
         let exit = builder.add_node(map.exit);
 
@@ -109,19 +149,32 @@ impl ForestGraph {
                 Some(v) => v,
                 None => continue,
             };
-            if let Some(end_node) = builder.node_index(x, y) {
-                builder.add_edge(start_node, end_node, distance);
-            } else {
-                let end_node = builder.add_node((x, y));
-                builder.add_edge(start_node, end_node, distance);
-                for new_direction in Direction::iterator() {
-                    if new_direction != direction.reverse() {
-                        if let Some(new_point) = map.step(x, y, new_direction, slope_type) {
-                            stack.push((new_point, end_node, new_direction));
+            let end_node = match builder.node_index(x, y) {
+                Some(end_node) => end_node,
+                None => {
+                    let end_node = builder.add_node((x, y));
+                    let mut neighbors: Vec<_> = Direction::iterator()
+                        .filter_map(|new_dir| {
+                            map.step(x, y, new_dir, slope_type)
+                                .map(|new_point| (new_point, end_node, new_dir))
+                        })
+                        .collect();
+                    // Since this is a planar graph we can prune some directions when we know we're
+                    // at the outside edge of the map. This gives a 4-5x speedup.
+                    let blocked_dirs: Vec<_> = Direction::iterator()
+                        .filter(|d| neighbors.iter().all(|(_, _, nd)| d != nd))
+                        .collect();
+                    for missing_dir in blocked_dirs {
+                        if let Some(fd) = map.forbidden_dir(x, y, missing_dir) {
+                            neighbors =
+                                neighbors.into_iter().filter(|&(_, _, d)| d != fd).collect();
                         }
                     }
+                    stack.extend(neighbors);
+                    end_node
                 }
-            }
+            };
+            builder.add_edge(start_node, end_node, distance);
         }
         builder.into_graph(entrance, exit)
     }
@@ -155,16 +208,14 @@ struct ForestGraphBuilder {
     nodes: Vec<(usize, usize)>,
     edges: Vec<Vec<Option<u64>>>,
     node_indices: FxHashMap<(usize, usize), usize>,
-    slope_type: SlopeType,
 }
 
 impl ForestGraphBuilder {
-    fn new(slope_type: SlopeType) -> ForestGraphBuilder {
+    fn new() -> ForestGraphBuilder {
         ForestGraphBuilder {
             nodes: vec![],
             edges: vec![],
             node_indices: FxHashMap::default(),
-            slope_type,
         }
     }
 
@@ -181,9 +232,6 @@ impl ForestGraphBuilder {
     fn add_edge(&mut self, i: usize, j: usize, distance: u64) {
         let edge = self.edges[i][j].get_or_insert(0);
         *edge = distance.max(*edge);
-        if self.slope_type == SlopeType::Passable {
-            self.edges[j][i] = self.edges[i][j];
-        }
     }
 
     fn node_index(&self, x: usize, y: usize) -> Option<usize> {
