@@ -82,7 +82,7 @@ impl HeatMap {
 }
 
 fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
-    let mut neighbors = vec![];
+    let mut neighbors = Vec::with_capacity(6);
     for turn in [Turn::Clockwise, Turn::CounterClockwise] {
         let direction = state.direction.turn(turn);
         let (mut x, mut y) = (state.x, state.y);
@@ -102,7 +102,7 @@ fn crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32
 }
 
 fn ultra_crucible_neighbors(map: &TileMap<HeatLoss>, state: &State) -> Vec<(State, u32)> {
-    let mut neighbors = vec![];
+    let mut neighbors = Vec::with_capacity(14);
     for turn in [Turn::Clockwise, Turn::CounterClockwise] {
         let direction = state.direction.turn(turn);
         let (mut x, mut y) = (state.x, state.y);
