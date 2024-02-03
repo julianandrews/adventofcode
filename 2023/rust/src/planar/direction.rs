@@ -60,3 +60,20 @@ impl Direction {
         }
     }
 }
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct DirectionSet(u8);
+
+impl DirectionSet {
+    pub fn contains(&self, direction: Direction) -> bool {
+        self.0 & (1 << direction as u8) != 0
+    }
+
+    pub fn insert(&mut self, direction: Direction) {
+        self.0 |= 1 << direction as u8
+    }
+
+    pub fn remove(&mut self, direction: Direction) {
+        self.0 &= !(direction as u8)
+    }
+}

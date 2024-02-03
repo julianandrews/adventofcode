@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use aoc::planar::{Direction, TileMap};
+use aoc::planar::{Direction, DirectionSet, TileMap};
 use aoc::utils::get_input;
 
 fn main() -> Result<()> {
@@ -22,6 +22,68 @@ fn part1(map: &ForestMap) -> Result<u64> {
 fn part2(map: &ForestMap) -> Result<u64> {
     let graph = ForestGraph::new(map, SlopeType::Passable);
     graph.longest_path()
+}
+
+#[derive(Debug, Clone)]
+struct ForestGraph {
+    nodes: Vec<(usize, usize)>,
+    edges: Vec<Vec<(usize, u64)>>,
+    entrance: usize,
+    exit: usize,
+}
+
+impl ForestGraph {
+    fn new(map: &ForestMap, slope_type: SlopeType) -> Self {
+        let mut builder = ForestGraphBuilder::new();
+        let entrance = builder.add_node(map.entrance);
+        let exit = builder.add_node(map.exit);
+
+        let mut stack = vec![(map.entrance, entrance, Direction::South)];
+        while let Some((start, start_node, direction)) = stack.pop() {
+            let ((x, y), distance) = match map.advance(start, direction, slope_type) {
+                Some(v) => v,
+                None => continue,
+            };
+            let end_node = match builder.node_index(x, y) {
+                Some(end_node) => end_node,
+                None => {
+                    let end_node = builder.add_node((x, y));
+                    let forbidden_dirs = map.forbidden_dirs(x, y);
+                    for new_dir in Direction::iterator().filter(|&d| !forbidden_dirs.contains(d)) {
+                        if let Some(new_point) = map.step(x, y, new_dir, slope_type) {
+                            stack.push((new_point, end_node, new_dir));
+                        }
+                    }
+                    end_node
+                }
+            };
+            builder.add_edge(start_node, end_node, distance);
+        }
+        builder.into_graph(entrance, exit)
+    }
+
+    fn longest_path(&self) -> Result<u64> {
+        if self.nodes.len() > 64 {
+            bail!("Too many nodes.");
+        }
+        let mut longest = 0;
+        let mut stack = vec![(self.entrance, 0, 1u64 << self.entrance)];
+        while let Some((node, path_length, visited)) = stack.pop() {
+            if node == self.exit {
+                longest = path_length.max(longest);
+                continue;
+            }
+            for &(neighbor, distance) in &self.edges[node] {
+                if visited & (1 << neighbor) == 0 {
+                    stack.push((neighbor, path_length + distance, visited | (1 << neighbor)));
+                }
+            }
+        }
+        if longest == 0 && self.entrance != self.exit {
+            bail!("No paths found.")
+        }
+        Ok(longest)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -88,118 +150,65 @@ impl ForestMap {
         }
     }
 
-    /// Walk through forest to find which directions are cut off.
+    /// Walk through forest (not the paths) to find which directions are cut off.
     ///
-    /// The entrance is always at (1, 0) with the exit at the opposite corner. As a result the outside
-    /// edge of the map is divided into two forests - the south-west and north-east forests.
+    /// Since the map is planar, if you can walk through the forest in a direction and reach that
+    /// edge then one of the two perpendicular directions is cut off from the exit, and we can
+    /// prune it.
     ///
-    /// If you've gone from the entrance to a node next to the south-west forest going west can never
-    /// get you to the exit without crossing your path.
-    ///
-    /// Similarly, if you're at a node next to the north-east forest, going north can never take you
-    /// to the exit without crossing your path.
-    fn forbidden_dir(&self, x: usize, y: usize, direction: Direction) -> Option<Direction> {
-        if self.entrance.0 != 1 || self.exit.0 != self.map.width() - 2 {
-            // This optimization assumes the entrance and exit are in specific places.
-            // Allow all directions if the assumption doesn't hold.
-            return None;
-        }
-        // Do a DFS for to find the west or east edge.
-        let mut stack = vec![(x, y, direction)];
-        let mut visited = FxHashSet::default();
-        while let Some((x, y, direction)) = stack.pop() {
-            visited.insert((x, y));
-            if let Some((new_x, new_y)) = self.map.step(x, y, direction) {
-                if visited.contains(&(new_x, new_y)) {
-                    continue;
-                }
-                if self.map.get(new_x, new_y) == Some(&ForestTile::Forest) {
-                    if new_x == 0 {
-                        return Some(Direction::West); // We're in the south-west forest
-                    } else if new_x == self.map.width() - 1 {
-                        return Some(Direction::North); // We're in the north-east forest
-                    }
-                    for new_direction in Direction::iterator() {
-                        stack.push((new_x, new_y, new_direction));
-                    }
-                }
+    /// Pruning the graph this way gives a 4-5x speed up.
+    fn forbidden_dirs(&self, x: usize, y: usize) -> DirectionSet {
+        use std::cmp::Ordering;
+
+        let mut forbidden = DirectionSet::default();
+
+        let is_edge = |x: usize, y: usize, direction: Direction| -> bool {
+            match direction {
+                Direction::North => y == 0,
+                Direction::East => x == self.map.width() - 1,
+                Direction::South => y == self.map.height() - 1,
+                Direction::West => x == 0,
             }
-        }
-        None
-    }
-}
+        };
 
-#[derive(Debug, Clone, Default)]
-struct ForestGraph {
-    nodes: Vec<(usize, usize)>,
-    edges: Vec<Vec<(usize, u64)>>,
-    entrance: usize,
-    exit: usize,
-}
-
-impl ForestGraph {
-    fn new(map: &ForestMap, slope_type: SlopeType) -> Self {
-        let mut builder = ForestGraphBuilder::new();
-        let entrance = builder.add_node(map.entrance);
-        let exit = builder.add_node(map.exit);
-
-        let mut stack = vec![(map.entrance, entrance, Direction::South)];
-        while let Some((start, start_node, direction)) = stack.pop() {
-            let ((x, y), distance) = match map.advance(start, direction, slope_type) {
-                Some(v) => v,
-                None => continue,
-            };
-            let end_node = match builder.node_index(x, y) {
-                Some(end_node) => end_node,
-                None => {
-                    let end_node = builder.add_node((x, y));
-                    let mut neighbors: Vec<_> = Direction::iterator()
-                        .filter_map(|new_dir| {
-                            map.step(x, y, new_dir, slope_type)
-                                .map(|new_point| (new_point, end_node, new_dir))
-                        })
-                        .collect();
-                    // Since this is a planar graph we can prune some directions when we know we're
-                    // at the outside edge of the map. This gives a 4-5x speedup.
-                    let blocked_dirs: Vec<_> = Direction::iterator()
-                        .filter(|d| neighbors.iter().all(|(_, _, nd)| d != nd))
-                        .collect();
-                    for missing_dir in blocked_dirs {
-                        if let Some(fd) = map.forbidden_dir(x, y, missing_dir) {
-                            neighbors =
-                                neighbors.into_iter().filter(|&(_, _, d)| d != fd).collect();
+        // Try walking in each direction
+        for starting_direction in Direction::iterator() {
+            // Do a DFS to find the edge
+            let mut stack = vec![(x, y, starting_direction)];
+            let mut visited = FxHashSet::default();
+            while let Some((x, y, direction)) = stack.pop() {
+                visited.insert((x, y));
+                if let Some((new_x, new_y)) = self.map.step(x, y, direction) {
+                    if visited.contains(&(new_x, new_y)) {
+                        continue;
+                    }
+                    if self.map.get(new_x, new_y) == Some(&ForestTile::Forest) {
+                        if is_edge(new_x, new_y, starting_direction) {
+                            match starting_direction {
+                                Direction::North => match new_x.cmp(&self.entrance.0) {
+                                    Ordering::Less => forbidden.insert(Direction::East),
+                                    Ordering::Equal => {}
+                                    Ordering::Greater => forbidden.insert(Direction::West),
+                                },
+                                Direction::East => forbidden.insert(Direction::North),
+                                Direction::South => match new_x.cmp(&self.exit.0) {
+                                    Ordering::Less => forbidden.insert(Direction::West),
+                                    Ordering::Equal => {}
+                                    Ordering::Greater => forbidden.insert(Direction::East),
+                                },
+                                Direction::West => forbidden.insert(Direction::North),
+                            }
+                            stack.clear();
+                        } else {
+                            for new_direction in Direction::iterator() {
+                                stack.push((new_x, new_y, new_direction));
+                            }
                         }
                     }
-                    stack.extend(neighbors);
-                    end_node
-                }
-            };
-            builder.add_edge(start_node, end_node, distance);
-        }
-        builder.into_graph(entrance, exit)
-    }
-
-    fn longest_path(&self) -> Result<u64> {
-        if self.nodes.len() > 64 {
-            bail!("Too many nodes.");
-        }
-        let mut longest = 0;
-        let mut stack = vec![(self.entrance, 0, 1u64 << self.entrance)];
-        while let Some((i, path_length, visited)) = stack.pop() {
-            if i == self.exit {
-                longest = path_length.max(longest);
-                continue;
-            }
-            for &(j, distance) in &self.edges[i] {
-                if visited & (1 << j) == 0 {
-                    stack.push((j, path_length + distance, visited | (1 << j)));
                 }
             }
         }
-        if longest == 0 && self.entrance != self.exit {
-            bail!("No paths found.")
-        }
-        Ok(longest)
+        forbidden
     }
 }
 
