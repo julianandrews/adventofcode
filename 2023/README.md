@@ -48,15 +48,15 @@ out - but for the sake of uniformity, I've avoided parallelization altogether.
 | 13  |   0.6ms |
 | 14  |   7.5ms |
 | 15  |   0.9ms |
-| 16  |  20.8ms |
-| 17  |  32.6ms |
+| 16  |  14.3ms |
+| 17  |  24.0ms |
 | 18  |   0.5ms |
 | 19  |   1.3ms |
 | 20  |   2.8ms |
 | 21  |  11.4ms |
 | 22  |   1.7ms |
-| 23  |  37.8ms |
+| 23  |  31.6ms |
 | 24  |   3.1ms |
 | 25  |   6.9ms |
 
-Total Runtime: 149.5ms
+Total Runtime: 128.2ms

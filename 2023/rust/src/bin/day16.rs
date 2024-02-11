@@ -1,86 +1,119 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 
-use aoc::planar::Direction;
+use aoc::planar::{Direction, TileMap};
 use aoc::utils::get_input;
 
 fn main() -> Result<()> {
     let input = get_input()?;
-    let map: LightMap = input.trim().parse()?;
+    let map: LightMap = LightMap::new(input.trim().parse()?);
 
-    println!("Part 1: {}", map.energized(OrientedPoint::default()));
-    println!("Part 2: {}", map.max_energized());
+    println!("Part 1: {}", part1(&map));
+    println!("Part 2: {}", part2(&map));
 
     Ok(())
 }
 
+fn part1(map: &LightMap) -> u32 {
+    let energized = map.energized(OrientedPoint::default());
+    #[cfg(feature = "verbose")]
+    println!("{}", energized);
+    energized.count()
+}
+
+fn part2(map: &LightMap) -> u32 {
+    map.max_energized()
+}
+
 #[derive(Debug, Clone)]
 struct LightMap {
-    elements: Vec<Element>,
-    width: usize,
     height: usize,
+    width: usize,
+    segments: Vec<Option<(EnergizedSet, Vec<OrientedPoint>)>>,
 }
 
 impl LightMap {
-    fn energized(&self, start: OrientedPoint) -> u32 {
-        let mut energized: [Vec<u128>; 4] = [
-            vec![0; self.height],
-            vec![0; self.height],
-            vec![0; self.height],
-            vec![0; self.height],
-        ];
-        let mut positions = vec![start];
-        while let Some(p) = positions.pop() {
-            if let Some(element) = self.get(p.x, p.y) {
-                let row = energized[p.direction as usize].get_mut(p.y).unwrap();
-                if *row & (1 << p.x) != 0 {
-                    continue;
-                }
-                *row |= 1 << p.x;
-                for &direction in element.redirect(p.direction) {
-                    if let Some((x, y)) = self.step(p.x, p.y, direction) {
-                        positions.push(OrientedPoint::new(x, y, direction));
+    fn new(map: TileMap<Element>) -> LightMap {
+        let (height, width) = (map.height(), map.width());
+        let mut segments = vec![None; height * width * 4];
+        let mut to_visit = entrypoints(height, width);
+        while let Some(start) = to_visit.pop() {
+            if segments[start.simple_hash(width)].is_some() {
+                continue;
+            }
+
+            let mut point = start;
+            let mut energized = EnergizedSet::new(height, width);
+            loop {
+                energized.set(point.x, point.y);
+                let element = map.get(point.x, point.y).unwrap();
+                match element.redirect(point.direction) {
+                    &[direction] => match map.step(point.x, point.y, direction) {
+                        Some((x, y)) => point = OrientedPoint::new(x, y, direction),
+                        None => {
+                            segments[start.simple_hash(width)] =
+                                Some((energized.clone(), vec![point]));
+                            break;
+                        }
+                    },
+                    directions => {
+                        let mut neighbors = vec![];
+                        for &direction in directions {
+                            point = OrientedPoint::new(point.x, point.y, direction);
+                            to_visit.push(point);
+                            neighbors.push(point);
+                        }
+                        segments[start.simple_hash(width)] = Some((energized.clone(), neighbors));
+                        break;
                     }
                 }
             }
         }
-        let mut count = 0;
-        for y in 0..self.height {
-            count +=
-                (energized[0][y] | energized[1][y] | energized[2][y] | energized[3][y]).count_ones()
+
+        LightMap {
+            height,
+            width,
+            segments,
         }
-        count
+    }
+
+    fn energized(&self, start: OrientedPoint) -> EnergizedSet {
+        let mut to_visit = vec![start];
+        let mut energized = EnergizedSet::new(self.height, self.width);
+        let mut seen = vec![false; self.segments.len()];
+        while let Some(point) = to_visit.pop() {
+            let index = point.simple_hash(self.width);
+            if seen[index] {
+                continue;
+            }
+            seen[index] = true;
+            if let Some((new, neighbors)) = self.segments[index].as_ref() {
+                energized.merge(new);
+                to_visit.extend(neighbors);
+            }
+        }
+        energized
     }
 
     fn max_energized(&self) -> u32 {
-        let mut max = 0;
-        for x in 0..self.width {
-            let p1 = OrientedPoint::new(x, 0, Direction::South);
-            let p2 = OrientedPoint::new(x, self.height - 1, Direction::North);
-            max = max.max(self.energized(p1)).max(self.energized(p2));
-        }
-        for y in 0..self.height {
-            let p1 = OrientedPoint::new(0, y, Direction::East);
-            let p2 = OrientedPoint::new(self.width - 1, y, Direction::West);
-            max = max.max(self.energized(p1)).max(self.energized(p2));
-        }
-        max
+        entrypoints(self.height, self.width)
+            .iter()
+            .map(|&p| self.energized(p).count())
+            .max()
+            .unwrap_or(0)
     }
+}
 
-    fn get(&self, x: usize, y: usize) -> Option<&Element> {
-        if x >= self.width || y >= self.height {
-            return None;
-        }
-        self.elements.get(x + y * self.width)
+fn entrypoints(height: usize, width: usize) -> Vec<OrientedPoint> {
+    let mut points = vec![];
+    for x in 0..width {
+        points.push(OrientedPoint::new(x, 0, Direction::South));
+        points.push(OrientedPoint::new(x, height - 1, Direction::North));
     }
-
-    fn step(&self, x: usize, y: usize, direction: Direction) -> Option<(usize, usize)> {
-        Some(match direction {
-            Direction::North => (x, y.checked_sub(1)?),
-            Direction::East => (x.checked_add(1)?, y),
-            Direction::South => (x, y.checked_add(1)?),
-            Direction::West => (x.checked_sub(1)?, y),
-        })
+    for y in 0..height {
+        points.push(OrientedPoint::new(0, y, Direction::East));
+        points.push(OrientedPoint::new(width - 1, y, Direction::West));
     }
+    points
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -99,6 +132,10 @@ impl Default for OrientedPoint {
 impl OrientedPoint {
     fn new(x: usize, y: usize, direction: Direction) -> OrientedPoint {
         OrientedPoint { x, y, direction }
+    }
+
+    fn simple_hash(&self, width: usize) -> usize {
+        self.direction as usize | ((self.x + self.y * width) << 2)
     }
 }
 
@@ -147,50 +184,59 @@ impl Element {
     }
 }
 
-mod parsing {
-    use super::{Element, LightMap};
-    use anyhow::{bail, Result};
+impl TryFrom<char> for Element {
+    type Error = anyhow::Error;
 
-    impl std::str::FromStr for LightMap {
-        type Err = anyhow::Error;
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            '.' => Ok(Element::Space),
+            '/' => Ok(Element::UpMirror),
+            '\\' => Ok(Element::DownMirror),
+            '|' => Ok(Element::VerticalSplitter),
+            '-' => Ok(Element::HorizontalSplitter),
+            _ => bail!("Unrecognized character {}", value),
+        }
+    }
+}
 
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let width = s.lines().next().map(|line| line.len()).unwrap_or(0);
-            if width > 128 {
-                bail!("Map too wide, different data structure needed.");
-            }
-            if s.lines().any(|line| line.len() != width) {
-                bail!("Non-rectangular map");
-            }
-            let height = s.lines().count();
-            let elements = s
-                .chars()
-                .filter_map(|c| match c {
-                    '\n' => None,
-                    _ => Some(Element::try_from(c)),
-                })
-                .collect::<Result<_>>()?;
-            Ok(LightMap {
-                elements,
-                width,
-                height,
-            })
+#[derive(Debug, Clone)]
+struct EnergizedSet {
+    width: usize,
+    rows: Vec<u128>,
+}
+
+impl EnergizedSet {
+    fn new(height: usize, width: usize) -> EnergizedSet {
+        EnergizedSet {
+            width,
+            rows: vec![0; height],
         }
     }
 
-    impl TryFrom<char> for Element {
-        type Error = anyhow::Error;
+    fn set(&mut self, x: usize, y: usize) {
+        self.rows[y] |= 1 << x;
+    }
 
-        fn try_from(value: char) -> Result<Self, Self::Error> {
-            match value {
-                '.' => Ok(Element::Space),
-                '/' => Ok(Element::UpMirror),
-                '\\' => Ok(Element::DownMirror),
-                '|' => Ok(Element::VerticalSplitter),
-                '-' => Ok(Element::HorizontalSplitter),
-                _ => bail!("Unrecognized character {}", value),
-            }
+    fn count(&self) -> u32 {
+        self.rows.iter().map(|row| row.count_ones()).sum()
+    }
+
+    fn merge(&mut self, other: &EnergizedSet) {
+        for (a, b) in self.rows.iter_mut().zip(&other.rows) {
+            *a |= b;
         }
+    }
+}
+
+impl std::fmt::Display for EnergizedSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        for row in &self.rows {
+            for x in 0..self.width {
+                write!(f, "{}", if row & 1 << x == 0 { '.' } else { '#' })?;
+            }
+            writeln!(f)?
+        }
+        Ok(())
     }
 }
 
@@ -212,14 +258,41 @@ mod tests {
 
     #[test]
     fn energized() {
-        let map: LightMap = TEST_DATA.parse().unwrap();
-        let result = map.energized(OrientedPoint::default());
-        assert_eq!(result, 46);
+        let map: LightMap = LightMap::new(TEST_DATA.parse().unwrap());
+        let energized = map.energized(OrientedPoint::default());
+        let expected = "\
+            ######....\n\
+            .#...#....\n\
+            .#...#####\n\
+            .#...##...\n\
+            .#...##...\n\
+            .#...##...\n\
+            .#..####..\n\
+            ########..\n\
+            .#######..\n\
+            .#...#.#..\n";
+
+        assert_eq!(energized.to_string(), expected);
+        assert_eq!(energized.count(), 46);
     }
 
     #[test]
     fn max_energized() {
-        let map: LightMap = TEST_DATA.parse().unwrap();
+        let map: LightMap = LightMap::new(TEST_DATA.parse().unwrap());
+        let energized = map.energized(OrientedPoint::new(3, 0, Direction::South));
+        let expected = "\
+            .#####....\n\
+            .#.#.#....\n\
+            .#.#.#####\n\
+            .#.#.##...\n\
+            .#.#.##...\n\
+            .#.#.##...\n\
+            .#.#####..\n\
+            ########..\n\
+            .#######..\n\
+            .#...#.#..\n";
+
+        assert_eq!(energized.to_string(), expected);
         assert_eq!(map.max_energized(), 51);
     }
 }
