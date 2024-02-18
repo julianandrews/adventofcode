@@ -1,4 +1,5 @@
 #![feature(pattern)]
+#![feature(async_iterator)]
 
 pub mod direction;
 pub mod graphs;

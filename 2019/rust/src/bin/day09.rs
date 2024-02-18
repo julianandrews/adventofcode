@@ -24,7 +24,7 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
 }
 
 fn run_with_single_input(program: &[RegisterValue], input: RegisterValue) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.to_vec(), Some(Box::new(iter::once(input))));
+    let mut vm = VM::from_iterator(program.to_vec(), iter::once(input));
     let value = vm.outputs().next().ok_or(anyhow!("No output generated"))?;
     if vm.outputs().next().is_some() {
         bail!("Unexpected output");
@@ -48,7 +48,9 @@ mod tests {
         let program = vec![
             109, 1, 204, -1, 1001, 100, 1, 100, 1008, 100, 16, 101, 1006, 101, 0, 99,
         ];
-        let outputs: Vec<RegisterValue> = VM::new(program.clone(), None).outputs().collect();
+        let outputs: Vec<RegisterValue> = VM::from_iterator(program.clone(), std::iter::empty())
+            .outputs()
+            .collect();
         assert_eq!(outputs, program);
     }
 
@@ -57,7 +59,9 @@ mod tests {
         init();
 
         let program = vec![1102, 34915192, 34915192, 7, 4, 7, 99, 0];
-        let outputs: Vec<RegisterValue> = VM::new(program, None).outputs().collect();
+        let outputs: Vec<RegisterValue> = VM::from_iterator(program, std::iter::empty())
+            .outputs()
+            .collect();
         assert_eq!(outputs.len(), 1);
         assert!(outputs[0] >= 1_000_000_000_000_000 && outputs[0] <= 9_999_999_999_999_999);
     }
@@ -67,7 +71,9 @@ mod tests {
         init();
 
         let program = vec![104, 112589906842624, 99];
-        let outputs: Vec<RegisterValue> = VM::new(program.clone(), None).outputs().collect();
+        let outputs: Vec<RegisterValue> = VM::from_iterator(program.clone(), std::iter::empty())
+            .outputs()
+            .collect();
         assert_eq!(outputs[..], program[1..2]);
     }
 }

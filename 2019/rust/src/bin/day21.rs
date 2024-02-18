@@ -45,7 +45,7 @@ fn survey_hull(
     springbot_program: &str,
 ) -> Result<RegisterValue, SpringBotError> {
     let inputs = springbot_program.chars().map(|c| c as RegisterValue);
-    let mut vm = VM::new(program.to_vec(), Some(Box::new(inputs)));
+    let mut vm = VM::from_iterator(program.to_vec(), inputs);
     let outputs: Vec<RegisterValue> = vm.outputs().collect();
     if let Some(&output) = outputs.last() {
         if output > 128 {

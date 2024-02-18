@@ -31,7 +31,7 @@ struct TractorBeam(Vec<RegisterValue>);
 
 impl TractorBeam {
     fn is_active(&self, x: RegisterValue, y: RegisterValue) -> bool {
-        let mut vm = VM::new(self.0.clone(), Some(Box::new([x, y].into_iter())));
+        let mut vm = VM::from_iterator(self.0.clone(), [x, y].into_iter());
         let output = vm.outputs().next().unwrap_or(0);
         output != 0
     }

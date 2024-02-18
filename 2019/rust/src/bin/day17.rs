@@ -46,8 +46,8 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
         "".to_string(),
     ]
     .join("\n");
-    let inputs = Box::new(input_string.chars().map(|c| c as RegisterValue));
-    let mut vm = VM::new(program.to_vec(), Some(inputs));
+    let inputs = input_string.chars().map(|c| c as RegisterValue);
+    let mut vm = VM::from_iterator(program.to_vec(), inputs);
     vm.set_memory(0, 2);
 
     vm.outputs().last().ok_or(anyhow!("No output generated"))
@@ -122,7 +122,7 @@ impl fmt::Display for Scaffold {
 
 impl Scaffold {
     fn from_program(program: &[RegisterValue]) -> Result<Scaffold> {
-        let mut vm = VM::new(program.to_vec(), None);
+        let mut vm = VM::from_iterator(program.to_vec(), std::iter::empty());
         let scaffold_string: String = vm
             .outputs()
             .map(|x| u8::try_from(x).map(|y| y as char))

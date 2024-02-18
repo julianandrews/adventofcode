@@ -33,7 +33,7 @@ fn run<'a>(
     noun: Option<RegisterValue>,
     verb: Option<RegisterValue>,
 ) -> Result<VM<'a>> {
-    let mut vm = VM::new(program, None);
+    let mut vm = VM::from_iterator(program, std::iter::empty());
     if let Some(noun) = noun {
         vm.set_memory(1, noun)
     };

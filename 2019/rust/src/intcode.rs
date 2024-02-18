@@ -1,13 +1,19 @@
-use anyhow::anyhow;
-use num_enum::TryFromPrimitive;
-
 use std::convert::TryFrom;
+
+use anyhow::anyhow;
+use futures::{
+    stream::{BoxStream, StreamExt},
+    Stream,
+};
+use num_enum::TryFromPrimitive;
 
 use anyhow::Result;
 
 pub type RegisterValue = i64;
 
 type Address = usize;
+
+type Inputs<'a> = BoxStream<'a, RegisterValue>;
 
 pub fn parse_program(input: &str) -> Result<Vec<RegisterValue>> {
     Ok(input
@@ -59,21 +65,20 @@ impl OpType {
 
 pub struct VM<'a> {
     memory: VMMemory,
-    inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
+    inputs: Inputs<'a>,
     ip: Address,
     relative_base: Address,
     output: Option<RegisterValue>,
 }
+
+unsafe impl<'a> Send for VM<'a> {}
 
 // https://github.com/rust-lang/rust/issues/34511#issuecomment-373423999
 pub trait Captures<'a> {}
 impl<'a, T: ?Sized> Captures<'a> for T {}
 
 impl<'a> VM<'a> {
-    pub fn new(
-        program: Vec<RegisterValue>,
-        inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
-    ) -> VM {
+    pub fn new(program: Vec<RegisterValue>, inputs: Inputs<'a>) -> VM {
         VM {
             memory: VMMemory { memory: program },
             inputs,
@@ -83,7 +88,19 @@ impl<'a> VM<'a> {
         }
     }
 
+    pub fn from_iterator(
+        program: Vec<RegisterValue>,
+        inputs: impl Iterator<Item = RegisterValue> + Send + 'a,
+    ) -> VM<'a> {
+        let inputs = futures::stream::iter(inputs);
+        VM::new(program, Box::pin(inputs))
+    }
+
     pub fn step(&mut self) -> Result<(OpType, Vec<RegisterValue>)> {
+        futures::executor::block_on(async { self.step_async().await })
+    }
+
+    pub async fn step_async(&mut self) -> Result<(OpType, Vec<RegisterValue>)> {
         let op_type = self.get_op_type()?;
         let params = self.get_params(op_type.num_params());
         let modes = self.get_modes(op_type.num_params())?;
@@ -95,7 +112,7 @@ impl<'a> VM<'a> {
             OpType::Multiply => self.multiply(&params, &modes)?,
             OpType::LessThan => self.less_than(&params, &modes)?,
             OpType::Equals => self.equals(&params, &modes)?,
-            OpType::Store => self.store(&params, &modes)?,
+            OpType::Store => self.store(&params, &modes).await?,
             OpType::Output => self.output(&params, &modes)?,
             OpType::JumpIfTrue => self.jump_if_true(&params, &modes)?,
             OpType::JumpIfFalse => self.jump_if_false(&params, &modes)?,
@@ -111,11 +128,22 @@ impl<'a> VM<'a> {
     }
 
     pub fn outputs<'b>(&'b mut self) -> impl Iterator<Item = RegisterValue> + Captures<'a> + 'b {
-        OutputIterator { vm: self }
+        futures::executor::block_on_stream(self.outputs_async())
     }
 
-    pub fn set_inputs(&mut self, inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>) {
-        self.inputs = inputs;
+    pub fn outputs_async<'b>(
+        &'b mut self,
+    ) -> impl Stream<Item = RegisterValue> + Captures<'a> + Unpin + 'b {
+        Box::pin(futures::stream::unfold(self, |vm| async move {
+            loop {
+                let (op_type, _) = vm.step_async().await.unwrap();
+                match op_type {
+                    OpType::Output => return vm.output.map(|o| (o, vm)),
+                    OpType::Halt => return None,
+                    _ => {}
+                }
+            }
+        }))
     }
 
     pub fn set_memory(&mut self, index: Address, value: RegisterValue) {
@@ -213,16 +241,15 @@ impl<'a> VM<'a> {
         Ok(())
     }
 
-    fn store(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
+    async fn store(&mut self, params: &[RegisterValue], modes: &[ValueMode]) -> Result<()> {
         if modes[0] == ValueMode::Immediate {
             return Err(anyhow!("Unexpected mode {:?} at 0", modes[0]));
         }
         let address = self.get_address(params[0], modes[0])?;
         let value = self
             .inputs
-            .as_mut()
-            .ok_or(anyhow!("Inputs not provided"))?
             .next()
+            .await
             .ok_or(anyhow!("Failed to get input"))?;
         log::trace!("Storing {} at {}", value, address);
         self.memory[address] = value;
@@ -299,24 +326,24 @@ impl<'a> VM<'a> {
     }
 }
 
-struct OutputIterator<'r, 'v> {
-    vm: &'r mut VM<'v>,
-}
+// struct OutputIterator<'r, 'v> {
+//     vm: &'r mut VM<'v>,
+// }
 
-impl<'r, 'v> Iterator for OutputIterator<'r, 'v> {
-    type Item = RegisterValue;
+// impl<'r, 'v> Stream for OutputIterator<'r, 'v> {
+//     type Item = RegisterValue;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let (op_type, _) = self.vm.step().unwrap();
-            match op_type {
-                OpType::Output => return self.vm.output,
-                OpType::Halt => return None,
-                _ => {}
-            }
-        }
-    }
-}
+//     fn next(&mut self) -> Option<Self::Item> {
+//         loop {
+//             let (op_type, _) = self.vm.step().unwrap();
+//             match op_type {
+//                 OpType::Output => return self.vm.output,
+//                 OpType::Halt => return None,
+//                 _ => {}
+//             }
+//         }
+//     }
+// }
 
 struct VMMemory {
     memory: Vec<RegisterValue>,
@@ -349,7 +376,7 @@ impl std::ops::IndexMut<Address> for VMMemory {
 
 pub struct FakeVM<'a> {
     outputs: std::vec::IntoIter<RegisterValue>,
-    inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>,
+    inputs: Inputs<'a>,
 }
 
 impl<'a> FakeVM<'a> {
@@ -359,7 +386,17 @@ impl<'a> FakeVM<'a> {
     ) -> FakeVM {
         FakeVM {
             outputs: vec![].into_iter(),
-            inputs: None,
+            inputs: Box::pin(futures::stream::empty()),
+        }
+    }
+
+    pub fn from_iterator(
+        _program: Vec<RegisterValue>,
+        _inputs: impl Iterator<Item = RegisterValue> + Send + 'a,
+    ) -> FakeVM<'a> {
+        FakeVM {
+            outputs: vec![].into_iter(),
+            inputs: Box::pin(futures::stream::empty()),
         }
     }
 
@@ -369,10 +406,6 @@ impl<'a> FakeVM<'a> {
 
     pub fn outputs<'b>(&'b mut self) -> impl Iterator<Item = RegisterValue> + Captures<'a> + 'b {
         self.outputs.by_ref()
-    }
-
-    pub fn set_inputs(&mut self, inputs: Option<Box<dyn Iterator<Item = RegisterValue> + 'a>>) {
-        self.inputs = inputs;
     }
 
     pub fn set_memory(&mut self, _index: Address, _value: RegisterValue) {}

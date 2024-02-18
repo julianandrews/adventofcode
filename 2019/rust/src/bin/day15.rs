@@ -1,8 +1,8 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
 use std::rc::Rc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, bail, Result};
 use num_enum::TryFromPrimitive;
@@ -17,8 +17,7 @@ type Point = Point2D<i64>;
 fn main() -> Result<()> {
     let input = aoc::utils::get_input()?;
     let program = aoc::intcode::parse_program(&input)?;
-    let vm = VM::new(program.clone(), None);
-    let mut explorer = ShipExplorer::new(vm);
+    let mut explorer = ShipExplorer::new(&program);
     explorer.explore()?;
     let ship_map = explorer.ship_map;
 
@@ -150,16 +149,18 @@ struct ShipExplorer<'a> {
     vm: VM<'a>,
     ship_map: ShipMap,
     route: Vec<Direction>,
-    next_input: Rc<RefCell<RegisterValue>>,
+    next_input: Arc<Mutex<RegisterValue>>,
 }
 
 impl<'a> ShipExplorer<'a> {
-    fn new(mut vm: VM) -> ShipExplorer {
-        let next_input = Rc::new(RefCell::new(0));
+    fn new(program: &[RegisterValue]) -> ShipExplorer {
+        let next_input = Arc::new(Mutex::new(0));
         let next_input_cloned = next_input.clone();
-        vm.set_inputs(Some(Box::new(std::iter::from_fn(move || {
-            Some(*next_input_cloned.borrow())
-        }))));
+
+        let vm = VM::from_iterator(
+            program.to_vec(),
+            std::iter::from_fn(move || Some(*next_input_cloned.lock().unwrap())),
+        );
 
         ShipExplorer {
             vm,
@@ -170,7 +171,7 @@ impl<'a> ShipExplorer<'a> {
     }
 
     fn set_next_input(&mut self, direction: Direction) {
-        *self.next_input.borrow_mut() = match direction {
+        *self.next_input.lock().unwrap() = match direction {
             Direction::North => 1,
             Direction::South => 2,
             Direction::West => 3,

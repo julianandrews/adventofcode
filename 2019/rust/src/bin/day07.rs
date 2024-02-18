@@ -1,5 +1,5 @@
-use std::cell::RefCell;
 use std::iter;
+use std::sync::{Arc, Mutex};
 
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
@@ -22,10 +22,8 @@ fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
     for perm in (0..5).permutations(5) {
         let mut signal = 0;
         for phase in perm {
-            let mut vm = VM::new(
-                program.to_vec(),
-                Some(Box::new(iter::once(phase).chain(iter::once(signal)))),
-            );
+            let inputs = iter::once(phase).chain(iter::once(signal));
+            let mut vm = VM::from_iterator(program.to_vec(), inputs);
             signal = vm.outputs().next().ok_or(anyhow!("Outputs exhausted"))?;
         }
         best = std::cmp::max(best, signal);
@@ -37,19 +35,19 @@ fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
 fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
     let mut best = 0;
     for perm in (5..10).permutations(5) {
-        let signal = RefCell::new(Some(0));
+        let signal = Arc::new(Mutex::new(Some(0)));
         let mut vms: Vec<_> = perm
             .iter()
             .map(|&phase| {
-                let inputs = iter::once(phase).chain(iter::from_fn(|| *signal.borrow()));
-                VM::new(program.to_vec(), Some(Box::new(inputs)))
+                let inputs = iter::once(phase).chain(iter::from_fn(|| *signal.lock().unwrap()));
+                VM::from_iterator(program.to_vec(), inputs)
             })
             .collect();
 
-        while signal.borrow().is_some() {
+        while signal.lock().unwrap().is_some() {
             for vm in vms.iter_mut() {
-                *signal.borrow_mut() = vm.outputs().next();
-                if signal.borrow().is_none() {
+                *signal.lock().unwrap() = vm.outputs().next();
+                if signal.lock().unwrap().is_none() {
                     break;
                 }
             }

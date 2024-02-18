@@ -1,11 +1,12 @@
-use aoc::intcode::RegisterValue;
-use aoc::point::Point2D;
-use num_enum::TryFromPrimitive;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::fmt;
-use std::rc::Rc;
+use std::sync::{Arc, Mutex};
+
+use num_enum::TryFromPrimitive;
+
+use aoc::intcode::RegisterValue;
+use aoc::point::Point2D;
 
 #[cfg(test)]
 use aoc::intcode::FakeVM as VM;
@@ -14,6 +15,30 @@ use aoc::intcode::VM;
 
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 type Point = Point2D<RegisterValue>;
+
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+
+    println!("Part 1: {}", part1(&program)?);
+    println!("Part 2: {}", part2(&program)?);
+    Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> Result<usize> {
+    let mut machine = ArcadeMachine::new(program);
+    machine.run()?;
+
+    Ok(machine.grid.values().filter(|&t| t == &Tile::Block).count())
+}
+
+fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
+    let mut machine = ArcadeMachine::new(program);
+    machine.vm.set_memory(0, 2);
+    machine.run()?;
+
+    Ok(machine.score)
+}
 
 #[derive(Debug, Eq, PartialEq, TryFromPrimitive)]
 #[repr(u8)]
@@ -42,8 +67,8 @@ struct ArcadeMachine<'a> {
     vm: VM<'a>,
     grid: HashMap<Point, Tile>,
     score: RegisterValue,
-    last_ball_location: Rc<RefCell<Option<RegisterValue>>>,
-    last_paddle_location: Rc<RefCell<Option<RegisterValue>>>,
+    last_ball_location: Arc<Mutex<Option<RegisterValue>>>,
+    last_paddle_location: Arc<Mutex<Option<RegisterValue>>>,
 }
 
 impl<'a> fmt::Display for ArcadeMachine<'a> {
@@ -73,27 +98,26 @@ impl<'a> fmt::Display for ArcadeMachine<'a> {
 }
 
 impl<'a> ArcadeMachine<'a> {
-    fn new(vm: VM) -> ArcadeMachine {
-        let last_ball_location = Rc::new(RefCell::new(None));
-        let last_paddle_location = Rc::new(RefCell::new(None));
+    fn new(program: &[RegisterValue]) -> ArcadeMachine {
+        let last_ball_location = Arc::new(Mutex::new(None));
+        let last_paddle_location = Arc::new(Mutex::new(None));
+        let lb = last_ball_location.clone();
+        let lp = last_paddle_location.clone();
+        let vm = VM::from_iterator(
+            program.to_vec(),
+            std::iter::from_fn(move || {
+                let offset = lb.lock().unwrap().unwrap_or(0) - lp.lock().unwrap().unwrap_or(0);
 
-        let mut machine = ArcadeMachine {
+                Some(offset.cmp(&0) as i64)
+            }),
+        );
+        ArcadeMachine {
             vm,
             grid: HashMap::new(),
             score: 0,
-            last_ball_location: last_ball_location.clone(),
-            last_paddle_location: last_paddle_location.clone(),
-        };
-        machine
-            .vm
-            .set_inputs(Some(Box::new(std::iter::from_fn(move || {
-                let offset = last_ball_location.borrow().unwrap_or(0)
-                    - last_paddle_location.borrow().unwrap_or(0);
-
-                Some(offset.cmp(&0) as i64)
-            }))));
-
-        machine
+            last_ball_location,
+            last_paddle_location,
+        }
     }
 
     fn run(&mut self) -> Result<()> {
@@ -107,8 +131,8 @@ impl<'a> ArcadeMachine<'a> {
             }
             let tile = Tile::try_from(u8::try_from(tile_id)?)?;
             match tile {
-                Tile::Ball => *self.last_ball_location.borrow_mut() = Some(x),
-                Tile::Paddle => *self.last_paddle_location.borrow_mut() = Some(x),
+                Tile::Ball => *self.last_ball_location.lock().unwrap() = Some(x),
+                Tile::Paddle => *self.last_paddle_location.lock().unwrap() = Some(x),
                 _ => (),
             }
             self.grid.insert(Point { x, y }, tile);
@@ -118,42 +142,14 @@ impl<'a> ArcadeMachine<'a> {
     }
 }
 
-fn part1(program: &[RegisterValue]) -> Result<usize> {
-    let vm = VM::new(program.to_vec(), None);
-    let mut machine = ArcadeMachine::new(vm);
-    machine.run()?;
-
-    Ok(machine.grid.values().filter(|&t| t == &Tile::Block).count())
-}
-
-fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.to_vec(), None);
-    vm.set_memory(0, 2);
-    let mut machine = ArcadeMachine::new(vm);
-    machine.run()?;
-
-    Ok(machine.score)
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
-
-    println!("Part 1: {}", part1(&program)?);
-    println!("Part 2: {}", part2(&program)?);
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_case() {
-        let mut vm = VM::new(vec![], None);
-        vm.set_outputs(vec![1, 2, 3, 6, 5, 4]);
-
-        let mut machine = ArcadeMachine::new(vm);
+        let mut machine = ArcadeMachine::new(&[]);
+        machine.vm.set_outputs(vec![1, 2, 3, 6, 5, 4]);
         assert!(machine.run().is_ok());
         assert_eq!(machine.grid.len(), 2);
         assert_eq!(machine.grid.get(&Point { x: 1, y: 2 }), Some(&Tile::Paddle));

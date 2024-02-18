@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 }
 
 fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.to_vec(), Some(Box::new(std::iter::once(1))));
+    let mut vm = VM::from_iterator(program.to_vec(), std::iter::once(1));
     for output in vm.outputs() {
         if output != 0 {
             return Ok(output);
@@ -24,7 +24,7 @@ fn part1(program: &[RegisterValue]) -> Result<RegisterValue> {
 }
 
 fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
-    let mut vm = VM::new(program.to_vec(), Some(Box::new(std::iter::once(5))));
+    let mut vm = VM::from_iterator(program.to_vec(), std::iter::once(5));
     for output in vm.outputs() {
         if output != 0 {
             return Ok(output);
@@ -37,18 +37,15 @@ fn part2(program: &[RegisterValue]) -> Result<RegisterValue> {
 mod tests {
     use super::*;
 
-    fn get_first_output(
-        program: &Vec<RegisterValue>,
-        input: RegisterValue,
-    ) -> Option<RegisterValue> {
-        VM::new(program.clone(), Some(Box::new(std::iter::once(input))))
+    fn get_first_output(program: &[RegisterValue], input: RegisterValue) -> Option<RegisterValue> {
+        VM::from_iterator(program.to_vec(), std::iter::once(input))
             .outputs()
             .next()
     }
 
     #[test]
     fn test_simple_program() {
-        let mut vm: VM = VM::new(vec![1002, 4, 3, 4, 33], None);
+        let mut vm: VM = VM::from_iterator(vec![1002, 4, 3, 4, 33], std::iter::empty());
         assert!(vm.step().is_ok());
         assert_eq!(vm.memory(), vec![1002, 4, 3, 4, 99].as_slice());
     }

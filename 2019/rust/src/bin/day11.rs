@@ -1,9 +1,9 @@
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+
 use aoc::direction::Direction;
 use aoc::intcode::RegisterValue;
 use aoc::point::Point2D;
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::rc::Rc;
 
 #[cfg(test)]
 use aoc::intcode::FakeVM as VM;
@@ -13,6 +13,34 @@ use aoc::intcode::VM;
 type Result<T> = ::std::result::Result<T, Box<dyn ::std::error::Error>>;
 type Point = Point2D<i64>;
 
+fn main() -> Result<()> {
+    let input = aoc::utils::get_input()?;
+    let program = aoc::intcode::parse_program(&input)?;
+
+    println!("Part 1: {}", part1(&program));
+    println!("Part 2: \n{}", part2(&program));
+    Ok(())
+}
+
+fn part1(program: &[RegisterValue]) -> usize {
+    let mut robot = Robot::new(program);
+    let painted_locations = robot
+        .instructions()
+        .filter(|i| i.paint_white)
+        .map(|i| i.paint_location)
+        .collect::<HashSet<_>>();
+
+    painted_locations.len()
+}
+
+fn part2(program: &[RegisterValue]) -> String {
+    let mut robot = Robot::new(program);
+    robot.paint_panel(Point { x: 0, y: 0 });
+    for _ in robot.instructions() {}
+
+    robot.panel_string()
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct RobotInstruction {
     paint_location: Point,
@@ -21,29 +49,26 @@ struct RobotInstruction {
 
 struct Robot<'a> {
     vm: VM<'a>,
-    position: Rc<RefCell<Point>>,
+    position: Arc<Mutex<Point>>,
     direction: Direction,
-    painted_panels: Rc<RefCell<HashSet<Point>>>,
+    painted_panels: Arc<Mutex<HashSet<Point>>>,
 }
 
 impl<'a> Robot<'a> {
-    fn new(vm: VM) -> Robot {
-        let position = Rc::new(RefCell::new(Point { x: 0, y: 0 }));
-        let painted_panels = Rc::new(RefCell::new(HashSet::new()));
-        let mut robot = Robot {
+    fn new(program: &[RegisterValue]) -> Robot {
+        let position = Arc::new(Mutex::new(Point { x: 0, y: 0 }));
+        let painted_panels = Arc::new(Mutex::new(HashSet::new()));
+        let input_iterator = RobotInputIterator {
+            position: position.clone(),
+            painted_panels: painted_panels.clone(),
+        };
+        let vm = VM::from_iterator(program.to_vec(), input_iterator);
+        Robot {
             vm,
             position: position.clone(),
             direction: Direction::North,
             painted_panels: painted_panels.clone(),
-        };
-
-        let input_iterator = RobotInputIterator {
-            position,
-            painted_panels,
-        };
-        robot.vm.set_inputs(Some(Box::new(input_iterator)));
-
-        robot
+        }
     }
 
     fn instructions<'b>(&'b mut self) -> RobotInstructionIterator<'b, 'a> {
@@ -51,15 +76,15 @@ impl<'a> Robot<'a> {
     }
 
     fn move_robot(&mut self) {
-        *self.position.borrow_mut() += self.direction.offset().into();
+        *self.position.lock().unwrap() += self.direction.offset().into();
     }
 
     fn paint_panel(&mut self, point: Point) {
-        self.painted_panels.borrow_mut().insert(point);
+        self.painted_panels.lock().unwrap().insert(point);
     }
 
     fn panel_string(&self) -> String {
-        let panels = self.painted_panels.borrow();
+        let panels = self.painted_panels.lock().unwrap();
         if panels.len() == 0 {
             return "".to_string();
         }
@@ -82,8 +107,8 @@ impl<'a> Robot<'a> {
 }
 
 struct RobotInputIterator {
-    position: Rc<RefCell<Point>>,
-    painted_panels: Rc<RefCell<HashSet<Point>>>,
+    position: Arc<Mutex<Point>>,
+    painted_panels: Arc<Mutex<HashSet<Point>>>,
 }
 
 impl Iterator for RobotInputIterator {
@@ -92,8 +117,9 @@ impl Iterator for RobotInputIterator {
     fn next(&mut self) -> Option<Self::Item> {
         if self
             .painted_panels
-            .borrow()
-            .contains(&self.position.borrow())
+            .lock()
+            .unwrap()
+            .contains(&self.position.lock().unwrap())
         {
             Some(1)
         } else {
@@ -116,13 +142,15 @@ impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
             if paint_white != 0 {
                 self.robot
                     .painted_panels
-                    .borrow_mut()
-                    .insert(*self.robot.position.borrow());
+                    .lock()
+                    .unwrap()
+                    .insert(*self.robot.position.lock().unwrap());
             } else {
                 self.robot
                     .painted_panels
-                    .borrow_mut()
-                    .remove(&self.robot.position.borrow());
+                    .lock()
+                    .unwrap()
+                    .remove(&self.robot.position.lock().unwrap());
             }
             if turn_right != 0 {
                 self.robot.direction = self.robot.direction.right_turn();
@@ -130,7 +158,7 @@ impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
                 self.robot.direction = self.robot.direction.left_turn();
             }
 
-            let paint_location = *self.robot.position.borrow();
+            let paint_location = *self.robot.position.lock().unwrap();
             self.robot.move_robot();
 
             return Some(RobotInstruction {
@@ -143,52 +171,24 @@ impl<'a, 'b> Iterator for RobotInstructionIterator<'a, 'b> {
     }
 }
 
-fn part1(program: &[RegisterValue]) -> usize {
-    let vm = VM::new(program.to_vec(), None);
-    let mut robot = Robot::new(vm);
-    let painted_locations = robot
-        .instructions()
-        .filter(|i| i.paint_white)
-        .map(|i| i.paint_location)
-        .collect::<HashSet<_>>();
-
-    painted_locations.len()
-}
-
-fn part2(program: &[RegisterValue]) -> String {
-    let vm = VM::new(program.to_vec(), None);
-    let mut robot = Robot::new(vm);
-    robot.paint_panel(Point { x: 0, y: 0 });
-    for _ in robot.instructions() {}
-
-    robot.panel_string()
-}
-
-fn main() -> Result<()> {
-    let input = aoc::utils::get_input()?;
-    let program = aoc::intcode::parse_program(&input)?;
-
-    println!("Part 1: {}", part1(&program));
-    println!("Part 2: \n{}", part2(&program));
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn make_instruction(x: RegisterValue, y: RegisterValue, paint_white: bool) -> RobotInstruction {
         RobotInstruction {
-            paint_location: Point { x: x, y: y },
-            paint_white: paint_white,
+            paint_location: Point { x, y },
+            paint_white,
         }
     }
 
     #[test]
     fn test_case() {
-        let mut vm = VM::new(vec![], None);
-        vm.set_outputs(vec![1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0]);
-        let mut robot = Robot::new(vm);
+        let program = vec![];
+        let mut robot = Robot::new(&program);
+        robot
+            .vm
+            .set_outputs(vec![1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0]);
         let mut instructions = robot.instructions();
 
         assert_eq!(instructions.next(), Some(make_instruction(0, 0, true)));
