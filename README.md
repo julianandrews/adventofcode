@@ -15,3 +15,4 @@ Solutions are organized by year.
 - [2021](2021) - More Rust! I lost steam towards the end, but finally finished up in 2023.
 - [2022](2022) - All parts in Rust! I set a goal of sub 1s total runtime.
 - [2023](2023) - Still more Rust. Once again aiming for sub 1s total runtime.
+- [2024](2024) - Same as the last few years!
