@@ -16,7 +16,7 @@ handle correctly.
 | Day | Runtime |
 | --- | ------: |
 | 1   |   0.5ms |
-| 2   |   1.8ms |
-| 3   |   2.7ms |
+| 2   |   0.7ms |
+| 3   |   1.1ms |
 
-Total Runtime: 5.0ms
+Total Runtime: 2.3ms
