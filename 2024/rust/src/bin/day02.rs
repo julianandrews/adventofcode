@@ -4,7 +4,7 @@ use anyhow::Result;
 
 fn main() -> Result<()> {
     let input = aoc::utils::get_input()?;
-    let reports: Vec<Report> = aoc::utils::parse_fields(&input.trim(), '\n')?;
+    let reports: Vec<Report> = aoc::utils::parse_fields(input.trim(), '\n')?;
 
     println!("{}", part1(&reports));
     println!("{}", part2(&reports));
