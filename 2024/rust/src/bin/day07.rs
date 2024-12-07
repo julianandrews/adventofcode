@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 
 fn main() -> Result<()> {
     let input = aoc::utils::get_input()?;
@@ -94,9 +94,6 @@ impl std::str::FromStr for Equation {
             .ok_or_else(|| anyhow!("Failed to parse '{}'", s))?;
         let test_value = left.parse()?;
         let numbers: Vec<usize> = aoc::utils::parse_fields(right, ' ')?;
-        if numbers.len() == 0 {
-            bail!("No numbers found in '{}'", s);
-        }
         Ok(Equation {
             test_value,
             numbers,
@@ -132,7 +129,7 @@ mod tests {
         assert!(!equations[6].is_valid(&ops));
         assert!(!equations[7].is_valid(&ops));
         assert!(equations[8].is_valid(&ops));
-        assert_eq!(part1(&equations), 3749);
+        assert_eq!(valid_total(&equations, &ops), 3749);
     }
 
     #[test]
@@ -148,6 +145,6 @@ mod tests {
         assert!(equations[6].is_valid(&ops));
         assert!(!equations[7].is_valid(&ops));
         assert!(equations[8].is_valid(&ops));
-        assert_eq!(part2(&equations), 11387);
+        assert_eq!(valid_total(&equations, &ops), 11387);
     }
 }
