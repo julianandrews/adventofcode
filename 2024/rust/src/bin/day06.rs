@@ -4,6 +4,12 @@ use rustc_hash::FxHashSet;
 
 use aoc::planar::{CardinalDirection, Direction, TileMap, Turn};
 
+// Optimizations to consider:
+//      Replace FxHashSet with Vectors
+//      Jump Map?
+//      For part 2, Can just step through the path, and try an obstruction at each point, then
+//      check for a loop
+
 type LabMap = TileMap<Tile>;
 
 fn main() -> Result<()> {
@@ -31,7 +37,11 @@ fn part1(map: &LabMap, guard: Guard) -> Result<usize> {
     let visited = guard
         .visited(map, None)
         .ok_or_else(|| anyhow!("Loop detected"))?;
-    Ok(visited.len())
+    let coords: FxHashSet<(usize, usize)> = visited
+        .into_iter()
+        .map(|guard| (guard.x, guard.y))
+        .collect();
+    Ok(coords.len())
 }
 
 fn part2(map: &LabMap, guard: Guard) -> Result<usize> {
@@ -39,8 +49,13 @@ fn part2(map: &LabMap, guard: Guard) -> Result<usize> {
         .visited(map, None)
         .ok_or_else(|| anyhow!("Loop detected"))?;
     let mut count = 0;
-    for (x, y) in candidates {
-        if guard.visited(map, Some((x, y))).is_none() {
+    for mut g in candidates {
+        let mut obstruction = g;
+        obstruction.step(map, None);
+        g.direction = g.direction.turn(Turn::Clockwise);
+        if g.visited(map, Some((obstruction.x, obstruction.y)))
+            .is_none()
+        {
             count += 1;
         }
     }
@@ -72,7 +87,7 @@ impl Guard {
         &self,
         map: &LabMap,
         obstruction: Option<(usize, usize)>,
-    ) -> Option<FxHashSet<(usize, usize)>> {
+    ) -> Option<FxHashSet<Guard>> {
         let mut guard = *self;
         let mut visited: FxHashSet<Guard> = FxHashSet::default();
         visited.insert(guard);
@@ -81,12 +96,7 @@ impl Guard {
                 return None;
             }
         }
-        Some(
-            visited
-                .into_iter()
-                .map(|guard| (guard.x, guard.y))
-                .collect(),
-        )
+        Some(visited)
     }
 }
 
