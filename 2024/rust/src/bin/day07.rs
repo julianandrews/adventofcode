@@ -1,5 +1,4 @@
 use anyhow::{anyhow, bail, Result};
-use itertools::Itertools;
 
 fn main() -> Result<()> {
     let input = aoc::utils::get_input()?;
@@ -12,17 +11,17 @@ fn main() -> Result<()> {
 }
 
 fn part1(equations: &[Equation]) -> usize {
-    equations
-        .iter()
-        .filter(|eq| eq.wrong_is_valid())
-        .map(|eq| eq.test_value)
-        .sum()
+    valid_total(equations, &[Op::Add, Op::Multiply])
 }
 
 fn part2(equations: &[Equation]) -> usize {
+    valid_total(equations, &[Op::Add, Op::Multiply, Op::Concatenate])
+}
+
+fn valid_total(equations: &[Equation], ops: &[Op]) -> usize {
     equations
         .iter()
-        .filter(|eq| eq.is_valid())
+        .filter(|eq| eq.is_valid(ops))
         .map(|eq| eq.test_value)
         .sum()
 }
@@ -34,49 +33,21 @@ struct Equation {
 }
 
 impl Equation {
-    fn wrong_is_valid(&self) -> bool {
-        let operator_count = self.numbers.len() - 1;
-        let it = (0..operator_count)
-            .map(|_| [Op::Add, Op::Multiply].into_iter())
-            .multi_cartesian_product();
-        for ops in it {
-            let mut value = self.numbers[0];
-            for (n, op) in self.numbers.iter().skip(1).zip(ops) {
-                match op {
-                    Op::Add => value += n,
-                    Op::Multiply => value *= n,
-                    _ => unreachable!(),
-                }
-            }
-            if value == self.test_value {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn is_valid(&self) -> bool {
-        let operator_count = self.numbers.len() - 1;
-        let it = (0..operator_count)
-            .map(|_| [Op::Add, Op::Multiply, Op::Concatenate].into_iter())
-            .multi_cartesian_product();
-        for ops in it {
-            let mut value = self.numbers[0];
-            for (n, op) in self.numbers.iter().skip(1).zip(ops) {
-                match op {
-                    Op::Add => value += n,
-                    Op::Multiply => value *= n,
-                    Op::Concatenate => {
-                        let digits = n.to_string().len() as u32;
-                        value = value * 10_i32.pow(digits) as usize + n
+    fn is_valid(&self, ops: &[Op]) -> bool {
+        fn is_valid_recurse(value: usize, numbers: &[usize], ops: &[Op]) -> bool {
+            if let Some((&n, rest)) = numbers.split_last() {
+                for op in ops {
+                    if let Some(new_value) = op.inverse(value, n) {
+                        if is_valid_recurse(new_value, rest, ops) {
+                            return true;
+                        }
                     }
                 }
             }
-            if value == self.test_value {
-                return true;
-            }
+            value == 0
         }
-        false
+
+        is_valid_recurse(self.test_value, &self.numbers, ops)
     }
 }
 
@@ -85,6 +56,33 @@ enum Op {
     Add,
     Multiply,
     Concatenate,
+}
+
+impl Op {
+    /// Return the inverse of Op(a, b) if it exists.
+    fn inverse(&self, a: usize, b: usize) -> Option<usize> {
+        match self {
+            Op::Add => a.checked_sub(b),
+            Op::Multiply => {
+                if a % b == 0 {
+                    Some(a / b)
+                } else {
+                    None
+                }
+            }
+            Op::Concatenate => {
+                let mut tens = 10;
+                while tens < b {
+                    tens = tens.saturating_mul(10);
+                }
+                if a % tens == b {
+                    Some(a / tens)
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }
 
 impl std::str::FromStr for Equation {
@@ -124,30 +122,32 @@ mod tests {
     #[test]
     fn wrong_is_valid() {
         let equations: Vec<Equation> = aoc::utils::parse_fields(TEST_DATA, '\n').unwrap();
-        assert!(equations[0].wrong_is_valid());
-        assert!(equations[1].wrong_is_valid());
-        assert!(!equations[2].wrong_is_valid());
-        assert!(!equations[3].wrong_is_valid());
-        assert!(!equations[4].wrong_is_valid());
-        assert!(!equations[5].wrong_is_valid());
-        assert!(!equations[6].wrong_is_valid());
-        assert!(!equations[7].wrong_is_valid());
-        assert!(equations[8].wrong_is_valid());
+        let ops = [Op::Add, Op::Multiply];
+        assert!(equations[0].is_valid(&ops));
+        assert!(equations[1].is_valid(&ops));
+        assert!(!equations[2].is_valid(&ops));
+        assert!(!equations[3].is_valid(&ops));
+        assert!(!equations[4].is_valid(&ops));
+        assert!(!equations[5].is_valid(&ops));
+        assert!(!equations[6].is_valid(&ops));
+        assert!(!equations[7].is_valid(&ops));
+        assert!(equations[8].is_valid(&ops));
         assert_eq!(part1(&equations), 3749);
     }
 
     #[test]
     fn is_valid() {
         let equations: Vec<Equation> = aoc::utils::parse_fields(TEST_DATA, '\n').unwrap();
-        assert!(equations[0].is_valid());
-        assert!(equations[1].is_valid());
-        assert!(!equations[2].is_valid());
-        assert!(equations[3].is_valid());
-        assert!(equations[4].is_valid());
-        assert!(!equations[5].is_valid());
-        assert!(equations[6].is_valid());
-        assert!(!equations[7].is_valid());
-        assert!(equations[8].is_valid());
+        let ops = [Op::Add, Op::Multiply, Op::Concatenate];
+        assert!(equations[0].is_valid(&ops));
+        assert!(equations[1].is_valid(&ops));
+        assert!(!equations[2].is_valid(&ops));
+        assert!(equations[3].is_valid(&ops));
+        assert!(equations[4].is_valid(&ops));
+        assert!(!equations[5].is_valid(&ops));
+        assert!(equations[6].is_valid(&ops));
+        assert!(!equations[7].is_valid(&ops));
+        assert!(equations[8].is_valid(&ops));
         assert_eq!(part2(&equations), 11387);
     }
 }
