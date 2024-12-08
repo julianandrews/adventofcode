@@ -33,9 +33,9 @@ impl Direction for CardinalDirection {
 
     fn step(&self) -> (i8, i8) {
         match self {
-            Self::North => (0, -1),
+            Self::North => (0, 1),
             Self::East => (1, 0),
-            Self::South => (0, 1),
+            Self::South => (0, -1),
             Self::West => (-1, 0),
         }
     }
@@ -71,14 +71,14 @@ impl Direction for CompassPoint {
 
     fn step(&self) -> (i8, i8) {
         match self {
-            Self::N => (0, -1),
-            Self::NE => (1, -1),
+            Self::N => (0, 1),
+            Self::NE => (1, 1),
             Self::E => (1, 0),
-            Self::SE => (1, 1),
-            Self::S => (0, 1),
-            Self::SW => (-1, 1),
+            Self::SE => (1, -1),
+            Self::S => (0, -1),
+            Self::SW => (-1, -1),
             Self::W => (-1, 0),
-            Self::NW => (-1, -1),
+            Self::NW => (-1, 1),
         }
     }
 }
