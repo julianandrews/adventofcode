@@ -14,17 +14,22 @@ fn main() -> Result<()> {
 }
 
 fn part1(map: &LabMap, mut guard: Guard) -> Result<usize> {
-    // TODO: Return error on loop instead of running forever.
-    let mut visited: FxHashSet<(usize, usize)> = FxHashSet::default();
-    visited.insert((guard.x, guard.y));
+    let mut visited: FxHashSet<Guard> = FxHashSet::default();
+    visited.insert(guard);
     while let Some(((x, y), obstructed)) = map.step(&guard) {
         if obstructed {
             guard.turn(Turn::Clockwise);
         } else {
             (guard.x, guard.y) = (x, y);
-            visited.insert((x, y));
+            if !visited.insert(guard) {
+                bail!("Loop detected");
+            }
         }
     }
+    let visited: FxHashSet<(usize, usize)> = visited
+        .into_iter()
+        .map(|guard| (guard.x, guard.y))
+        .collect();
     Ok(visited.len())
 }
 
@@ -90,20 +95,21 @@ impl LabMap {
         false
     }
 
-    fn obstruction_options(&self, mut guard: Guard) -> Result<FxHashSet<(usize, usize)>> {
-        // TODO:
-        //   - Ensure no loop without obstructions.
-        //   - See if I can avoid stepping from 'original'.
-        //     The issue is that some approaches to a spot become impossible if we had to pass
-        //     through the tile to make the approach.
-        let original = guard;
-        let mut result: FxHashSet<(usize, usize)> = FxHashSet::default();
+    fn obstruction_options(&self, mut guard: Guard) -> Result<Vec<(usize, usize)>> {
+        let mut visited: FxHashSet<Guard> = FxHashSet::default();
+        let mut tested: FxHashSet<(usize, usize)> = FxHashSet::default();
+        let mut result = vec![];
         while let Some(((x, y), obstructed)) = self.step(&guard) {
+            if !visited.insert(guard) {
+                bail!("Loop detected");
+            }
             if obstructed {
                 guard.turn(Turn::Clockwise);
             } else {
-                if self.makes_loop(original, (x, y)) {
-                    result.insert((x, y));
+                // See if we get a loop by sticking an obstruction right in front of the guard.
+                // Avoid retesting points both to improve performance and to avoid false positives.
+                if tested.insert((x, y)) && self.makes_loop(guard, (x, y)) {
+                    result.push((x, y));
                 }
                 (guard.x, guard.y) = (x, y);
             }
@@ -169,9 +175,7 @@ mod tests {
     #[test]
     fn obstruction_options() {
         let (map, guard) = parse_input(TEST_DATA).unwrap();
-        let expected: FxHashSet<_> = [(3, 3), (6, 2), (7, 2), (1, 1), (3, 1), (7, 0)]
-            .into_iter()
-            .collect();
+        let expected = vec![(3, 3), (6, 2), (3, 1), (1, 1), (7, 2), (7, 0)];
         let result = map.obstruction_options(guard).unwrap();
         assert_eq!(result, expected);
     }
