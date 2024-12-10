@@ -23,6 +23,6 @@ handle correctly.
 | 6   |  11.3ms |
 | 7   |   1.5ms |
 | 8   |   0.5ms |
-| 9   |  11.7ms |
+| 9   |   0.8ms |
 
-Total Runtime: 29.2ms
+Total Runtime: 18.3ms

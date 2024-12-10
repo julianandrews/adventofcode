@@ -1,5 +1,8 @@
 #![feature(iterator_try_collect)]
 
+use std::cmp::Reverse;
+use std::collections::BinaryHeap;
+
 use anyhow::{bail, Result};
 
 fn main() -> Result<()> {
@@ -68,37 +71,16 @@ impl DiskMap {
 
     fn checksum(&self) -> usize {
         let mut result = 0;
-        let mut positions: Vec<_> = self
-            .0
-            .iter()
-            .scan(0, |total, &n| {
-                let value = *total;
-                *total += n;
-                Some(value)
-            })
-            .collect();
-        let mut spaces: Vec<usize> = self.0.iter().skip(1).step_by(2).copied().collect();
-        for (file_id, &file_size) in self.0.iter().step_by(2).enumerate().rev() {
-            let mut moved = false;
-            // TODO: Avoid re-checking filled spaces.
-            for (i, space) in spaces
-                .iter_mut()
-                .enumerate()
-                .take_while(|&(i, _)| file_id > i)
-            {
-                if *space >= file_size {
-                    *space -= file_size;
-                    let position = positions[2 * i + 1];
-                    positions[2 * i + 1] += file_size;
-                    result += Self::contribution(file_id, position, file_size);
-                    moved = true;
-                    break;
-                }
+        let mut position: usize = self.0.iter().sum();
+        let mut allocator = Allocator::new(self);
+        for (index, &size) in self.0.iter().enumerate().rev() {
+            position -= size;
+            if index % 2 == 1 {
+                continue;
             }
-            if !moved {
-                let position = positions[file_id * 2];
-                result += Self::contribution(file_id, position, file_size);
-            }
+            let file_id = index / 2;
+            let allocated_position = allocator.allocate(size, position).unwrap_or(position);
+            result += Self::contribution(file_id, allocated_position, size);
         }
         result
     }
@@ -108,15 +90,59 @@ impl DiskMap {
     }
 }
 
+/// Use 10 min heaps indexed by size for quick access to the first free space of a given size.
+/// Shamelessly copied (in concept) from https://github.com/maneatingape/advent-of-code-rust/blob/main/src/year2024/day09.rs
+#[derive(Debug, Clone)]
+struct Allocator(Vec<BinaryHeap<Reverse<usize>>>);
+
+impl Allocator {
+    fn new(disk_map: &DiskMap) -> Self {
+        let mut heaps = vec![BinaryHeap::<Reverse<usize>>::new(); 10];
+        let mut position = 0;
+        for (i, &size) in disk_map.0.iter().enumerate() {
+            if i % 2 == 1 && size > 0 {
+                heaps[size].push(Reverse(position));
+            }
+            position += size;
+        }
+        Allocator(heaps)
+    }
+
+    /// Allocates a file to the leftmost position and returns the position.
+    fn allocate(&mut self, file_size: usize, ceiling: usize) -> Option<usize> {
+        let mut best = (usize::MAX, 0);
+        for space in file_size..10 {
+            if let Some(Reverse(position)) = self.0[space].peek() {
+                if *position > ceiling {
+                    continue;
+                }
+                if *position < best.0 {
+                    best = (*position, space);
+                }
+            }
+        }
+        if best == (usize::MAX, 0) {
+            None
+        } else {
+            let space = best.1;
+            let Reverse(position) = self.0[space].pop().unwrap();
+            if file_size < space {
+                self.0[space - file_size].push(Reverse(position + file_size));
+            }
+            Some(position)
+        }
+    }
+}
+
 impl std::str::FromStr for DiskMap {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
         Ok(DiskMap(
-            s.chars()
-                .map(|c| match c {
-                    '0'..='9' => Ok((c as u8 - '0' as u8) as usize),
-                    _ => bail!("Unrecognized character {}", c),
+            s.bytes()
+                .map(|b| match b {
+                    b'0'..=b'9' => Ok((b - b'0') as usize),
+                    _ => bail!("Unrecognized character {}", b as char),
                 })
                 .try_collect()?,
         ))
