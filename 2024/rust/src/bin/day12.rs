@@ -14,11 +14,11 @@ fn main() -> Result<()> {
 }
 
 fn part1(regions: &[Region]) -> usize {
-    regions.iter().map(Region::price).sum()
+    regions.iter().map(|r| r.area * r.perimeter).sum()
 }
 
 fn part2(regions: &[Region]) -> usize {
-    regions.iter().map(Region::bulk_price).sum()
+    regions.iter().map(|r| r.area * r.sides).sum()
 }
 
 #[derive(Debug, Clone)]
@@ -29,21 +29,21 @@ impl GardenMap {
         let mut regions = vec![];
         let mut visited = vec![vec![false; self.0.width()]; self.0.height()];
         let mut roots = vec![(0, 0)];
-        let mut neighbors = vec![];
-        let mut side_tracker = SideTracker::new(self.0.height(), self.0.width());
+        let mut to_visit = vec![];
         let mut region = Region::default();
         loop {
-            let (x, y) = match neighbors.pop() {
+            let (x, y) = match to_visit.pop() {
                 Some(value) => value,
                 None => {
                     if region.area != 0 {
-                        region.sides = side_tracker.count();
-                        side_tracker.clear();
                         regions.push(region);
                         region = Region::default();
                     }
                     match roots.pop() {
-                        Some(root) => root,
+                        Some(root) => {
+                            region.label = (self.0.get(root.0, root.1).unwrap().0 + b'A') as char;
+                            root
+                        }
                         None => break,
                     }
                 }
@@ -52,39 +52,64 @@ impl GardenMap {
                 continue;
             }
             visited[y][x] = true;
-            let plot = self.0.get(x, y);
-            region.area += 1;
-            region.perimeter += 4;
-            for (neighbor, direction) in self.neighbors(x, y) {
-                let (nx, ny) = match neighbor {
-                    Some(neighbor) => neighbor,
-                    None => {
-                        side_tracker.add(direction, x, y);
-                        continue;
-                    }
-                };
-                if self.0.get(nx, ny) == plot {
-                    region.perimeter -= 1;
+            let plot = *self.0.get(x, y).unwrap();
+            let mut perimeter = 4;
+            for (nx, ny) in self.neighbors(x, y) {
+                if self.matches(nx, ny, plot) {
+                    perimeter -= 1;
                     if !visited[ny][nx] {
-                        neighbors.push((nx, ny));
+                        to_visit.push((nx, ny));
                     }
-                } else {
-                    side_tracker.add(direction, x, y);
-                    if !visited[ny][nx] {
-                        roots.push((nx, ny));
-                    }
+                } else if !visited[ny][nx] {
+                    roots.push((nx, ny));
                 }
             }
+            region.sides += self.corners(x, y, plot);
+            region.area += 1;
+            region.perimeter += perimeter;
         }
         regions
     }
 
-    pub fn neighbors(
-        &self,
-        x: usize,
-        y: usize,
-    ) -> impl Iterator<Item = (Option<(usize, usize)>, CardinalDirection)> + '_ {
-        CardinalDirection::iter().map(move |d| (self.0.step(x, y, d), d))
+    fn matches(&self, x: usize, y: usize, plot: Plot) -> bool {
+        self.0.get(x, y).map(|&p| p == plot).unwrap_or(false)
+    }
+
+    fn neighbors(&self, x: usize, y: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
+        CardinalDirection::iter().filter_map(move |d| self.0.step(x, y, d))
+    }
+
+    /// Count the number of corners at (x, y)
+    fn corners(&self, x: usize, y: usize, plot: Plot) -> usize {
+        let mut count = 0;
+        let matches: Vec<bool> = CardinalDirection::iter()
+            .map(|d| {
+                self.0
+                    .step(x, y, d)
+                    .map(|(nx, ny)| self.matches(nx, ny, plot))
+                    .unwrap_or(false)
+            })
+            .collect();
+        for i in 0..4 {
+            if matches[i] == matches[(i + 1) % 4] {
+                if matches[i] {
+                    let d1 = CardinalDirection::try_from(i as u8).unwrap();
+                    let d2 = CardinalDirection::try_from((i as u8 + 1) % 4).unwrap();
+                    let p = self
+                        .0
+                        .step(x, y, d1)
+                        .and_then(|(nx, ny)| self.0.step(nx, ny, d2));
+                    if let Some((nx, ny)) = p {
+                        if !self.matches(nx, ny, plot) {
+                            count += 1;
+                        }
+                    }
+                } else {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 }
 
@@ -104,70 +129,10 @@ impl TryFrom<char> for Plot {
 
 #[derive(Debug, Copy, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
 struct Region {
+    label: char,
     area: usize,
     perimeter: usize,
     sides: usize,
-}
-
-impl Region {
-    fn price(&self) -> usize {
-        self.area * self.perimeter
-    }
-
-    fn bulk_price(&self) -> usize {
-        self.area * self.sides
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-struct SideTracker([Vec<Vec<bool>>; 4]);
-
-impl SideTracker {
-    fn new(height: usize, width: usize) -> Self {
-        SideTracker(std::array::from_fn(|i| {
-            if i % 2 == 0 {
-                vec![vec![false; width]; height]
-            } else {
-                vec![vec![false; height]; width]
-            }
-        }))
-    }
-
-    fn add(&mut self, direction: CardinalDirection, x: usize, y: usize) {
-        let (position, value) = match direction {
-            CardinalDirection::North | CardinalDirection::South => (y, x),
-            CardinalDirection::East | CardinalDirection::West => (x, y),
-        };
-
-        self.0[u8::from(direction) as usize][position][value] = true;
-    }
-
-    fn clear(&mut self) {
-        for v1 in &mut self.0 {
-            for v2 in v1 {
-                for value in v2 {
-                    *value = false;
-                }
-            }
-        }
-    }
-
-    fn count(&self) -> usize {
-        let mut count = 0;
-        for v1 in &self.0 {
-            for v2 in v1 {
-                for pair in v2.windows(2) {
-                    if pair[1] && !pair[0] {
-                        count += 1;
-                    }
-                }
-                if v2.first() == Some(&true) {
-                    count += 1;
-                }
-            }
-        }
-        count
-    }
 }
 
 #[cfg(test)]
@@ -193,17 +158,17 @@ mod tests {
         regions.sort_unstable();
         #[rustfmt::skip]
         let mut expected = vec![
-            Region { area: 12, perimeter: 18, sides: 10 },
-            Region { area: 4, perimeter: 8, sides: 4 },
-            Region { area: 14, perimeter: 28, sides: 22 },
-            Region { area: 10, perimeter: 18, sides: 12 },
-            Region { area: 13, perimeter: 20, sides: 10 },
-            Region { area: 11, perimeter: 20, sides: 12 },
-            Region { area: 1, perimeter: 4, sides: 4 },
-            Region { area: 13, perimeter: 18, sides: 8 },
-            Region { area: 14, perimeter: 22, sides: 16 },
-            Region { area: 5, perimeter: 12, sides: 6 },
-            Region { area: 3, perimeter: 8, sides: 6 },
+            Region { label: 'R', area: 12, perimeter: 18, sides: 10 },
+            Region { label: 'I', area: 4, perimeter: 8, sides: 4 },
+            Region { label: 'C', area: 14, perimeter: 28, sides: 22 },
+            Region { label: 'F', area: 10, perimeter: 18, sides: 12 },
+            Region { label: 'V', area: 13, perimeter: 20, sides: 10 },
+            Region { label: 'J', area: 11, perimeter: 20, sides: 12 },
+            Region { label: 'C', area: 1, perimeter: 4, sides: 4 },
+            Region { label: 'E', area: 13, perimeter: 18, sides: 8 },
+            Region { label: 'I', area: 14, perimeter: 22, sides: 16 },
+            Region { label: 'M', area: 5, perimeter: 12, sides: 6 },
+            Region { label: 'S', area: 3, perimeter: 8, sides: 6 },
         ];
         expected.sort_unstable();
         assert_eq!(regions, expected);
