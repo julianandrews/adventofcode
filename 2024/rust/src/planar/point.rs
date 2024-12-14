@@ -32,6 +32,14 @@ impl std::ops::Sub for Point {
     }
 }
 
+impl std::ops::Mul<i64> for Point {
+    type Output = Self;
+
+    fn mul(self, rhs: i64) -> Self::Output {
+        Self::new(self.x * rhs, self.y * rhs)
+    }
+}
+
 impl std::ops::AddAssign for Point {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
