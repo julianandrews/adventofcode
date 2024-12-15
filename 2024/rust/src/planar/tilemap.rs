@@ -2,13 +2,23 @@ use super::Direction;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TileMap<T> {
-    rows: Vec<Vec<T>>,
-    width: usize,
+    pub rows: Vec<Vec<T>>,
+    pub width: usize,
 }
 
 impl<T> TileMap<T> {
     pub fn get(&self, x: usize, y: usize) -> Option<&T> {
         self.rows.get(y)?.get(x)
+    }
+
+    pub fn set(&mut self, x: usize, y: usize, tile: T) -> Option<T>
+    where
+        T: Copy,
+    {
+        let old = self.rows.get_mut(y)?.get_mut(x)?;
+        let result = *old;
+        *old = tile;
+        Some(result)
     }
 
     pub fn height(&self) -> usize {
@@ -36,6 +46,15 @@ impl<T> TileMap<T> {
 
     pub fn iter_coords(&'_ self) -> impl Iterator<Item = (usize, usize)> + '_ {
         (0..self.rows.len()).flat_map(move |y| (0..self.rows[y].len()).map(move |x| (x, y)))
+    }
+
+    pub fn find(&self, tile: T) -> Option<(usize, usize)>
+    where
+        T: PartialEq,
+    {
+        self.iter_coords()
+            .filter(|&(x, y)| self.get(x, y) == Some(&tile))
+            .next()
     }
 }
 
