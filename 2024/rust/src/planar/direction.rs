@@ -7,7 +7,9 @@ pub trait Direction: Sized {
     fn step(&self) -> (i8, i8);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, TryFromPrimitive, IntoPrimitive)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, TryFromPrimitive, IntoPrimitive,
+)]
 #[repr(u8)]
 pub enum CardinalDirection {
     North,
