@@ -18,8 +18,8 @@ pub fn get_input() -> std::io::Result<String> {
     Ok(input)
 }
 
-pub fn parse_fields<'a, P: Pattern<'a>, T: FromStr, C: FromIterator<T>>(
-    data: &'a str,
+pub fn parse_fields<P: Pattern, T: FromStr, C: FromIterator<T>>(
+    data: &str,
     pat: P,
 ) -> Result<C, <T as FromStr>::Err> {
     data.split(pat).map(&str::parse).collect()

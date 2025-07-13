@@ -30,7 +30,7 @@ impl DiskMap {
         let mut result = 0;
         let mut position = 0;
         let mut rev_files = self.0.iter().step_by(2).enumerate().rev();
-        let mut rev_file_id = (self.0.len() + 1) / 2;
+        let mut rev_file_id = self.0.len().div_ceil(2);
         let mut rev_file_size = 0;
 
         for (i, n) in self.0.iter().enumerate() {

@@ -52,7 +52,7 @@ impl WarehouseMap {
         for &(x, y) in &points {
             tile = self.0.set(x, y, tile).unwrap();
         }
-        points.get(0).copied()
+        points.first().copied()
     }
 
     fn walk(&mut self, directions: &[CardinalDirection]) {
@@ -128,7 +128,7 @@ impl WideWarehouseMap {
         for ((x, y), tile) in new_tiles {
             self.0.set(x, y, tile);
         }
-        moves.get(0).map(|(_, to)| to).copied()
+        moves.first().map(|(_, to)| to).copied()
     }
 
     fn walk(&mut self, directions: &[CardinalDirection]) {

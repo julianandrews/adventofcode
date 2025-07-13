@@ -53,8 +53,7 @@ impl<T> TileMap<T> {
         T: PartialEq,
     {
         self.iter_coords()
-            .filter(|&(x, y)| self.get(x, y) == Some(&tile))
-            .next()
+            .find(|&(x, y)| self.get(x, y) == Some(&tile))
     }
 }
 
