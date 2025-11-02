@@ -79,7 +79,7 @@ impl Maze {
                 let mut to_visit = vec![&node.state];
                 while let Some(state) = to_visit.pop() {
                     tiles.insert(state.position);
-                    parents.get(state).map(|states| to_visit.extend(states));
+                    if let Some(states) = parents.get(state) { to_visit.extend(states) }
                 }
                 continue;
             } else if matches!(scores.get(&node.state), Some(&score) if node.score > score) {
