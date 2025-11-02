@@ -53,6 +53,7 @@ impl VM {
 
     fn execute(&mut self, operator: Instruction, operand: u64) -> Result<Option<u64>> {
         let mut output = None;
+        self.ip += 2;
         match operator {
             Instruction::Adv => self.r_a >>= self.combo_operand(operand)?,
             Instruction::Bxl => self.r_b ^= operand,
@@ -60,17 +61,12 @@ impl VM {
             Instruction::Jnz => {
                 if self.r_a != 0 {
                     self.ip = operand as usize
-                } else {
-                    self.ip += 2;
                 }
             }
             Instruction::Bxc => self.r_b ^= self.r_c,
             Instruction::Out => output = Some(self.combo_operand(operand)? % 8),
             Instruction::Bdv => self.r_b = self.r_a >> self.combo_operand(operand)?,
             Instruction::Cdv => self.r_c = self.r_a >> self.combo_operand(operand)?,
-        }
-        if operator != Instruction::Jnz {
-            self.ip += 2;
         }
         Ok(output)
     }
