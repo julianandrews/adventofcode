@@ -33,5 +33,6 @@ handle correctly.
 | 16  |   5.2ms |
 | 17  |   0.4ms |
 | 18  |   0.8ms |
+| 19  |   3.4ms |
 
-Total Runtime: 37.1ms
+Total Runtime: 40.5ms
