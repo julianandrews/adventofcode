@@ -61,8 +61,8 @@ fn find_last_path<const SIZE: usize>(points: &[Point]) -> Option<Point> {
     let mut bottom = 0;
     let mut top = points.len();
     while top != bottom {
-        let mid = bottom + (top - bottom + 1) / 2;
-        if let Some(_) = find_path::<SIZE>(&points[0..mid]) {
+        let mid = bottom + (top - bottom).div_ceil(2);
+        if find_path::<SIZE>(&points[0..mid]).is_some() {
             bottom = mid;
             if bottom == top - 1 {
                 return Some(points[mid]);
