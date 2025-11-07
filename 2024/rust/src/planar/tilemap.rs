@@ -55,6 +55,21 @@ impl<T> TileMap<T> {
         self.iter_coords()
             .find(|&(x, y)| self.get(x, y) == Some(&tile))
     }
+
+    pub fn manhattan_neighbors(
+        &self,
+        x: usize,
+        y: usize,
+    ) -> impl Iterator<Item = (usize, usize)> + '_ {
+        [
+            (x + 1, y),
+            (x.wrapping_sub(1), y),
+            (x, y + 1),
+            (x, y.wrapping_sub(1)),
+        ]
+        .into_iter()
+        .filter(|(nx, ny)| *nx < self.width() && *ny < self.height())
+    }
 }
 
 impl<T: TryFrom<char>> std::str::FromStr for TileMap<T> {
