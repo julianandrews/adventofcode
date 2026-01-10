@@ -1,0 +1,4 @@
+inputs
+rust/flamegraph.svg
+rust/perf.data
+rust/perf.data.old
