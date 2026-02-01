@@ -16,7 +16,7 @@ fn part2(map: &mut WarehouseMap) -> usize {
     let mut count = 0;
     loop {
         let to_remove = map.removable().collect::<Vec<_>>();
-        if to_remove.len() == 0 {
+        if to_remove.is_empty() {
             break;
         }
         count += to_remove.len();
