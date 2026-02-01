@@ -18,5 +18,6 @@ handle correctly.
 | 1   |   0.6ms |
 | 2   |   0.9ms |
 | 3   |   0.7ms |
+| 3   |   4.7ms |
 
-Total Runtime: 2.2ms
+Total Runtime: 6.9ms
