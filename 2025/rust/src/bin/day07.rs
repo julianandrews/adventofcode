@@ -4,7 +4,7 @@ use aoc_2025::byte_grid::ByteGrid;
 
 fn main() -> Result<()> {
     let input = aoc_2025::utils::get_input()?;
-    let grid = TachyonGrid::from_str(input.trim())?;
+    let grid = TachyonGrid::new(input.trim())?;
 
     println!("{}", part1(&grid));
     println!("{}", part2(&grid));
@@ -12,11 +12,11 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part1<'a>(grid: &TachyonGrid<'a>) -> u64 {
+fn part1(grid: &TachyonGrid) -> u64 {
     grid.count_splitters()
 }
 
-fn part2<'a>(grid: &TachyonGrid<'a>) -> u64 {
+fn part2(grid: &TachyonGrid) -> u64 {
     grid.count_paths()
 }
 
@@ -50,10 +50,15 @@ impl<'a> TachyonGrid<'a> {
         self.starts.iter().map(|&x| path_counts[x]).sum()
     }
 
-    pub fn from_str(s: &'a str) -> Result<Self> {
-        let byte_grid = ByteGrid::from_str(s)?;
+    pub fn new(s: &'a str) -> Result<Self> {
+        let byte_grid = ByteGrid::new(s)?;
         let starts: Vec<usize> = byte_grid.find_in_row(b'S', 0).collect();
 
+        // Validate assumptions:
+        // - Only 'S', '^', and '.' appear in the diagram
+        // - 'S' only appears in the first row
+        // - 'S' and '^' are never on the sides
+        // - '^^' never appears (neccessary for single-pass beams splicing)
         if byte_grid.row(0).iter().any(|&b| !matches!(b, b'S' | b'.')) {
             bail!("Unexpected byte in first row.");
         }
@@ -61,6 +66,9 @@ impl<'a> TachyonGrid<'a> {
             bail!("Beam start at grid edge.");
         }
         for row in byte_grid.rows().skip(1) {
+            if row.windows(2).any(|pair| matches!(pair, [b'^', b'^'])) {
+                bail!("Adjacent splitters");
+            }
             if row.iter().any(|&b| !matches!(b, b'^' | b'.')) {
                 bail!("Unexpected byte in grid");
             }
@@ -98,7 +106,7 @@ mod tests {
 
     #[test]
     fn count_splitters() {
-        let grid = TachyonGrid::from_str(TEST_DATA).unwrap();
+        let grid = TachyonGrid::new(TEST_DATA).unwrap();
         let result = grid.count_splitters();
 
         assert_eq!(result, 21);
@@ -106,7 +114,7 @@ mod tests {
 
     #[test]
     fn count_paths() {
-        let grid = TachyonGrid::from_str(TEST_DATA).unwrap();
+        let grid = TachyonGrid::new(TEST_DATA).unwrap();
         let result = grid.count_paths();
 
         assert_eq!(result, 40);

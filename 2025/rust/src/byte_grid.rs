@@ -5,7 +5,7 @@ pub struct ByteGrid<'a> {
 }
 
 impl<'a> ByteGrid<'a> {
-    pub fn from_str(s: &'a str) -> Result<Self, ByteGridError> {
+    pub fn new(s: &'a str) -> Result<Self, ByteGridError> {
         let width = s.lines().next().map(|line| line.len()).unwrap_or(0);
         let height = s.lines().count();
         if s.lines().any(|line| line.len() != width) {
