@@ -7,6 +7,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.93"
 rustc-hash = "2.1.1"
+thiserror = "2.0.18"
 # itertools = "0.13.0"
 # num_enum = "0.7.3"
 # rustc-hash = "2.1.0"
