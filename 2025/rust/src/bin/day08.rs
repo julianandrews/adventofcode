@@ -7,7 +7,7 @@ fn main() -> Result<()> {
     let mut solver = Solver::new(parsing::parse_input(input.trim())?);
 
     println!("{}", part1(&mut solver));
-    println!("{}", part2(&mut solver));
+    println!("{}", part2(&mut solver)?);
 
     Ok(())
 }
@@ -19,12 +19,11 @@ fn part1(solver: &mut Solver) -> usize {
     solver.component_sizes()[0..3].iter().product()
 }
 
-fn part2(solver: &mut Solver) -> u64 {
-    let (a, b) = match solver.build_mst_returning_last_edge() {
-        Some(pair) => pair,
-        None => return 0,
-    };
-    a.x * b.x
+fn part2(solver: &mut Solver) -> Result<u64> {
+    match solver.build_mst_returning_last_edge() {
+        Some((a, b)) => Ok(a.x * b.x),
+        None => anyhow::bail!("Graph already connected (maybe in part1?)"),
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -37,7 +36,7 @@ struct Point {
 #[derive(Debug, Clone)]
 struct Solver {
     points: Vec<Point>,
-    edges: Vec<(u64, usize, usize)>,
+    edges: Vec<Edge>,
     disjoint_set: DisjointSet,
     component_count: usize,
 }
@@ -45,14 +44,15 @@ struct Solver {
 impl Solver {
     pub fn new(points: Vec<Point>) -> Self {
         let n = points.len();
-        let mut edges: Vec<(u64, usize, usize)> = Vec::with_capacity(n * (n - 1) / 2);
+        let mut edges: Vec<Edge> = Vec::with_capacity(n * (n - 1) / 2);
         for i in 0..n - 1 {
             for j in i + 1..n {
-                edges.push((squared_distance(&points[i], &points[j]), i, j));
+                let sq_dist = squared_distance(&points[i], &points[j]);
+                edges.push(Edge::new(sq_dist, i, j));
             }
         }
         // Descending order for easy popping
-        edges.sort_unstable_by_key(|&(d, _, _)| std::cmp::Reverse(d));
+        edges.sort_unstable_by_key(|&edge| std::cmp::Reverse(edge));
         let disjoint_set = DisjointSet::new(n);
         Solver {
             points,
@@ -63,20 +63,17 @@ impl Solver {
     }
 
     pub fn add_edge(&mut self) -> Option<(Point, Point)> {
-        match self.edges.pop() {
-            Some((_, i, j)) => {
-                if self.disjoint_set.union(i, j) {
-                    self.component_count -= 1;
-                    Some((self.points[i], self.points[j]))
-                } else {
-                    None
-                }
+        if let Some(edge) = self.edges.pop() {
+            let (i, j) = (edge.i(), edge.j());
+            if self.disjoint_set.union(i, j) {
+                self.component_count -= 1;
+                return Some((self.points[i], self.points[j]));
             }
-            None => None,
         }
+        None
     }
 
-    fn build_mst_returning_last_edge(&mut self) -> Option<(Point, Point)> {
+    pub fn build_mst_returning_last_edge(&mut self) -> Option<(Point, Point)> {
         let mut edge = None;
         while self.component_count > 1 {
             edge = self.add_edge();
@@ -84,13 +81,40 @@ impl Solver {
         edge
     }
 
-    pub fn component_sizes(&mut self) -> Vec<usize> {
+    pub fn component_sizes(&self) -> Vec<usize> {
         let mut sizes = vec![0; self.points.len()];
         for i in 0..self.points.len() {
             sizes[self.disjoint_set.find(i)] += 1;
         }
         sizes.sort_unstable_by_key(|&s| std::cmp::Reverse(s));
         sizes
+    }
+}
+
+/// Edge packed as: [36-bit weight | 14-bit i | 14-bit j] for faster sorting
+/// Weight supports up to 2^36 ≈ 68B (max distance^2 = 3*(100k)^2 = 30B)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Edge(u64);
+
+impl Edge {
+    const INDEX_BITS: u32 = 14;
+    const INDEX_MASK: u64 = (1 << Self::INDEX_BITS) - 1;
+    const WEIGHT_BITS: u32 = 64 - 2 * Self::INDEX_BITS;
+    const WEIGHT_SHIFT: u32 = 64 - Self::WEIGHT_BITS;
+
+    fn new(weight: u64, i: usize, j: usize) -> Self {
+        assert!(i < 1 << Self::INDEX_BITS, "Index too large");
+        assert!(j < 1 << Self::INDEX_BITS, "Index too large");
+        assert!(weight < 1 << Self::WEIGHT_BITS, "Weight too large");
+        Edge((weight << Self::WEIGHT_SHIFT) | ((i as u64) << Self::INDEX_BITS) | (j as u64))
+    }
+
+    fn i(&self) -> usize {
+        ((self.0 >> Self::INDEX_BITS) & Self::INDEX_MASK) as usize
+    }
+
+    fn j(&self) -> usize {
+        (self.0 & Self::INDEX_MASK) as usize
     }
 }
 
@@ -106,6 +130,8 @@ mod parsing {
 
     use crate::Point;
 
+    const MAX_COORD: u64 = 100_000;
+
     pub fn parse_input(s: &str) -> Result<Vec<Point>> {
         s.lines().map(|line| line.parse()).collect()
     }
@@ -115,17 +141,13 @@ mod parsing {
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             let mut coords = s.splitn(3, ',').map(|part| part.trim().parse());
-            Ok(Point {
-                x: coords
-                    .next()
-                    .ok_or_else(|| anyhow!("Missing x coordinate"))??,
-                y: coords
-                    .next()
-                    .ok_or_else(|| anyhow!("Missing x coordinate"))??,
-                z: coords
-                    .next()
-                    .ok_or_else(|| anyhow!("Missing x coordinate"))??,
-            })
+            let x = coords.next().ok_or_else(|| anyhow!("Missing x"))??;
+            let y = coords.next().ok_or_else(|| anyhow!("Missing y"))??;
+            let z = coords.next().ok_or_else(|| anyhow!("Missing z"))??;
+            if x > MAX_COORD || y > MAX_COORD || z > MAX_COORD {
+                anyhow::bail!("Coordinates out of range: {}", s);
+            }
+            Ok(Point { x, y, z })
         }
     }
 }
@@ -198,10 +220,7 @@ mod tests {
         }
         assert_eq!(solver.component_count, 11);
         let sizes = solver.component_sizes();
-        assert_eq!(
-            sizes,
-            vec![5, 4, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        );
+        assert_eq!(&sizes[0..11], &[5, 4, 2, 2, 1, 1, 1, 1, 1, 1, 1]);
     }
 
     #[test]

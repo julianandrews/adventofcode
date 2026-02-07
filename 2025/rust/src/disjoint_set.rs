@@ -4,12 +4,6 @@ pub struct DisjointSet {
     rank: Vec<u32>,
 }
 
-/// A disjoint-set (union-find) data structure with path compression and union by rank.
-///
-/// # Panics
-///
-/// Methods may panic if given indices out of bounds `0..n` where `n` is the size
-/// passed to [`DisjointSet::new`].
 impl DisjointSet {
     pub fn new(n: usize) -> Self {
         Self {
@@ -18,16 +12,49 @@ impl DisjointSet {
         }
     }
 
-    pub fn find(&mut self, x: usize) -> usize {
-        if self.parent[x] != x {
-            self.parent[x] = self.find(self.parent[x]);
+    /// Finds the root of the set containing `x`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `x >= self.len()`.
+    pub fn find(&self, x: usize) -> usize {
+        let mut current = x;
+        while self.parent[current] != current {
+            current = self.parent[current];
         }
-        self.parent[x]
+        current
     }
 
+    /// Finds the root of the set containing `x`, compressing the path.
+    ///
+    /// This is a mutable version of [`DisjointSet::find`] that performs
+    /// path compression, updating parent pointers so that future calls
+    /// to either [`find`] or [`find_mut`] will be faster.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `x >= self.len()`.
+    pub fn find_mut(&mut self, mut x: usize) -> usize {
+        let root = self.find(x);
+        while self.parent[x] != root {
+            let parent = self.parent[x];
+            self.parent[x] = root;
+            x = parent;
+        }
+        root
+    }
+
+    /// Unions the sets containing `x` and `y`.
+    ///
+    /// Returns `true` if the sets were separate and have been merged,
+    /// or `false` if `x` and `y` were already in the same set.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `x >= self.len()` or `y >= self.len()`.
     pub fn union(&mut self, x: usize, y: usize) -> bool {
-        let x_root = self.find(x);
-        let y_root = self.find(y);
+        let x_root = self.find_mut(x);
+        let y_root = self.find_mut(y);
 
         if x_root == y_root {
             return false;
@@ -44,6 +71,11 @@ impl DisjointSet {
 
         true
     }
+
+    /// Returns the number of elements in the disjoint set.
+    pub fn len(&self) -> usize {
+        self.parent.len()
+    }
 }
 
 #[cfg(test)]
@@ -59,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_find_singletons() {
-        let mut ds = DisjointSet::new(5);
+        let ds = DisjointSet::new(5);
         for i in 0..5 {
             assert_eq!(ds.find(i), i);
         }
@@ -95,7 +127,7 @@ mod tests {
         ds.rank = vec![1, 0, 0, 0, 0];
 
         // find(2) should compress path
-        assert_eq!(ds.find(2), 0);
+        assert_eq!(ds.find_mut(2), 0);
         // After compression, parent[2] should point directly to 0
         assert_eq!(ds.parent[2], 0);
     }
@@ -191,18 +223,12 @@ mod tests {
         for i in 1..n {
             assert_eq!(ds.find(i), root);
         }
-
-        // Path compression should make subsequent finds fast
-        // This tests we don't get stack overflow with deep recursion
-        for i in 0..n {
-            ds.find(i);
-        }
     }
 
     #[test]
     #[should_panic(expected = "index out of bounds")]
     fn test_bounds_check_find() {
-        let mut ds = DisjointSet::new(5);
+        let ds = DisjointSet::new(5);
         ds.find(10); // Should panic
     }
 
